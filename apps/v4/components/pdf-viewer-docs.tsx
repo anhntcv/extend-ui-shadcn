@@ -168,27 +168,27 @@ const PdfViewerPreview = dynamic(
 
 const pdfViewerUsageCode = `"use client";
 
-import { Button } from "@/registry/new-york-v4/ui/button";
-import { Input } from "@/registry/new-york-v4/ui/input";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/registry/new-york-v4/ui/popover";
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/registry/new-york-v4/ui/select";
-import { Separator } from "@/registry/new-york-v4/ui/separator";
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/registry/new-york-v4/ui/tooltip";
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import {
   Loading03Icon,
