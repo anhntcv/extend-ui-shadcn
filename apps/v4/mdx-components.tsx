@@ -11,6 +11,7 @@ import { CodeCollapsibleWrapper } from "@/components/code-collapsible-wrapper"
 import { CodeTabs } from "@/components/code-tabs"
 import { ComponentsList } from "@/components/components-list"
 import { CopyButton } from "@/components/copy-button"
+import { CsvViewerDemo, CsvViewerSource } from "@/components/csv-viewer-docs"
 import { getIconForLanguageExtension } from "@/components/icons"
 import { PdfViewerDemo, PdfViewerSource } from "@/components/pdf-viewer-docs"
 import {
@@ -352,6 +353,8 @@ export const mdxComponents = {
   CodeTabs,
   CodeCollapsibleWrapper,
   ComponentsList: ComponentsListWrapper,
+  CsvViewerDemo,
+  CsvViewerSource,
   PdfViewerDemo,
   PdfViewerSource,
   Link: ({ className, ...props }: React.ComponentProps<typeof Link>) => (

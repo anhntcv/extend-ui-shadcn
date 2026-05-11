@@ -6,17 +6,63 @@ component: true
 
 The CSV Viewer covers exports, imports, tabular logs, and datasets that do not need full spreadsheet rendering.
 
+<CsvViewerDemo />
+
+## Installation
+
+<CodeTabs>
+
+<TabsList>
+  <TabsTrigger value="cli">Command</TabsTrigger>
+  <TabsTrigger value="manual">Manual</TabsTrigger>
+</TabsList>
+<TabsContent value="cli">
+
+```bash
+npx shadcn@latest add csv-viewer
+```
+
+</TabsContent>
+
+<TabsContent value="manual">
+
+<Steps className="mb-0 pt-2">
+
+<Step>Install the following dependencies:</Step>
+
+```bash
+npm install @glideapps/glide-data-grid@6.0.4-alpha24 papaparse marked lodash react-responsive-carousel
+```
+
+<Step>Copy and paste the following code into your project.</Step>
+
+<CsvViewerSource />
+
+<Step>Add the Glide Data Grid styles.</Step>
+
+```tsx
+import "@glideapps/glide-data-grid/dist/index.css"
+```
+
+<Step>Update the import paths to match your project setup.</Step>
+
+</Steps>
+
+</TabsContent>
+
+</CodeTabs>
+
 ## Useful behaviors
 
-- Encoding and delimiter detection.
-- Virtualized rows and columns for large files.
-- Sort, filter, resize, pin, and copy selected ranges.
-- Column type inference for dates, numbers, booleans, and empty values.
+- PapaParse-backed CSV and TSV parsing with empty-row handling.
+- Virtualized rows and columns through Glide Data Grid.
+- Header controls for upload, row and column counts, and zoom.
+- Grid zoom that scales row height, header height, column width, and cell text.
 
 ## Common slots
 
-| Slot | Purpose |
-| --- | --- |
-| `columnHeader` | Sort, filter, type, and resize controls. |
-| `statusBar` | Row count, selected range, and parse warnings. |
-| `parseErrors` | Malformed rows, encoding issues, and delimiter mismatches. |
+| Slot           | Purpose                                                |
+| -------------- | ------------------------------------------------------ |
+| `toolbar`      | File summary, zoom controls, and CSV upload actions.   |
+| `grid`         | Virtualized Glide Data Grid table surface.             |
+| `parseErrors` | Malformed rows, encoding issues, and delimiter errors. |
