@@ -104,6 +104,13 @@ function PdfViewerLoadingShell() {
                 <HugeiconsIcon icon={MinusSignCircleIcon} className="size-4" />
               </Button>
             </ToolbarTooltip>
+            <Select value="0.5" disabled>
+              <div className="hidden sm:block">
+                <SelectTrigger size="sm" className="w-[84px] min-w-[84px]">
+                  <SelectValue placeholder="Zoom">50%</SelectValue>
+                </SelectTrigger>
+              </div>
+            </Select>
             <ToolbarTooltip label="Zoom in">
               <Button
                 variant="ghost"
@@ -114,13 +121,6 @@ function PdfViewerLoadingShell() {
                 <HugeiconsIcon icon={PlusSignCircleIcon} className="size-4" />
               </Button>
             </ToolbarTooltip>
-            <Select value="0.5" disabled>
-              <div className="hidden sm:block">
-                <SelectTrigger size="sm" className="w-[84px] min-w-[84px]">
-                  <SelectValue placeholder="Zoom">50%</SelectValue>
-                </SelectTrigger>
-              </div>
-            </Select>
             <ToolbarTooltip label="Search text">
               <Button
                 variant="ghost"
@@ -788,20 +788,6 @@ function Component({ url = DEFAULT_PDF_URL }: { url?: string }) {
               <HugeiconsIcon icon={MinusSignCircleIcon} className="size-4" />
             </Button>
           </ToolbarTooltip>
-          <ToolbarTooltip label="Zoom in">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Zoom in"
-              disabled={
-                controlsDisabled ||
-                zoom >= ZOOM_OPTIONS[ZOOM_OPTIONS.length - 1]
-              }
-              onClick={() => setZoom((value) => Math.min(2, value + 0.25))}
-            >
-              <HugeiconsIcon icon={PlusSignCircleIcon} className="size-4" />
-            </Button>
-          </ToolbarTooltip>
           <Select
             value={zoom.toString()}
             onValueChange={(value) => setZoom(Number(value))}
@@ -820,6 +806,20 @@ function Component({ url = DEFAULT_PDF_URL }: { url?: string }) {
               ))}
             </SelectContent>
           </Select>
+          <ToolbarTooltip label="Zoom in">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Zoom in"
+              disabled={
+                controlsDisabled ||
+                zoom >= ZOOM_OPTIONS[ZOOM_OPTIONS.length - 1]
+              }
+              onClick={() => setZoom((value) => Math.min(2, value + 0.25))}
+            >
+              <HugeiconsIcon icon={PlusSignCircleIcon} className="size-4" />
+            </Button>
+          </ToolbarTooltip>
           <Popover>
             <ToolbarTooltip label="Search text">
               <PopoverTrigger asChild>

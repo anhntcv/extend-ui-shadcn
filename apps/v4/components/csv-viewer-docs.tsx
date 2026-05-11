@@ -315,7 +315,7 @@ function CsvViewerPreviewClient() {
             >
               <SelectTrigger
                 size="sm"
-                className="h-7 min-h-7 w-[74px] min-w-[74px] rounded-md"
+                className="w-[84px] min-w-[84px]"
                 aria-label="Zoom level"
               >
                 <SelectValue>{Math.round(zoom * 100)}%</SelectValue>
@@ -720,7 +720,7 @@ export function CsvViewer({
             >
               <SelectTrigger
                 size="sm"
-                className="h-7 min-h-7 w-[74px] min-w-[74px] rounded-md"
+                className="w-[84px] min-w-[84px]"
                 aria-label="Zoom level"
               >
                 <SelectValue>{Math.round(zoom * 100)}%</SelectValue>

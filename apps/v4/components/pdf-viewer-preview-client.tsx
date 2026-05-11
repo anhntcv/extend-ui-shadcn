@@ -616,20 +616,6 @@ export function PdfViewerPreviewClient() {
                 <HugeiconsIcon icon={MinusSignCircleIcon} className="size-4" />
               </Button>
             </ToolbarTooltip>
-            <ToolbarTooltip label="Zoom in">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Zoom in"
-                disabled={
-                  controlsDisabled ||
-                  zoom >= ZOOM_OPTIONS[ZOOM_OPTIONS.length - 1]
-                }
-                onClick={() => setZoom((value) => Math.min(2, value + 0.25))}
-              >
-                <HugeiconsIcon icon={PlusSignCircleIcon} className="size-4" />
-              </Button>
-            </ToolbarTooltip>
             <Select
               value={zoom.toString()}
               onValueChange={(value) => setZoom(Number(value))}
@@ -648,6 +634,20 @@ export function PdfViewerPreviewClient() {
                 ))}
               </SelectContent>
             </Select>
+            <ToolbarTooltip label="Zoom in">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Zoom in"
+                disabled={
+                  controlsDisabled ||
+                  zoom >= ZOOM_OPTIONS[ZOOM_OPTIONS.length - 1]
+                }
+                onClick={() => setZoom((value) => Math.min(2, value + 0.25))}
+              >
+                <HugeiconsIcon icon={PlusSignCircleIcon} className="size-4" />
+              </Button>
+            </ToolbarTooltip>
             <Popover>
               <ToolbarTooltip label="Search text">
                 <PopoverTrigger asChild>
