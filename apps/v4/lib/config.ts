@@ -6,7 +6,7 @@ export const siteConfig = {
     "Open source UI primitives for building document processing products with viewers, review surfaces, and validation workflows.",
   links: {
     twitter: "https://twitter.com",
-    github: "https://github.com",
+    github: "https://github.com/extend-hq/ui",
   },
   navItems: [
     {
