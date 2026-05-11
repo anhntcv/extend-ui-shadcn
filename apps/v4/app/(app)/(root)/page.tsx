@@ -36,10 +36,6 @@ const featuredComponents = [
     "Workbook previews with sheets, frozen panes, and large-grid ergonomics.",
   ],
   [
-    "Thumbnail Tab Switcher",
-    "Compact thumbnail tabs for moving across pages, sheets, and sections.",
-  ],
-  [
     "File Upload",
     "Drag-and-drop intake with validation, progress, queues, and retry states.",
   ],
