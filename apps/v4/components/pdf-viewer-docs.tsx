@@ -20,7 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/registry/new-york-v4/ui/select"
-import { Separator } from "@/registry/new-york-v4/ui/separator"
 import {
   Tooltip,
   TooltipContent,
@@ -95,9 +94,6 @@ function PdfViewerLoadingShell() {
                 <HugeiconsIcon icon={RotateClockwiseIcon} className="size-4" />
               </Button>
             </ToolbarTooltip>
-            <div className="mx-1 h-5">
-              <Separator orientation="vertical" />
-            </div>
             <ToolbarTooltip label="Zoom out">
               <Button
                 variant="ghost"
@@ -182,7 +178,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import {
   Tooltip,
   TooltipContent,
@@ -781,9 +776,6 @@ function Component({ url }: { url: string }) {
               <HugeiconsIcon icon={RotateClockwiseIcon} className="size-4" />
             </Button>
           </ToolbarTooltip>
-          <div className="mx-1 h-5">
-            <Separator orientation="vertical" />
-          </div>
           <ToolbarTooltip label="Zoom out">
             <Button
               variant="ghost"
