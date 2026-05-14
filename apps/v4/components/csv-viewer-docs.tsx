@@ -170,7 +170,7 @@ function ToolbarTooltip({
   )
 }
 
-function CsvViewerPreviewClient() {
+export function CsvViewerPreviewClient() {
   const inputRef = React.useRef<HTMLInputElement | null>(null)
   const isDark = useIsDarkTheme()
   const [glide, setGlide] = React.useState<GlideDataGridModule | null>(null)

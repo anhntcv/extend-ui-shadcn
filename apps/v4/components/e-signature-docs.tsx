@@ -5,16 +5,17 @@ import {
   BorderFullIcon,
   Download01Icon,
   FilePenIcon,
-  Loading03Icon,
   Pen01Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import type * as ReactPdf from "react-pdf"
 import type SignaturePad from "signature_pad"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { PDFViewer } from "@/components/ui/pdf-viewer"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { HighlightedCodeBlock } from "@/components/highlighted-code-block"
+import { PdfBlockResizableShell } from "@/components/pdf-block-resizable-shell"
 import {
   Dialog,
   DialogContent,
@@ -40,20 +41,10 @@ type SignatureField = {
   imageDataUrl?: string
 }
 
-type ReactPdfModule = typeof ReactPdf
-
 const PDF_URL = "/samples/attention.pdf"
-const PDF_WORKER_URL = new URL(
-  "pdfjs-dist/legacy/build/pdf.worker.min.mjs",
-  import.meta.url
-).toString()
 const PAGE_WIDTH = 612
 const PAGE_HEIGHT = 792
-const RENDERED_PAGE_WIDTH = 430
-const RENDERED_PAGE_HEIGHT = Math.round(
-  RENDERED_PAGE_WIDTH * (PAGE_HEIGHT / PAGE_WIDTH)
-)
-const DEVICE_PIXEL_RATIO_LIMIT = 2
+const DEFAULT_ZOOM = 0.75
 const MIN_FIELD_WIDTH = 96
 const MIN_FIELD_HEIGHT = 34
 const SIGNATURE_PAD_PADDING = 8
@@ -507,97 +498,6 @@ function SignatureFieldOverlay({
   )
 }
 
-function ESignaturePage({
-  reactPdf,
-  field,
-  isDrawing,
-  draftBox,
-  onPointerDown,
-  onPointerMove,
-  onPointerUp,
-  onDragStart,
-}: {
-  reactPdf: ReactPdfModule
-  field: SignatureField
-  isDrawing: boolean
-  draftBox: BoundingBox | null
-  onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => void
-  onPointerMove: (event: React.PointerEvent<HTMLDivElement>) => void
-  onPointerUp: (event: React.PointerEvent<HTMLDivElement>) => void
-  onDragStart: (event: React.PointerEvent<HTMLDivElement>) => void
-}) {
-  const devicePixelRatio =
-    typeof window === "undefined"
-      ? 1
-      : Math.min(DEVICE_PIXEL_RATIO_LIMIT, window.devicePixelRatio || 1)
-
-  return (
-    <div
-      data-signature-page={field.page}
-      className={cn(
-        "relative touch-none select-none",
-        isDrawing && "cursor-crosshair"
-      )}
-      style={{ width: RENDERED_PAGE_WIDTH, height: RENDERED_PAGE_HEIGHT }}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
-    >
-      <reactPdf.Page
-        pageNumber={field.page}
-        width={RENDERED_PAGE_WIDTH}
-        className="overflow-hidden border bg-background shadow-xs"
-        renderAnnotationLayer={false}
-        renderTextLayer={false}
-        devicePixelRatio={devicePixelRatio}
-        loading={
-          <div
-            className="grid place-items-center"
-            style={{ width: RENDERED_PAGE_WIDTH, height: RENDERED_PAGE_HEIGHT }}
-          >
-            <HugeiconsIcon
-              icon={Loading03Icon}
-              className="size-4 animate-spin"
-            />
-          </div>
-        }
-      />
-      <SignatureFieldOverlay
-        field={field}
-        isDrawing={isDrawing}
-        onDragStart={onDragStart}
-      />
-      {isDrawing ? (
-        <div
-          className="absolute inset-0 z-40 cursor-crosshair touch-none"
-          onPointerDown={(event) => {
-            event.stopPropagation()
-            onPointerDown(event)
-          }}
-          onPointerMove={(event) => {
-            event.stopPropagation()
-            onPointerMove(event)
-          }}
-          onPointerUp={(event) => {
-            event.stopPropagation()
-            onPointerUp(event)
-          }}
-          onPointerCancel={(event) => {
-            event.stopPropagation()
-            onPointerUp(event)
-          }}
-        />
-      ) : null}
-      {draftBox ? (
-        <div
-          className="pointer-events-none absolute z-50 rounded-[3px] border border-dashed border-blue-500/70 bg-blue-500/10"
-          style={bboxToStyle(draftBox)}
-        />
-      ) : null}
-    </div>
-  )
-}
-
 async function downloadSignedPdf(field: SignatureField) {
   const { PDFDocument } = await import("pdf-lib")
   const existingPdfBytes = await fetch(PDF_URL).then((response) =>
@@ -644,10 +544,81 @@ async function downloadSignedPdf(field: SignatureField) {
   URL.revokeObjectURL(url)
 }
 
+function SignatureFieldsPanel({
+  field,
+  className,
+  onFieldChange,
+}: {
+  field: SignatureField
+  className?: string
+  onFieldChange: (field: SignatureField) => void
+}) {
+  const [dialogOpen, setDialogOpen] = React.useState(false)
+
+  return (
+    <aside
+      className={cn("flex h-[420px] min-h-0 flex-col bg-background", className)}
+    >
+      <ScrollArea className="min-h-0 flex-1" scrollFade>
+        <div className="p-3">
+          <div className="rounded-lg border bg-background p-3">
+            <div className="flex items-start gap-3">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-300">
+                <HugeiconsIcon icon={FilePenIcon} className="size-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-sm font-medium">{field.label}</div>
+                  <div
+                    className={cn(
+                      "rounded-full px-2 py-0.5 text-xs",
+                      field.imageDataUrl
+                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
+                        : "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {field.imageDataUrl ? "Signed" : "Unsigned"}
+                  </div>
+                </div>
+                <div className="mt-2 text-xs text-muted-foreground">
+                  {Math.round(field.bbox.width)} x{" "}
+                  {Math.round(field.bbox.height)} on page {field.page}
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={field.imageDataUrl ? "outline" : "default"}
+                  className="mt-3 w-full"
+                  onClick={() => setDialogOpen(true)}
+                >
+                  <HugeiconsIcon icon={Pen01Icon} className="size-4" />
+                  {field.imageDataUrl ? "Edit signature" : "Sign"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ScrollArea>
+      <SignatureDialog
+        open={dialogOpen}
+        fieldBbox={field.bbox}
+        onOpenChange={setDialogOpen}
+        onConfirm={(imageDataUrl) => {
+          onFieldChange({ ...field, imageDataUrl })
+        }}
+      />
+    </aside>
+  )
+}
+
 export function ESignature() {
   const [field, setField] = React.useState<SignatureField>(INITIAL_FIELD)
-  const [reactPdf, setReactPdf] = React.useState<ReactPdfModule | null>(null)
-  const [loadError, setLoadError] = React.useState(false)
+
+  return <SignatureFieldsPanel field={field} onFieldChange={setField} />
+}
+
+export function ESignatureBlock() {
+  const [field, setField] = React.useState<SignatureField>(INITIAL_FIELD)
   const [isDrawing, setIsDrawing] = React.useState(false)
   const [drawStart, setDrawStart] = React.useState<{
     x: number
@@ -658,30 +629,7 @@ export function ESignature() {
     x: number
     y: number
   } | null>(null)
-  const [dialogOpen, setDialogOpen] = React.useState(false)
   const [isDownloading, setIsDownloading] = React.useState(false)
-
-  React.useEffect(() => {
-    let mounted = true
-
-    void import("react-pdf")
-      .then((module) => {
-        module.pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL
-
-        if (mounted) {
-          setReactPdf(module)
-        }
-      })
-      .catch(() => {
-        if (mounted) {
-          setLoadError(true)
-        }
-      })
-
-    return () => {
-      mounted = false
-    }
-  }, [])
 
   const handlePagePointerDown = React.useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
@@ -741,7 +689,9 @@ export function ESignature() {
       }
 
       if (drawStart || dragOffset) {
-        event.currentTarget.releasePointerCapture(event.pointerId)
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+          event.currentTarget.releasePointerCapture(event.pointerId)
+        }
       }
 
       setDrawStart(null)
@@ -758,7 +708,7 @@ export function ESignature() {
 
       event.stopPropagation()
       const page = event.currentTarget.closest<HTMLElement>(
-        "[data-signature-page]"
+        "[data-pdf-viewer-page]"
       )
       if (!page) return
 
@@ -782,126 +732,201 @@ export function ESignature() {
   }, [field])
 
   return (
-    <div className="grid h-[620px] overflow-hidden bg-background lg:grid-cols-[minmax(0,1fr)_20rem]">
-      <div className="flex min-h-0 min-w-0 flex-col border-b lg:border-r lg:border-b-0">
-        <div className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
-          <div className="mr-auto text-sm font-medium">PDF Viewer</div>
-          <Button
-            type="button"
-            size="sm"
-            variant={isDrawing ? "default" : "outline"}
-            onClick={() => setIsDrawing((value) => !value)}
-          >
-            <HugeiconsIcon icon={BorderFullIcon} className="size-4" />
-            Draw
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={!field.imageDataUrl || isDownloading}
-            onClick={handleDownload}
-          >
-            <HugeiconsIcon icon={Download01Icon} className="size-4" />
-            Download
-          </Button>
-        </div>
-        <div className="min-h-0 flex-1 overflow-auto bg-muted/30">
-          {loadError ? (
-            <div className="grid h-full place-items-center p-6 text-sm text-muted-foreground">
-              Unable to load the PDF preview.
-            </div>
-          ) : reactPdf ? (
-            <reactPdf.Document
-              file={PDF_URL}
-              className="flex min-h-full w-max min-w-full flex-col items-center p-6"
-              loading={
-                <div className="grid h-full min-h-80 place-items-center">
-                  <HugeiconsIcon
-                    icon={Loading03Icon}
-                    className="size-4 animate-spin"
+    <PdfBlockResizableShell
+      autoSaveId="pdf-block-e-signature"
+      left={
+        <PDFViewer
+          file={PDF_URL}
+          defaultZoom={DEFAULT_ZOOM}
+          pageWidth={PAGE_WIDTH}
+          pageHeight={PAGE_HEIGHT}
+          pageClassName={() =>
+            cn("touch-none select-none", isDrawing && "cursor-crosshair")
+          }
+          toolbarActions={
+            <>
+              <Button
+                type="button"
+                size="sm"
+                variant={isDrawing ? "default" : "outline"}
+                onClick={() => setIsDrawing((value) => !value)}
+              >
+                <HugeiconsIcon icon={BorderFullIcon} className="size-4" />
+                Draw
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={!field.imageDataUrl || isDownloading}
+                onClick={handleDownload}
+              >
+                <HugeiconsIcon icon={Download01Icon} className="size-4" />
+                Download
+              </Button>
+            </>
+          }
+          onPagePointerMove={handlePagePointerMove}
+          onPagePointerUp={handlePagePointerUp}
+          onPagePointerCancel={handlePagePointerUp}
+          renderPageOverlay={({ pageNumber }) =>
+            pageNumber === field.page ? (
+              <>
+                <SignatureFieldOverlay
+                  field={field}
+                  isDrawing={isDrawing}
+                  onDragStart={handleDragStart}
+                />
+                {isDrawing ? (
+                  <div
+                    className="absolute inset-0 z-40 cursor-crosshair touch-none"
+                    onPointerDown={(event) => {
+                      event.stopPropagation()
+                      handlePagePointerDown(event)
+                    }}
+                    onPointerMove={(event) => {
+                      event.stopPropagation()
+                      handlePagePointerMove(event)
+                    }}
+                    onPointerUp={(event) => {
+                      event.stopPropagation()
+                      handlePagePointerUp(event)
+                    }}
+                    onPointerCancel={(event) => {
+                      event.stopPropagation()
+                      handlePagePointerUp(event)
+                    }}
                   />
-                </div>
-              }
-              error={null}
-              onLoadError={() => setLoadError(true)}
-            >
-              <ESignaturePage
-                reactPdf={reactPdf}
-                field={field}
-                isDrawing={isDrawing}
-                draftBox={draftBox}
-                onPointerDown={handlePagePointerDown}
-                onPointerMove={handlePagePointerMove}
-                onPointerUp={handlePagePointerUp}
-                onDragStart={handleDragStart}
-              />
-            </reactPdf.Document>
-          ) : (
-            <div className="grid h-full min-h-80 place-items-center">
-              <HugeiconsIcon
-                icon={Loading03Icon}
-                className="size-4 animate-spin"
-              />
-            </div>
+                ) : null}
+                {draftBox ? (
+                  <div
+                    className="pointer-events-none absolute z-50 rounded-[3px] border border-dashed border-blue-500/70 bg-blue-500/10"
+                    style={bboxToStyle(draftBox)}
+                  />
+                ) : null}
+              </>
+            ) : null
+          }
+        />
+      }
+      right={
+        <SignatureFieldsPanel
+          field={field}
+          className="h-full"
+          onFieldChange={setField}
+        />
+      }
+    />
+  )
+}
+
+function SignatureFieldExampleCard({
+  label,
+  status = "unsigned",
+  pageLabel,
+  description,
+  iconClassName,
+  actionLabel,
+  onAction,
+}: {
+  label: string
+  status?: "unsigned" | "signed" | "optional"
+  pageLabel?: string
+  description?: string
+  iconClassName?: string
+  actionLabel?: string
+  onAction?: () => void
+}) {
+  const statusLabel =
+    status === "signed"
+      ? "Signed"
+      : status === "optional"
+        ? "Optional"
+        : "Needs signature"
+
+  return (
+    <div className="rounded-lg border bg-background p-3">
+      <div className="flex items-start gap-3">
+        <div
+          className={cn(
+            "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-300",
+            iconClassName
           )}
+        >
+          <HugeiconsIcon icon={FilePenIcon} className="size-4" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-3">
+            <div className="truncate text-sm font-medium">{label}</div>
+            {pageLabel ? (
+              <div className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                {pageLabel}
+              </div>
+            ) : null}
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            {statusLabel}
+            {description ? ` · ${description}` : null}
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant={status === "signed" ? "outline" : "default"}
+            className="mt-3 w-full"
+            onClick={onAction}
+          >
+            <HugeiconsIcon icon={Pen01Icon} className="size-4" />
+            {actionLabel ?? (status === "signed" ? "Edit signature" : "Sign")}
+          </Button>
         </div>
       </div>
-      <aside className="flex min-h-0 flex-col">
-        <div className="border-b px-4 py-3">
-          <div className="text-sm font-medium">Fields</div>
-          <div className="text-xs text-muted-foreground">
-            Draw, drag, sign, then download.
-          </div>
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-3">
-          <div className="rounded-lg border bg-background p-3">
-            <div className="flex items-start gap-3">
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-300">
-                <HugeiconsIcon icon={FilePenIcon} className="size-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-medium">{field.label}</div>
-                  <div
-                    className={cn(
-                      "rounded-full px-2 py-0.5 text-xs",
-                      field.imageDataUrl
-                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
-                        : "bg-muted text-muted-foreground"
-                    )}
-                  >
-                    {field.imageDataUrl ? "Signed" : "Unsigned"}
-                  </div>
-                </div>
-                <div className="mt-2 text-xs text-muted-foreground">
-                  {Math.round(field.bbox.width)} x{" "}
-                  {Math.round(field.bbox.height)} on page {field.page}
-                </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={field.imageDataUrl ? "outline" : "default"}
-                  className="mt-3 w-full"
-                  onClick={() => setDialogOpen(true)}
-                >
-                  <HugeiconsIcon icon={Pen01Icon} className="size-4" />
-                  {field.imageDataUrl ? "Edit signature" : "Sign"}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </aside>
+    </div>
+  )
+}
+
+function ESignatureExample() {
+  const [dialogOpen, setDialogOpen] = React.useState(false)
+  const [signatureSigned, setSignatureSigned] = React.useState(false)
+
+  return (
+    <>
+      <div className="flex h-[420px] flex-col gap-2 bg-background p-3">
+        <SignatureFieldExampleCard
+          label="Signature1"
+          status={signatureSigned ? "signed" : "unsigned"}
+          pageLabel="p. 1"
+          description={
+            signatureSigned ? "Completed just now" : "250 x 58 field"
+          }
+          actionLabel={signatureSigned ? "Edit signature" : undefined}
+          onAction={() => setDialogOpen(true)}
+        />
+        <SignatureFieldExampleCard
+          label="Initials"
+          status="signed"
+          pageLabel="p. 2"
+          description="Completed by Andrew"
+          iconClassName="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+          onAction={() => setDialogOpen(true)}
+        />
+        <SignatureFieldExampleCard
+          label="Approval date"
+          status="optional"
+          pageLabel="p. 2"
+          description="Optional date field"
+          iconClassName="bg-amber-500/10 text-amber-700 dark:text-amber-300"
+          actionLabel="Add date"
+        />
+      </div>
       <SignatureDialog
         open={dialogOpen}
-        fieldBbox={field.bbox}
+        fieldBbox={INITIAL_FIELD.bbox}
         onOpenChange={setDialogOpen}
-        onConfirm={(imageDataUrl) => {
-          setField((previousField) => ({ ...previousField, imageDataUrl }))
+        onConfirm={() => {
+          setSignatureSigned(true)
         }}
       />
-    </div>
+    </>
   )
 }
 
@@ -913,7 +938,7 @@ export function ESignatureDemo() {
       data-slot="component-preview"
       className="group relative mt-4 mb-12 flex flex-col overflow-hidden rounded-xl border"
     >
-      <ESignature />
+      <ESignatureExample />
       <div
         data-slot="code"
         data-mobile-code-visible={isCodeVisible}
@@ -960,134 +985,116 @@ export function ESignatureDemo() {
 
 const eSignatureUsageCode = `"use client";
 
+import { FilePenIcon } from "@hugeicons/core-free-icons";
+
+import { SignatureFieldCard } from "@/components/ui/signature-field-card";
+
+export function ESignatureExample() {
+  return (
+    <div className="flex h-[420px] flex-col gap-2 bg-background p-3">
+      <SignatureFieldCard
+        label="Signature1"
+        pageLabel="p. 1"
+        description="250 x 58 field"
+        onAction={() => {}}
+      />
+      <SignatureFieldCard
+        label="Initials"
+        status="signed"
+        pageLabel="p. 2"
+        description="Completed by Andrew"
+        iconClassName="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+        onAction={() => {}}
+      />
+      <SignatureFieldCard
+        label="Approval date"
+        status="optional"
+        pageLabel="p. 2"
+        description="Optional date field"
+        icon={FilePenIcon}
+        iconClassName="bg-amber-500/10 text-amber-700 dark:text-amber-300"
+        actionLabel="Add date"
+        onAction={() => {}}
+      />
+    </div>
+  );
+}`
+
+const eSignatureSourceCode = `"use client";
+
 import * as React from "react";
-import type SignaturePad from "signature_pad";
-import type * as ReactPdf from "react-pdf";
+import { FilePenIcon, Pen01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-const PDF_WORKER_URL = new URL(
-  "pdfjs-dist/legacy/build/pdf.worker.min.mjs",
-  import.meta.url,
-).toString();
-const PDF_URL = "/samples/attention.pdf";
-const PAGE_WIDTH = 612;
-const PAGE_HEIGHT = 792;
-type ReactPdfModule = typeof ReactPdf;
-
-type SignatureField = {
-  page: number;
-  bbox: { x: number; y: number; width: number; height: number };
-  imageDataUrl?: string;
+type SignatureFieldCardProps = React.HTMLAttributes<HTMLDivElement> & {
+  label: string;
+  status?: "unsigned" | "signed" | "optional";
+  pageLabel?: string;
+  description?: string;
+  icon?: React.ComponentProps<typeof HugeiconsIcon>["icon"];
+  iconClassName?: string;
+  actionLabel?: string;
+  onAction?: () => void;
 };
 
-async function downloadSignedPdf(field: SignatureField) {
-  const { PDFDocument } = await import("pdf-lib");
-  const bytes = await fetch(PDF_URL).then((response) => response.arrayBuffer());
-  const pdf = await PDFDocument.load(bytes);
-  const page = pdf.getPage(field.page - 1);
-
-  if (field.imageDataUrl) {
-    const image = await pdf.embedPng(field.imageDataUrl);
-    const { width, height } = page.getSize();
-    const scaleX = width / PAGE_WIDTH;
-    const scaleY = height / PAGE_HEIGHT;
-    const fieldWidth = field.bbox.width * scaleX;
-    const fieldHeight = field.bbox.height * scaleY;
-    const imageAspectRatio = image.width / image.height;
-    const fieldAspectRatio = fieldWidth / fieldHeight;
-    const drawWidth =
-      fieldAspectRatio > imageAspectRatio ? fieldHeight * imageAspectRatio : fieldWidth;
-    const drawHeight =
-      fieldAspectRatio > imageAspectRatio ? fieldHeight : fieldWidth / imageAspectRatio;
-    const fieldX = field.bbox.x * scaleX;
-    const fieldY = height - (field.bbox.y + field.bbox.height) * scaleY;
-
-    page.drawImage(image, {
-      x: fieldX + (fieldWidth - drawWidth) / 2,
-      y: fieldY + (fieldHeight - drawHeight) / 2,
-      width: drawWidth,
-      height: drawHeight,
-    });
-  }
-
-  const signedBytes = await pdf.save();
-  const url = URL.createObjectURL(
-    new Blob([new Uint8Array(signedBytes)], { type: "application/pdf" }),
-  );
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = "signed-document.pdf";
-  anchor.click();
-  URL.revokeObjectURL(url);
-}
-
-export function ESignature() {
-  const [field, setField] = React.useState<SignatureField>({
-    page: 1,
-    bbox: { x: 300, y: 504, width: 250, height: 58 },
-  });
-  const [reactPdf, setReactPdf] = React.useState<ReactPdfModule | null>(null);
-  const canvasRef = React.useRef<HTMLCanvasElement>(null);
-  const signaturePadRef = React.useRef<SignaturePad | null>(null);
-
-  React.useEffect(() => {
-    if (!canvasRef.current) return;
-    let mounted = true;
-
-    void import("signature_pad").then(({ default: SignaturePad }) => {
-      if (!mounted || !canvasRef.current) return;
-      signaturePadRef.current = new SignaturePad(canvasRef.current);
-    });
-
-    return () => signaturePadRef.current?.off();
-  }, []);
-
-  React.useEffect(() => {
-    let mounted = true;
-
-    void import("react-pdf").then((module) => {
-      module.pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL;
-      if (mounted) setReactPdf(module);
-    });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
+export function SignatureFieldCard({
+  label,
+  status = "unsigned",
+  pageLabel,
+  description,
+  icon = FilePenIcon,
+  iconClassName = "bg-blue-500/10 text-blue-600 dark:text-blue-300",
+  actionLabel,
+  onAction,
+  className,
+  ...props
+}: SignatureFieldCardProps) {
+  const statusLabel =
+    status === "signed" ? "Signed" : status === "optional" ? "Optional" : "Needs signature";
 
   return (
-    <div>
-      <Button variant="outline" onClick={() => downloadSignedPdf(field)}>
-        Download
-      </Button>
-      {reactPdf ? (
-      <reactPdf.Document file={PDF_URL}>
-        <div className="relative w-[430px]">
-          <reactPdf.Page pageNumber={field.page} width={430} renderTextLayer={false} />
-          <div className="absolute border border-blue-500/70" />
+    <div className={cn("rounded-lg border bg-background p-3", className)} {...props}>
+      <div className="flex items-start gap-3">
+        <div
+          className={cn(
+            "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md",
+            iconClassName,
+          )}
+        >
+          <HugeiconsIcon icon={icon} className="size-4" />
         </div>
-      </reactPdf.Document>
-      ) : null}
-      <div
-        className="relative w-[430px] overflow-hidden rounded-md border border-dashed bg-white"
-        style={{ aspectRatio: field.bbox.width / field.bbox.height }}
-      >
-        <canvas ref={canvasRef} className="absolute inset-0 size-full touch-none" />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-3">
+            <div className="truncate text-sm font-medium">{label}</div>
+            {pageLabel ? (
+              <div className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                {pageLabel}
+              </div>
+            ) : null}
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            {statusLabel}
+            {description ? " · " + description : null}
+          </div>
+          <Button
+            type="button"
+            size="sm"
+            variant={status === "signed" ? "outline" : "default"}
+            className="mt-3 w-full"
+            onClick={onAction}
+          >
+            <HugeiconsIcon icon={Pen01Icon} className="size-4" />
+            {actionLabel ?? (status === "signed" ? "Edit signature" : "Sign")}
+          </Button>
+        </div>
       </div>
-      <Button
-        variant={field.imageDataUrl ? "outline" : "default"}
-        onClick={() => {
-          const value = signaturePadRef.current?.toDataURL("image/png");
-          if (value) setField((current) => ({ ...current, imageDataUrl: value }));
-        }}
-      >
-        {field.imageDataUrl ? "Edit signature" : "Confirm signature"}
-      </Button>
     </div>
   );
 }`
 
 export function ESignatureSource() {
-  return <HighlightedCodeBlock code={eSignatureUsageCode} />
+  return <HighlightedCodeBlock code={eSignatureSourceCode} />
 }

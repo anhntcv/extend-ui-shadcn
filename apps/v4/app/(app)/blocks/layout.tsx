@@ -2,18 +2,16 @@ import { type Metadata } from "next"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
-import { BlocksNav } from "@/components/blocks-nav"
 import {
   PageActions,
   PageHeader,
   PageHeaderDescription,
   PageHeaderHeading,
 } from "@/components/page-header"
-import { PageNav } from "@/components/page-nav"
 
 const title = "Document Blocks"
 const description =
-  "Composed document workflows built from the viewer, navigation, review, comparison, OCR, and metadata components."
+  "Composed PDF viewer workflows built from citations, OCR blocks, signing fields, and document splits."
 
 export const metadata: Metadata = {
   title,
@@ -62,18 +60,10 @@ export default function BlocksLayout({
           </Button>
         </PageActions>
       </PageHeader>
-      <PageNav id="blocks">
-        <BlocksNav />
-        <Button
-          variant="secondary"
-          size="sm"
-          className="mr-7 hidden shadow-none lg:flex"
-          render={<Link href="/docs/components" />}
-        >
-          Browse components
-        </Button>
-      </PageNav>
-      <div className="container-wrapper flex-1 section-soft md:py-12">
+      <div
+        id="blocks"
+        className="container-wrapper flex-1 section-soft md:py-12"
+      >
         <div className="container">{children}</div>
       </div>
     </>

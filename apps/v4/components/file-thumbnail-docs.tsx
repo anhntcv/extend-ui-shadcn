@@ -21,6 +21,7 @@ type FileThumbnailProps = {
   className?: string
   showMetadata?: boolean
   thumbnailWidth?: number
+  loadingDelayMs?: number
 }
 
 type ReactPdfModule = typeof ReactPdf
@@ -87,7 +88,7 @@ function FileKindIcon({ file }: { file: ThumbnailFile }) {
   return <HugeiconsIcon icon={icon} className="size-4" />
 }
 
-function ThumbnailLoadingOverlay() {
+export function FileThumbnailLoadingOverlay() {
   return (
     <div className="absolute inset-0 z-10 overflow-hidden bg-muted">
       <style>{`
@@ -105,7 +106,7 @@ function ThumbnailLoadingOverlay() {
       `}</style>
       <div className="absolute inset-0 bg-muted" />
       <div
-        className="file-thumbnail-preview-shimmer absolute inset-y-0 -left-1/2 w-1/2 bg-linear-to-r from-transparent via-background/65 to-transparent"
+        className="file-thumbnail-preview-shimmer absolute inset-0 bg-linear-to-r from-transparent via-background/65 to-transparent"
         style={{
           animation:
             "file-thumbnail-preview-shimmer 1.25s ease-in-out infinite",
@@ -120,18 +121,33 @@ export function FileThumbnail({
   className,
   showMetadata = true,
   thumbnailWidth = 260,
+  loadingDelayMs = 0,
 }: FileThumbnailProps) {
   const isPdf = isPdfFile(file)
   const isImage = isImageFile(file)
   const { ref, shouldRender } = useLazyRender<HTMLDivElement>()
   const [reactPdf, setReactPdf] = React.useState<ReactPdfModule | null>(null)
   const [isLoading, setIsLoading] = React.useState(isPdf || isImage)
+  const [isDelayLoading, setIsDelayLoading] = React.useState(loadingDelayMs > 0)
   const [hasError, setHasError] = React.useState(false)
+  const showLoading = (isLoading || isDelayLoading) && !hasError
 
   React.useEffect(() => {
     setIsLoading(isPdf || isImage)
     setHasError(false)
   }, [file.url, isImage, isPdf])
+
+  React.useEffect(() => {
+    setIsDelayLoading(loadingDelayMs > 0)
+
+    if (loadingDelayMs <= 0) return
+
+    const timeout = window.setTimeout(() => {
+      setIsDelayLoading(false)
+    }, loadingDelayMs)
+
+    return () => window.clearTimeout(timeout)
+  }, [file.url, loadingDelayMs])
 
   React.useEffect(() => {
     if (!isPdf || !shouldRender) return
@@ -189,7 +205,12 @@ export function FileThumbnail({
                 setHasError(true)
                 setIsLoading(false)
               }}
-              className="flex size-full items-center justify-center [&_canvas]:!h-full [&_canvas]:!w-full [&_canvas]:object-cover"
+              className={cn(
+                "flex size-full items-center justify-center [&_canvas]:!h-full [&_canvas]:!w-full [&_canvas]:object-cover [&_canvas]:transition-[opacity,filter,transform] [&_canvas]:duration-[160ms] [&_canvas]:ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:[&_canvas]:transition-none",
+                showLoading
+                  ? "[&_canvas]:scale-[1.01] [&_canvas]:opacity-0 [&_canvas]:blur-sm"
+                  : "[&_canvas]:blur-0 [&_canvas]:scale-100 [&_canvas]:opacity-100"
+              )}
             />
           </reactPdf.Document>
         ) : null}
@@ -199,7 +220,12 @@ export function FileThumbnail({
             alt=""
             loading="lazy"
             decoding="async"
-            className="size-full object-cover"
+            className={cn(
+              "size-full object-cover transition-[opacity,filter,transform] duration-[160ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+              showLoading
+                ? "scale-[1.01] opacity-0 blur-sm"
+                : "blur-0 scale-100 opacity-100"
+            )}
             onLoad={() => setIsLoading(false)}
             onError={() => {
               setHasError(true)
@@ -207,7 +233,7 @@ export function FileThumbnail({
             }}
           />
         ) : null}
-        {isLoading && !hasError ? <ThumbnailLoadingOverlay /> : null}
+        {showLoading ? <FileThumbnailLoadingOverlay /> : null}
         {hasError || (!isPdf && !isImage) ? (
           <div className="absolute inset-0 grid place-items-center bg-muted text-muted-foreground">
             <FileKindIcon file={file} />
@@ -350,6 +376,7 @@ type FileThumbnailProps = {
   className?: string;
   showMetadata?: boolean;
   thumbnailWidth?: number;
+  loadingDelayMs?: number;
 };
 
 type ReactPdfModule = typeof ReactPdf;
@@ -399,7 +426,7 @@ function FileKindIcon({ file }: { file: ThumbnailFile }) {
   return <HugeiconsIcon icon={icon} className="size-4" />;
 }
 
-function ThumbnailLoadingOverlay() {
+export function FileThumbnailLoadingOverlay() {
   return (
     <div className="absolute inset-0 z-10 overflow-hidden bg-muted">
       <style>{\`
@@ -417,7 +444,7 @@ function ThumbnailLoadingOverlay() {
       \`}</style>
       <div className="absolute inset-0 bg-muted" />
       <div
-        className="file-thumbnail-preview-shimmer absolute inset-y-0 -left-1/2 w-1/2 bg-linear-to-r from-transparent via-background/65 to-transparent"
+        className="file-thumbnail-preview-shimmer absolute inset-0 bg-linear-to-r from-transparent via-background/65 to-transparent"
         style={{
           animation: "file-thumbnail-preview-shimmer 1.25s ease-in-out infinite",
         }}
@@ -431,18 +458,35 @@ export function FileThumbnail({
   className,
   showMetadata = true,
   thumbnailWidth = 260,
+  loadingDelayMs = 0,
 }: FileThumbnailProps) {
   const isPdf = isPdfFile(file);
   const isImage = isImageFile(file);
   const { ref, shouldRender } = useLazyRender<HTMLDivElement>();
   const [reactPdf, setReactPdf] = React.useState<ReactPdfModule | null>(null);
   const [isLoading, setIsLoading] = React.useState(isPdf || isImage);
+  const [isDelayLoading, setIsDelayLoading] = React.useState(
+    loadingDelayMs > 0,
+  );
   const [hasError, setHasError] = React.useState(false);
+  const showLoading = (isLoading || isDelayLoading) && !hasError;
 
   React.useEffect(() => {
     setIsLoading(isPdf || isImage);
     setHasError(false);
   }, [file.url, isImage, isPdf]);
+
+  React.useEffect(() => {
+    setIsDelayLoading(loadingDelayMs > 0);
+
+    if (loadingDelayMs <= 0) return;
+
+    const timeout = window.setTimeout(() => {
+      setIsDelayLoading(false);
+    }, loadingDelayMs);
+
+    return () => window.clearTimeout(timeout);
+  }, [file.url, loadingDelayMs]);
 
   React.useEffect(() => {
     if (!isPdf || !shouldRender) return;
@@ -503,7 +547,12 @@ export function FileThumbnail({
                 setHasError(true);
                 setIsLoading(false);
               }}
-              className="flex size-full items-center justify-center [&_canvas]:!h-full [&_canvas]:!w-full [&_canvas]:object-cover"
+              className={cn(
+                "flex size-full items-center justify-center [&_canvas]:!h-full [&_canvas]:!w-full [&_canvas]:object-cover [&_canvas]:transition-[opacity,filter,transform] [&_canvas]:duration-[160ms] [&_canvas]:ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:[&_canvas]:transition-none",
+                showLoading
+                  ? "[&_canvas]:scale-[1.01] [&_canvas]:opacity-0 [&_canvas]:blur-sm"
+                  : "[&_canvas]:scale-100 [&_canvas]:opacity-100 [&_canvas]:blur-0",
+              )}
             />
           </reactPdf.Document>
         ) : null}
@@ -513,7 +562,12 @@ export function FileThumbnail({
             alt=""
             loading="lazy"
             decoding="async"
-            className="size-full object-cover"
+            className={cn(
+              "size-full object-cover transition-[opacity,filter,transform] duration-[160ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+              showLoading
+                ? "scale-[1.01] opacity-0 blur-sm"
+                : "scale-100 opacity-100 blur-0",
+            )}
             onLoad={() => setIsLoading(false)}
             onError={() => {
               setHasError(true);
@@ -521,8 +575,8 @@ export function FileThumbnail({
             }}
           />
         ) : null}
-        {isLoading && !hasError ? (
-          <ThumbnailLoadingOverlay />
+        {showLoading ? (
+          <FileThumbnailLoadingOverlay />
         ) : null}
         {hasError || (!isPdf && !isImage) ? (
           <div className="absolute inset-0 grid place-items-center bg-muted text-muted-foreground">

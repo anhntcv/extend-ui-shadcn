@@ -13,12 +13,20 @@ import { CodeTabs } from "@/components/code-tabs"
 import { ComponentsList } from "@/components/components-list"
 import { CopyButton } from "@/components/copy-button"
 import { CsvViewerDemo, CsvViewerSource } from "@/components/csv-viewer-docs"
+import {
+  DocumentSplitsDemo,
+  DocumentSplitsSource,
+} from "@/components/document-splitter-docs"
 import { ESignatureDemo, ESignatureSource } from "@/components/e-signature-docs"
 import {
   FileThumbnailDemo,
   FileThumbnailSource,
 } from "@/components/file-thumbnail-docs"
 import { FileUploadDemo, FileUploadSource } from "@/components/file-upload-docs"
+import {
+  HumanReviewDemo,
+  HumanReviewSource,
+} from "@/components/human-review-docs"
 import { getIconForLanguageExtension } from "@/components/icons"
 import { OcrBlocksDemo, OcrBlocksSource } from "@/components/ocr-blocks-docs"
 import { PdfViewerDemo, PdfViewerSource } from "@/components/pdf-viewer-docs"
@@ -365,12 +373,16 @@ export const mdxComponents = {
   CitationsSource,
   CsvViewerDemo,
   CsvViewerSource,
+  DocumentSplitsDemo,
+  DocumentSplitsSource,
   ESignatureDemo,
   ESignatureSource,
   FileThumbnailDemo,
   FileThumbnailSource,
   FileUploadDemo,
   FileUploadSource,
+  HumanReviewDemo,
+  HumanReviewSource,
   OcrBlocksDemo,
   OcrBlocksSource,
   PdfViewerDemo,

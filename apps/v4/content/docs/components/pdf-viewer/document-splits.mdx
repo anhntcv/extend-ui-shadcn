@@ -1,0 +1,64 @@
+---
+title: Document Splits
+description: Organize long PDFs into smaller documents with lazy page thumbnails and drag-and-drop grouping.
+component: true
+---
+
+Document Splits provide editable split groups for long documents. Pair them with the PDF Viewer block when users need to preview pages while organizing output documents.
+
+See it composed with the PDF Viewer in the [Document Splits block](/blocks#document-splits).
+
+<DocumentSplitsDemo />
+
+## Installation
+
+<CodeTabs>
+
+<TabsList>
+  <TabsTrigger value="cli">Command</TabsTrigger>
+  <TabsTrigger value="manual">Manual</TabsTrigger>
+</TabsList>
+<TabsContent value="cli">
+
+```bash
+npx shadcn@latest add document-splits
+```
+
+</TabsContent>
+
+<TabsContent value="manual">
+
+<Steps className="mb-0 pt-2">
+
+<Step>Install the following dependencies:</Step>
+
+```bash
+npm install react-pdf pdfjs-dist @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities @hugeicons/react @hugeicons/core-free-icons
+```
+
+<Step>Copy and paste the following code into your project.</Step>
+
+<DocumentSplitsSource />
+
+<Step>Update the import paths to match your project setup.</Step>
+
+</Steps>
+
+</TabsContent>
+
+</CodeTabs>
+
+## Useful behaviors
+
+- Lazy PDF page thumbnails rendered from the source document.
+- Drag pages between split groups and reorder split groups.
+- Vertically scrollable split groups with horizontally scrolling page rows.
+- Pair with the PDF Viewer block when selected pages should scroll the document canvas.
+
+## Common slots
+
+| Slot        | Purpose                                             |
+| ----------- | --------------------------------------------------- |
+| `split`     | A grouped output document with ordered pages.       |
+| `thumbnail` | A draggable page preview rendered only when needed. |
+| `actions`   | Add, remove, split, and export controls.            |

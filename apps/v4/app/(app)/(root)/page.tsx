@@ -1,7 +1,5 @@
 import { type Metadata } from "next"
 import Link from "next/link"
-import { ArrowRightIcon } from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -10,39 +8,14 @@ import {
   PageHeaderDescription,
   PageHeaderHeading,
 } from "@/components/page-header"
-import { Badge } from "@/registry/new-york-v4/ui/badge"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/registry/new-york-v4/ui/card"
+  MobileRootPreview,
+  RootComponentsCollage,
+} from "@/components/root-components-collage"
 
 const title = "Document components for modern apps"
 const description =
-  "Extend UI gives teams open source viewers, navigation, review, OCR, and metadata components for document processing products."
-
-const featuredComponents = [
-  ["PDF Viewer", "Page rendering, zoom, search, thumbnails, and text layers."],
-  [
-    "DOCX Viewer",
-    "Word document rendering with sections, headings, and comments.",
-  ],
-  [
-    "Excel Viewer",
-    "Workbook previews with sheets, frozen panes, and large-grid ergonomics.",
-  ],
-  [
-    "File Upload",
-    "Drag-and-drop intake with validation, progress, queues, and retry states.",
-  ],
-  [
-    "Annotation Layer",
-    "Highlights, pins, rectangles, notes, and anchored review comments.",
-  ],
-]
+  "Open source viewers, uploads, thumbnails, citations, OCR blocks, and e-signing primitives for document processing products."
 
 export const dynamic = "force-static"
 export const revalidate = false
@@ -74,7 +47,7 @@ export const metadata: Metadata = {
 export default function IndexPage() {
   return (
     <div className="flex flex-1 flex-col">
-      <PageHeader>
+      <PageHeader className="[&_.container]:pt-20 md:[&_.container]:pt-28 lg:[&_.container]:pt-32">
         <PageHeaderHeading className="max-w-4xl">{title}</PageHeaderHeading>
         <PageHeaderDescription>{description}</PageHeaderDescription>
         <PageActions>
@@ -89,55 +62,20 @@ export default function IndexPage() {
             size="sm"
             variant="ghost"
             className="rounded-lg"
-            render={<Link href="/blocks" />}
+            render={<Link href="/docs/components/pdf-viewer" />}
           >
-            View Blocks
+            View PDF Viewer
           </Button>
         </PageActions>
       </PageHeader>
-      <div className="container-wrapper flex-1 pb-10">
-        <div className="container grid gap-8 lg:grid-cols-[minmax(0,1fr)_22rem]">
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {featuredComponents.map(([name, detail]) => (
-              <Card key={name} className="rounded-lg shadow-none">
-                <CardHeader>
-                  <div className="mb-3">
-                    <Badge variant="secondary">Extend UI</Badge>
-                  </div>
-                  <CardTitle>{name}</CardTitle>
-                  <CardDescription>{detail}</CardDescription>
-                </CardHeader>
-              </Card>
-            ))}
+      <div className="container-wrapper flex-1 pb-6">
+        <div className="container overflow-hidden">
+          <section className="-mx-4 w-[158vw] overflow-hidden rounded-lg md:hidden">
+            <MobileRootPreview />
           </section>
-          <aside className="lg:sticky lg:top-[calc(var(--header-height)+2rem)] lg:self-start">
-            <Card className="rounded-lg shadow-none">
-              <CardHeader>
-                <CardTitle>Deploy your document processing on Extend</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Trusted by Brex, Flatiron, Square, and more. Extend provides
-                  production ready tools to handle your toughest documents.
-                </CardDescription>
-              </CardContent>
-              <CardFooter>
-                <Button
-                  size="sm"
-                  className="rounded-lg"
-                  render={
-                    <a
-                      href="https://www.extend.ai?utm_source=extend-ui"
-                      target="_blank"
-                      rel="noreferrer"
-                    />
-                  }
-                >
-                  Deploy now <HugeiconsIcon icon={ArrowRightIcon} />
-                </Button>
-              </CardFooter>
-            </Card>
-          </aside>
+          <section className="hidden md:block">
+            <RootComponentsCollage />
+          </section>
         </div>
       </div>
     </div>

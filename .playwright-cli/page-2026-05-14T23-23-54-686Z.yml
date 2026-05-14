@@ -1,0 +1,612 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e5]:
+        - link "Extend UI" [ref=e6] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e8]: Extend UI
+        - navigation [ref=e9]:
+          - link "Docs" [ref=e10] [cursor=pointer]:
+            - /url: /docs
+          - link "Components" [ref=e11] [cursor=pointer]:
+            - /url: /docs/components
+          - link "Blocks" [ref=e12] [cursor=pointer]:
+            - /url: /blocks
+        - generic [ref=e13]:
+          - button "Search documentation..." [ref=e15] [cursor=pointer]:
+            - generic [ref=e16]: Search documentation...
+          - separator [ref=e17]
+          - link "GitHub" [ref=e18] [cursor=pointer]:
+            - /url: https://github.com/extend-hq/ui
+            - img
+            - generic [ref=e19]: GitHub
+          - separator [ref=e20]
+          - button "Toggle theme" [ref=e21] [cursor=pointer]:
+            - img
+            - generic [ref=e22]: Toggle theme
+    - main [ref=e23]:
+      - generic [ref=e26]:
+        - heading "Document Blocks" [level=1] [ref=e27]
+        - paragraph [ref=e28]: Composed PDF viewer workflows built from citations, OCR blocks, signing fields, and document splits.
+        - generic [ref=e29]:
+          - link "Browse Blocks" [ref=e30] [cursor=pointer]:
+            - /url: "#blocks"
+          - link "View Components" [ref=e31] [cursor=pointer]:
+            - /url: /docs/components
+      - generic [ref=e34]:
+        - article [ref=e35]:
+          - generic [ref=e36]:
+            - generic [ref=e37]:
+              - heading "PDF Dropzone" [level=3] [ref=e38]
+              - paragraph [ref=e39]: A PDF-only upload dropzone that opens the dropped file in the shared viewer.
+            - generic [ref=e40]:
+              - link "Open in New Tab" [ref=e41] [cursor=pointer]:
+                - /url: /docs/components/file-upload
+                - text: Open in New Tab
+                - img
+              - button "Refresh PDF Dropzone preview" [ref=e42] [cursor=pointer]:
+                - img
+          - generic [ref=e43]:
+            - generic [ref=e44]:
+              - code [ref=e45]: npx shadcn@latest add pdf-viewer file-upload
+              - generic [ref=e46]: Preview
+            - generic [ref=e51] [cursor=pointer]:
+              - img [ref=e54]
+              - generic [ref=e57]:
+                - generic [ref=e58]: Drop a PDF to preview
+                - generic [ref=e59]: PDF files only
+              - generic [ref=e60]:
+                - img [ref=e61]
+                - generic [ref=e64]: Browse PDF
+              - button "Drop a PDF to preview PDF files only Browse PDF" [ref=e65]
+        - article [ref=e66]:
+          - generic [ref=e67]:
+            - generic [ref=e68]:
+              - heading "Citations" [level=3] [ref=e69]
+              - paragraph [ref=e70]: Evidence cards that scroll the PDF viewer to source bounding boxes.
+            - generic [ref=e71]:
+              - link "Open in New Tab" [ref=e72] [cursor=pointer]:
+                - /url: /docs/components/pdf-viewer/citations
+                - text: Open in New Tab
+                - img
+              - button "Refresh Citations preview" [ref=e73] [cursor=pointer]:
+                - img
+          - generic [ref=e74]:
+            - generic [ref=e75]:
+              - code [ref=e76]: npx shadcn@latest add citations
+              - generic [ref=e77]: Preview
+            - generic [ref=e79]:
+              - generic [ref=e81]:
+                - generic [ref=e82]:
+                  - generic [ref=e83]:
+                    - generic [ref=e84]:
+                      - button "Toggle thumbnails" [disabled]:
+                        - img
+                    - generic [ref=e85]: Page 1 of -
+                  - generic [ref=e86]:
+                    - generic [ref=e87]:
+                      - button "Rotate counterclockwise" [disabled]:
+                        - img
+                    - generic [ref=e88]:
+                      - button "Rotate clockwise" [disabled]:
+                        - img
+                    - separator [ref=e89]
+                    - generic [ref=e90]:
+                      - button "Zoom out" [disabled]:
+                        - img
+                    - combobox [disabled]:
+                      - generic: 75%
+                      - generic:
+                        - img
+                    - textbox [disabled] [ref=e91]: "0.75"
+                    - generic [ref=e92]:
+                      - button "Zoom in" [disabled]:
+                        - img
+                    - separator [ref=e93]
+                    - generic [ref=e94]:
+                      - button "Search text" [disabled]:
+                        - img
+                    - separator [ref=e95]
+                    - generic "Upload PDF" [ref=e97] [cursor=pointer]:
+                      - button "Upload PDF" [ref=e98]
+                      - img
+                - img [ref=e101]
+              - separator [ref=e106]:
+                - img [ref=e108]
+              - complementary [ref=e116]:
+                - generic [ref=e119]:
+                  - button "Title p. 1 Attention Is All You Need Attention Is All You Need" [ref=e120]:
+                    - generic [ref=e121]:
+                      - generic [ref=e122]: Title
+                      - generic [ref=e123]: p. 1
+                    - generic [ref=e124]: Attention Is All You Need
+                    - generic [ref=e125]: Attention Is All You Need
+                  - button "Authors p. 1 Vaswani, Shazeer, Parmar, Uszkoreit, Jones, Gomez, Kaiser, Polosukhin Ashish Vaswani ... Illia Polosukhin" [ref=e126]:
+                    - generic [ref=e127]:
+                      - generic [ref=e128]: Authors
+                      - generic [ref=e129]: p. 1
+                    - generic [ref=e130]: Vaswani, Shazeer, Parmar, Uszkoreit, Jones, Gomez, Kaiser, Polosukhin
+                    - generic [ref=e131]: Ashish Vaswani ... Illia Polosukhin
+                  - button "Abstract claim p. 1 The Transformer relies entirely on attention mechanisms and avoids recurrence and convolutions. The Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely." [ref=e132]:
+                    - generic [ref=e133]:
+                      - generic [ref=e134]: Abstract claim
+                      - generic [ref=e135]: p. 1
+                    - generic [ref=e136]: The Transformer relies entirely on attention mechanisms and avoids recurrence and convolutions.
+                    - generic [ref=e137]: The Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely.
+                  - button "Translation quality p. 1 28.4 BLEU on WMT 2014 English-to-German our model achieves 28.4 BLEU on the WMT 2014 English-to-German translation task" [ref=e138]:
+                    - generic [ref=e139]:
+                      - generic [ref=e140]: Translation quality
+                      - generic [ref=e141]: p. 1
+                    - generic [ref=e142]: 28.4 BLEU on WMT 2014 English-to-German
+                    - generic [ref=e143]: our model achieves 28.4 BLEU on the WMT 2014 English-to-German translation task
+                  - button "Background p. 2 Self-attention connects positions in a sequence through constant-time operations. Self-attention connects all positions with a constant number of sequentially executed operations." [ref=e144]:
+                    - generic [ref=e145]:
+                      - generic [ref=e146]: Background
+                      - generic [ref=e147]: p. 2
+                    - generic [ref=e148]: Self-attention connects positions in a sequence through constant-time operations.
+                    - generic [ref=e149]: Self-attention connects all positions with a constant number of sequentially executed operations.
+        - article [ref=e150]:
+          - generic [ref=e152]:
+            - link "Open in New Tab" [ref=e153] [cursor=pointer]:
+              - /url: /docs/components/pdf-viewer/ocr-blocks
+              - text: Open in New Tab
+              - img
+            - button "Refresh OCR Blocks preview" [ref=e154] [cursor=pointer]:
+              - img
+          - generic [ref=e155]:
+            - generic [ref=e156]:
+              - code [ref=e157]: npx shadcn@latest add ocr-blocks
+              - generic [ref=e158]: Preview
+            - generic [ref=e160]:
+              - generic [ref=e162]:
+                - generic [ref=e163]:
+                  - generic [ref=e164]:
+                    - generic [ref=e165]:
+                      - button "Toggle thumbnails" [disabled]:
+                        - img
+                    - generic [ref=e166]: Page 1 of -
+                  - generic [ref=e167]:
+                    - generic [ref=e168]:
+                      - button "Rotate counterclockwise" [disabled]:
+                        - img
+                    - generic [ref=e169]:
+                      - button "Rotate clockwise" [disabled]:
+                        - img
+                    - separator [ref=e170]
+                    - generic [ref=e171]:
+                      - button "Zoom out" [disabled]:
+                        - img
+                    - combobox [disabled]:
+                      - generic: 75%
+                      - generic:
+                        - img
+                    - textbox [disabled] [ref=e172]: "0.75"
+                    - generic [ref=e173]:
+                      - button "Zoom in" [disabled]:
+                        - img
+                    - separator [ref=e174]
+                    - generic [ref=e175]:
+                      - button "Search text" [disabled]:
+                        - img
+                    - separator [ref=e176]
+                    - generic "Upload PDF" [ref=e178] [cursor=pointer]:
+                      - button "Upload PDF" [ref=e179]
+                      - img
+                - img [ref=e182]
+              - separator [ref=e187]:
+                - img [ref=e189]
+              - complementary [ref=e197]:
+                - generic [ref=e200]:
+                  - button "Paper title p. 1 Heading · 99% Attention Is All You Need" [ref=e201]:
+                    - generic [ref=e202]:
+                      - img [ref=e204]
+                      - generic [ref=e206]:
+                        - generic [ref=e207]:
+                          - generic [ref=e208]: Paper title
+                          - generic [ref=e209]: p. 1
+                        - generic [ref=e210]: Heading · 99%
+                        - generic [ref=e211]: Attention Is All You Need
+                  - button "Authors p. 1 Paragraph · 96% Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit..." [ref=e212]:
+                    - generic [ref=e213]:
+                      - img [ref=e215]
+                      - generic [ref=e217]:
+                        - generic [ref=e218]:
+                          - generic [ref=e219]: Authors
+                          - generic [ref=e220]: p. 1
+                        - generic [ref=e221]: Paragraph · 96%
+                        - generic [ref=e222]: Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit...
+                  - button "Section heading p. 1 Heading · 98% Abstract" [ref=e223]:
+                    - generic [ref=e224]:
+                      - img [ref=e226]
+                      - generic [ref=e228]:
+                        - generic [ref=e229]:
+                          - generic [ref=e230]: Section heading
+                          - generic [ref=e231]: p. 1
+                        - generic [ref=e232]: Heading · 98%
+                        - generic [ref=e233]: Abstract
+                  - button "Abstract body p. 1 Paragraph · 94% The dominant sequence transduction models are based on complex recurrent or convolutional neural networks..." [ref=e234]:
+                    - generic [ref=e235]:
+                      - img [ref=e237]
+                      - generic [ref=e239]:
+                        - generic [ref=e240]:
+                          - generic [ref=e241]: Abstract body
+                          - generic [ref=e242]: p. 1
+                        - generic [ref=e243]: Paragraph · 94%
+                        - generic [ref=e244]: The dominant sequence transduction models are based on complex recurrent or convolutional neural networks...
+                  - button "Background text p. 2 Paragraph · 92% Recurrent neural networks, long short-term memory and gated recurrent neural networks..." [ref=e245]:
+                    - generic [ref=e246]:
+                      - img [ref=e248]
+                      - generic [ref=e250]:
+                        - generic [ref=e251]:
+                          - generic [ref=e252]: Background text
+                          - generic [ref=e253]: p. 2
+                        - generic [ref=e254]: Paragraph · 92%
+                        - generic [ref=e255]: Recurrent neural networks, long short-term memory and gated recurrent neural networks...
+                  - button "Architecture figure p. 2 Image · 89% Transformer architecture diagram" [ref=e256]:
+                    - generic [ref=e257]:
+                      - img [ref=e259]
+                      - generic [ref=e263]:
+                        - generic [ref=e264]:
+                          - generic [ref=e265]: Architecture figure
+                          - generic [ref=e266]: p. 2
+                        - generic [ref=e267]: Image · 89%
+                        - generic [ref=e268]: Transformer architecture diagram
+                  - button "Complexity table p. 6 Table · 91% Layer type, complexity per layer, sequential operations, maximum path length" [ref=e269]:
+                    - generic [ref=e270]:
+                      - img [ref=e272]
+                      - generic [ref=e274]:
+                        - generic [ref=e275]:
+                          - generic [ref=e276]: Complexity table
+                          - generic [ref=e277]: p. 6
+                        - generic [ref=e278]: Table · 91%
+                        - generic [ref=e279]: Layer type, complexity per layer, sequential operations, maximum path length
+                  - button "Comparison criteria p. 6 List · 88% Total computational complexity, parallelizable computation, and maximum path length" [ref=e280]:
+                    - generic [ref=e281]:
+                      - img [ref=e283]
+                      - generic [ref=e287]:
+                        - generic [ref=e288]:
+                          - generic [ref=e289]: Comparison criteria
+                          - generic [ref=e290]: p. 6
+                        - generic [ref=e291]: List · 88%
+                        - generic [ref=e292]: Total computational complexity, parallelizable computation, and maximum path length
+        - article [ref=e293]:
+          - generic [ref=e295]:
+            - link "Open in New Tab" [ref=e296] [cursor=pointer]:
+              - /url: /docs/components/pdf-viewer/e-signature
+              - text: Open in New Tab
+              - img
+            - button "Refresh E-Signature preview" [ref=e297] [cursor=pointer]:
+              - img
+          - generic [ref=e298]:
+            - generic [ref=e299]:
+              - code [ref=e300]: npx shadcn@latest add e-signature
+              - generic [ref=e301]: Preview
+            - generic [ref=e303]:
+              - generic [ref=e305]:
+                - generic [ref=e306]:
+                  - generic [ref=e307]:
+                    - generic [ref=e308]:
+                      - button "Toggle thumbnails" [disabled]:
+                        - img
+                    - generic [ref=e309]: Page 1 of -
+                  - generic [ref=e310]:
+                    - generic [ref=e311]:
+                      - button "Rotate counterclockwise" [disabled]:
+                        - img
+                    - generic [ref=e312]:
+                      - button "Rotate clockwise" [disabled]:
+                        - img
+                    - separator [ref=e313]
+                    - generic [ref=e314]:
+                      - button "Zoom out" [disabled]:
+                        - img
+                    - combobox [disabled]:
+                      - generic: 75%
+                      - generic:
+                        - img
+                    - textbox [disabled] [ref=e315]: "0.75"
+                    - generic [ref=e316]:
+                      - button "Zoom in" [disabled]:
+                        - img
+                    - separator [ref=e317]
+                    - generic [ref=e318]:
+                      - button "Search text" [disabled]:
+                        - img
+                    - separator [ref=e319]
+                    - button "Draw" [ref=e320] [cursor=pointer]:
+                      - img
+                      - text: Draw
+                    - button "Download" [disabled]:
+                      - img
+                      - text: Download
+                    - separator [ref=e321]
+                    - generic "Upload PDF" [ref=e323] [cursor=pointer]:
+                      - button "Upload PDF" [ref=e324]
+                      - img
+                - img [ref=e327]
+              - separator [ref=e332]:
+                - img [ref=e334]
+              - complementary [ref=e342]:
+                - generic [ref=e346]:
+                  - img [ref=e348]
+                  - generic [ref=e351]:
+                    - generic [ref=e352]:
+                      - generic [ref=e353]: Signature1
+                      - generic [ref=e354]: Unsigned
+                    - generic [ref=e355]: 250 x 58 on page 1
+                    - button "Sign" [ref=e356] [cursor=pointer]:
+                      - img
+                      - text: Sign
+        - article [ref=e357]:
+          - generic [ref=e358]:
+            - generic [ref=e359]:
+              - heading "Human Review" [level=3] [ref=e360]
+              - paragraph [ref=e361]: Extraction review cards connected to source evidence in the PDF viewer.
+            - generic [ref=e362]:
+              - link "Open in New Tab" [ref=e363] [cursor=pointer]:
+                - /url: /docs/components/pdf-viewer/human-review
+                - text: Open in New Tab
+                - img
+              - button "Refresh Human Review preview" [ref=e364] [cursor=pointer]:
+                - img
+          - generic [ref=e365]:
+            - generic [ref=e366]:
+              - code [ref=e367]: npx shadcn@latest add human-review pdf-viewer
+              - generic [ref=e368]: Preview
+            - generic [ref=e370]:
+              - generic [ref=e372]:
+                - generic [ref=e373]:
+                  - generic [ref=e374]:
+                    - generic [ref=e375]:
+                      - button "Toggle thumbnails" [disabled]:
+                        - img
+                    - generic [ref=e376]: Page 1 of -
+                  - generic [ref=e377]:
+                    - generic [ref=e378]:
+                      - button "Rotate counterclockwise" [disabled]:
+                        - img
+                    - generic [ref=e379]:
+                      - button "Rotate clockwise" [disabled]:
+                        - img
+                    - separator [ref=e380]
+                    - generic [ref=e381]:
+                      - button "Zoom out" [disabled]:
+                        - img
+                    - combobox [disabled]:
+                      - generic: 75%
+                      - generic:
+                        - img
+                    - textbox [disabled] [ref=e382]: "0.75"
+                    - generic [ref=e383]:
+                      - button "Zoom in" [disabled]:
+                        - img
+                    - separator [ref=e384]
+                    - generic [ref=e385]:
+                      - button "Search text" [disabled]:
+                        - img
+                    - separator [ref=e386]
+                    - generic "Upload PDF" [ref=e388] [cursor=pointer]:
+                      - button "Upload PDF" [ref=e389]
+                      - img
+                - img [ref=e392]
+              - separator [ref=e397]:
+                - img [ref=e399]
+              - generic [ref=e407]:
+                - generic [ref=e408]:
+                  - tablist [ref=e409]:
+                    - tab "Form" [selected] [ref=e410] [cursor=pointer]:
+                      - img
+                      - text: Form
+                    - tab "JSON" [ref=e411] [cursor=pointer]:
+                      - img
+                      - text: JSON
+                  - generic [ref=e412]:
+                    - img [ref=e413]
+                    - text: 4 fields
+                - tabpanel "Form" [ref=e416]:
+                  - generic [ref=e418]:
+                    - generic [ref=e419]:
+                      - generic [ref=e420]:
+                        - generic [ref=e421]:
+                          - generic [ref=e424]: Vendor name
+                          - generic [ref=e426]: vendor_name
+                        - generic [ref=e427]:
+                          - button "Set vendor_name to null" [ref=e428] [cursor=pointer]:
+                            - img
+                          - generic [ref=e429]:
+                            - img [ref=e430]
+                            - text: string
+                      - generic [ref=e435]:
+                        - generic [ref=e436]:
+                          - paragraph [ref=e437]: Supplier shown on the invoice header.
+                          - generic [ref=e438]: Actual
+                          - generic [ref=e439]: Acme Supplies LLC
+                        - generic [ref=e440]:
+                          - generic [ref=e441]: Expected
+                          - textbox [ref=e443]: Acme Supply LLC
+                    - generic [ref=e444]:
+                      - generic [ref=e445]:
+                        - generic [ref=e446]:
+                          - generic [ref=e449]: Total amount
+                          - generic [ref=e451]: total_amount
+                        - generic [ref=e452]:
+                          - button "Set total_amount to null" [ref=e453] [cursor=pointer]:
+                            - img
+                          - generic [ref=e454]:
+                            - img [ref=e455]
+                            - text: number
+                      - generic [ref=e459]:
+                        - generic [ref=e460]:
+                          - paragraph [ref=e461]: Final amount due including tax.
+                          - generic [ref=e462]: Actual
+                          - generic [ref=e463]: "12480"
+                        - generic [ref=e464]:
+                          - generic [ref=e465]: Expected
+                          - spinbutton [ref=e467]: "12480.75"
+                    - generic [ref=e468]:
+                      - generic [ref=e469]:
+                        - generic [ref=e470]:
+                          - generic [ref=e473]: Payment terms
+                          - generic [ref=e475]: payment_terms
+                        - generic [ref=e476]:
+                          - button "Set payment_terms to null" [ref=e477] [cursor=pointer]:
+                            - img
+                          - generic [ref=e478]:
+                            - img [ref=e479]
+                            - text: string
+                      - generic [ref=e484]:
+                        - generic [ref=e485]:
+                          - generic [ref=e486]: Actual
+                          - generic [ref=e487]: Net 15
+                        - generic [ref=e488]:
+                          - generic [ref=e489]: Expected
+                          - combobox [ref=e491]:
+                            - option "Due on receipt"
+                            - option "Net 15"
+                            - option "Net 30" [selected]
+                    - generic [ref=e492]:
+                      - generic [ref=e493]:
+                        - generic [ref=e494]:
+                          - generic [ref=e497]: Requires review
+                          - generic [ref=e499]: requires_review
+                        - generic [ref=e500]:
+                          - button "Set requires_review to null" [ref=e501] [cursor=pointer]:
+                            - img
+                          - generic [ref=e502]:
+                            - img [ref=e503]
+                            - text: boolean
+                      - generic [ref=e505]:
+                        - generic [ref=e506]:
+                          - paragraph [ref=e507]: Whether a human should verify this document before export.
+                          - generic [ref=e508]: Actual
+                          - generic [ref=e509]: "false"
+                        - generic [ref=e510]:
+                          - generic [ref=e511]: Expected
+                          - generic [ref=e512]:
+                            - button "True" [ref=e513] [cursor=pointer]
+                            - button "False" [ref=e514] [cursor=pointer]
+        - article [ref=e515]:
+          - generic [ref=e516]:
+            - generic [ref=e517]:
+              - heading "Document Splits" [level=3] [ref=e518]
+              - paragraph [ref=e519]: Lazy page thumbnails, draggable split groups, and PDF navigation.
+            - generic [ref=e520]:
+              - link "Open in New Tab" [ref=e521] [cursor=pointer]:
+                - /url: /docs/components/pdf-viewer/document-splits
+                - text: Open in New Tab
+                - img
+              - button "Refresh Document Splits preview" [ref=e522] [cursor=pointer]:
+                - img
+          - generic [ref=e523]:
+            - generic [ref=e524]:
+              - code [ref=e525]: npx shadcn@latest add document-splits
+              - generic [ref=e526]: Preview
+            - generic [ref=e528]:
+              - generic [ref=e530]:
+                - generic [ref=e531]:
+                  - generic [ref=e532]:
+                    - generic [ref=e533]:
+                      - button "Toggle thumbnails" [disabled]:
+                        - img
+                    - generic [ref=e534]: Page 1 of -
+                  - generic [ref=e535]:
+                    - generic [ref=e536]:
+                      - button "Rotate counterclockwise" [disabled]:
+                        - img
+                    - generic [ref=e537]:
+                      - button "Rotate clockwise" [disabled]:
+                        - img
+                    - separator [ref=e538]
+                    - generic [ref=e539]:
+                      - button "Zoom out" [disabled]:
+                        - img
+                    - combobox [disabled]:
+                      - generic: 75%
+                      - generic:
+                        - img
+                    - textbox [disabled] [ref=e540]: "0.75"
+                    - generic [ref=e541]:
+                      - button "Zoom in" [disabled]:
+                        - img
+                    - separator [ref=e542]
+                    - generic [ref=e543]:
+                      - button "Search text" [disabled]:
+                        - img
+                    - separator [ref=e544]
+                    - generic "Upload PDF" [ref=e546] [cursor=pointer]:
+                      - button "Upload PDF" [ref=e547]
+                      - img
+                - img [ref=e550]
+              - separator [ref=e555]:
+                - img [ref=e557]
+              - complementary [ref=e565]:
+                - button "Add split" [ref=e567] [cursor=pointer]:
+                  - img
+                  - text: Add split
+                - generic [ref=e569]:
+                  - generic [ref=e570]:
+                    - generic [ref=e571]:
+                      - generic [ref=e572]:
+                        - button "Reorder Abstract and intro" [disabled] [ref=e573]:
+                          - img [ref=e574]
+                        - generic [ref=e581]:
+                          - generic [ref=e582]: Abstract and intro
+                          - generic [ref=e583]: Pages 1-3
+                      - generic [ref=e584]:
+                        - generic [ref=e585]: "3"
+                        - button "Remove Abstract and intro" [ref=e586] [cursor=pointer]:
+                          - img
+                    - generic [ref=e589]:
+                      - generic [ref=e595]: "1"
+                      - generic [ref=e601]: "2"
+                      - generic [ref=e607]: "3"
+                  - generic [ref=e608]:
+                    - generic [ref=e609]:
+                      - generic [ref=e610]:
+                        - button "Reorder Model architecture" [disabled] [ref=e611]:
+                          - img [ref=e612]
+                        - generic [ref=e619]:
+                          - generic [ref=e620]: Model architecture
+                          - generic [ref=e621]: Pages 4-8
+                      - generic [ref=e622]:
+                        - generic [ref=e623]: "5"
+                        - button "Remove Model architecture" [ref=e624] [cursor=pointer]:
+                          - img
+                    - generic [ref=e627]:
+                      - generic [ref=e633]: "4"
+                      - generic [ref=e639]: "5"
+                      - generic [ref=e645]: "6"
+                      - generic [ref=e651]: "7"
+                      - generic [ref=e657]: "8"
+                  - generic [ref=e658]:
+                    - generic [ref=e659]:
+                      - generic [ref=e660]:
+                        - button "Reorder Training and results" [disabled] [ref=e661]:
+                          - img [ref=e662]
+                        - generic [ref=e669]:
+                          - generic [ref=e670]: Training and results
+                          - generic [ref=e671]: Pages 9-15
+                      - generic [ref=e672]:
+                        - generic [ref=e673]: "7"
+                        - button "Remove Training and results" [ref=e674] [cursor=pointer]:
+                          - img
+                    - generic [ref=e677]:
+                      - generic [ref=e683]: "9"
+                      - generic [ref=e689]: "10"
+                      - generic [ref=e695]: "11"
+                      - generic [ref=e701]: "12"
+                      - generic [ref=e707]: "13"
+                      - generic [ref=e713]: "14"
+                      - generic [ref=e719]: "15"
+    - contentinfo [ref=e720]:
+      - generic [ref=e723]:
+        - text: Created by
+        - link "Extend" [ref=e724] [cursor=pointer]:
+          - /url: https://www.extend.ai
+        - text: . The source code is available on
+        - link "GitHub" [ref=e725] [cursor=pointer]:
+          - /url: https://github.com/extend-hq/ui
+        - text: .
+  - region "Notifications alt+T"
+  - generic [ref=e727]: xl
+  - alert [ref=e728]

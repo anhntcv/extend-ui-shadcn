@@ -85,8 +85,8 @@
   --color-info: var(--info);
   --animate-skeleton: skeleton 2s -1s infinite linear;
   @keyframes skeleton {
-  to {
-    background-position: -200% 0;
+    to {
+      background-position: -200% 0;
     }
   }
 }
@@ -257,6 +257,18 @@
   scrollbar-width: none;
 
   &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility scrollbar-overflow-only {
+  &:not(:has([data-slot="scroll-area-viewport"][data-has-overflow-x]))
+    [data-slot="scroll-area-scrollbar"][data-orientation="horizontal"] {
+    display: none;
+  }
+
+  &:not(:has([data-slot="scroll-area-viewport"][data-has-overflow-y]))
+    [data-slot="scroll-area-scrollbar"][data-orientation="vertical"] {
     display: none;
   }
 }

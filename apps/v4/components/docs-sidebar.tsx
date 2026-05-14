@@ -37,6 +37,11 @@ const PDF_VIEWER_SUBPAGES = [
   { name: "Citations", url: "/docs/components/pdf-viewer/citations" },
   { name: "OCR Blocks", url: "/docs/components/pdf-viewer/ocr-blocks" },
   { name: "E-Signature", url: "/docs/components/pdf-viewer/e-signature" },
+  { name: "Human Review", url: "/docs/components/pdf-viewer/human-review" },
+  {
+    name: "Document Splits",
+    url: "/docs/components/pdf-viewer/document-splits",
+  },
 ]
 
 export function DocsSidebar({

@@ -1,0 +1,147 @@
+"use client"
+
+import * as React from "react"
+import Link from "next/link"
+import { ArrowUpRight01Icon, Refresh01Icon } from "@hugeicons/core-free-icons"
+import { HugeiconsIcon } from "@hugeicons/react"
+
+import { Button } from "@/components/ui/button"
+import { CitationsBlock } from "@/components/citations-docs"
+import { DocumentSplitsBlock } from "@/components/document-splitter-docs"
+import { ESignatureBlock } from "@/components/e-signature-docs"
+import { HumanReviewBlock } from "@/components/human-review-docs"
+import { OcrBlocksBlock } from "@/components/ocr-blocks-docs"
+import { PdfDropzoneBlock } from "@/components/pdf-dropzone-block"
+
+const pdfViewerBlocks = [
+  {
+    id: "pdf-dropzone",
+    title: "PDF Dropzone",
+    description:
+      "A PDF-only upload dropzone that opens the dropped file in the shared viewer.",
+    command: "npx shadcn@latest add pdf-viewer file-upload",
+    docsHref: "/docs/components/file-upload",
+    component: PdfDropzoneBlock,
+  },
+  {
+    id: "citations",
+    title: "Citations",
+    description:
+      "Evidence cards that scroll the PDF viewer to source bounding boxes.",
+    command: "npx shadcn@latest add citations",
+    docsHref: "/docs/components/pdf-viewer/citations",
+    component: CitationsBlock,
+  },
+  {
+    id: "ocr-blocks",
+    title: "OCR Blocks",
+    description:
+      "Structured OCR review with typed blocks, confidence, and page overlays.",
+    hideHeader: true,
+    command: "npx shadcn@latest add ocr-blocks",
+    docsHref: "/docs/components/pdf-viewer/ocr-blocks",
+    component: OcrBlocksBlock,
+  },
+  {
+    id: "e-signature",
+    title: "E-Signature",
+    description:
+      "Signature fields connected to the PDF canvas and signed PDF export.",
+    hideHeader: true,
+    command: "npx shadcn@latest add e-signature",
+    docsHref: "/docs/components/pdf-viewer/e-signature",
+    component: ESignatureBlock,
+  },
+  {
+    id: "human-review",
+    title: "Human Review",
+    description:
+      "Extraction review cards connected to source evidence in the PDF viewer.",
+    command: "npx shadcn@latest add human-review pdf-viewer",
+    docsHref: "/docs/components/pdf-viewer/human-review",
+    component: HumanReviewBlock,
+  },
+  {
+    id: "document-splits",
+    title: "Document Splits",
+    description:
+      "Lazy page thumbnails, draggable split groups, and PDF navigation.",
+    command: "npx shadcn@latest add document-splits",
+    docsHref: "/docs/components/pdf-viewer/document-splits",
+    component: DocumentSplitsBlock,
+  },
+]
+
+export function PdfViewerBlocks() {
+  return (
+    <section className="space-y-12">
+      {pdfViewerBlocks.map((block) => (
+        <PdfViewerBlockPreview key={block.id} block={block} />
+      ))}
+    </section>
+  )
+}
+
+function PdfViewerBlockPreview({
+  block,
+}: {
+  block: (typeof pdfViewerBlocks)[number]
+}) {
+  const [previewKey, setPreviewKey] = React.useState(0)
+  const Preview = block.component
+
+  return (
+    <article id={block.id} className="space-y-3">
+      <div
+        className={[
+          "flex flex-col gap-3 sm:flex-row sm:items-end",
+          block.hideHeader ? "sm:justify-end" : "sm:justify-between",
+        ].join(" ")}
+      >
+        {block.hideHeader ? null : (
+          <div className="min-w-0">
+            <h3 className="font-heading text-lg font-medium tracking-tight">
+              {block.title}
+            </h3>
+            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+              {block.description}
+            </p>
+          </div>
+        )}
+        <div className="flex shrink-0 items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            render={<Link href={block.docsHref} target="_blank" />}
+          >
+            Open in New Tab
+            <HugeiconsIcon icon={ArrowUpRight01Icon} className="size-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            aria-label={`Refresh ${block.title} preview`}
+            onClick={() => setPreviewKey((value) => value + 1)}
+          >
+            <HugeiconsIcon icon={Refresh01Icon} className="size-4" />
+          </Button>
+        </div>
+      </div>
+      <div className="overflow-hidden rounded-xl border bg-background shadow-xs">
+        <div className="flex min-h-11 items-center justify-between gap-3 border-b bg-muted/30 px-3">
+          <code className="truncate text-xs text-muted-foreground">
+            {block.command}
+          </code>
+          <div className="hidden text-xs text-muted-foreground sm:block">
+            Preview
+          </div>
+        </div>
+        <div className="bg-background">
+          <Preview key={previewKey} />
+        </div>
+      </div>
+    </article>
+  )
+}

@@ -1,4 +1,10 @@
 {
   "title": "PDF Viewer",
-  "pages": ["citations", "ocr-blocks", "e-signature"]
+  "pages": [
+    "citations",
+    "ocr-blocks",
+    "e-signature",
+    "human-review",
+    "document-splits"
+  ]
 }

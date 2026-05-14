@@ -9,6 +9,7 @@ import { getCurrentBase, getPagesFromFolder } from "@/lib/page-tree"
 import { type source } from "@/lib/source"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Popover,
   PopoverContent,
@@ -69,77 +70,83 @@ export function MobileNav({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="no-scrollbar h-(--radix-popper-available-height) w-(--radix-popper-available-width) overflow-y-auto rounded-none border-none bg-background/90 p-0 shadow-none backdrop-blur duration-100 data-open:animate-none!"
+        className="h-(--radix-popper-available-height) w-(--radix-popper-available-width) rounded-none border-none bg-background/90 p-0 shadow-none backdrop-blur duration-100 data-open:animate-none!"
         align="start"
         side="bottom"
         alignOffset={-16}
         sideOffset={14}
       >
-        <div className="flex flex-col gap-12 overflow-auto px-6 py-6">
-          <div className="flex flex-col gap-4">
-            <div className="text-sm font-medium text-muted-foreground">
-              Menu
-            </div>
-            <div className="flex flex-col gap-3">
-              <MobileLink href="/" onOpenChange={setOpen}>
-                Home
-              </MobileLink>
-              {items.map((item, index) => (
-                <MobileLink key={index} href={item.href} onOpenChange={setOpen}>
-                  {item.label}
+        <ScrollArea className="h-full">
+          <div className="flex flex-col gap-12 px-6 py-6">
+            <div className="flex flex-col gap-4">
+              <div className="text-sm font-medium text-muted-foreground">
+                Menu
+              </div>
+              <div className="flex flex-col gap-3">
+                <MobileLink href="/" onOpenChange={setOpen}>
+                  Home
                 </MobileLink>
-              ))}
-            </div>
-          </div>
-          <div className="flex flex-col gap-4">
-            <div className="text-sm font-medium text-muted-foreground">
-              Sections
-            </div>
-            <div className="flex flex-col gap-3">
-              {TOP_LEVEL_SECTIONS.map(({ name, href }) => {
-                if (!showMcpDocs && href.includes("/mcp")) {
-                  return null
-                }
-                return (
-                  <MobileLink key={name} href={href} onOpenChange={setOpen}>
-                    {name}
+                {items.map((item, index) => (
+                  <MobileLink
+                    key={index}
+                    href={item.href}
+                    onOpenChange={setOpen}
+                  >
+                    {item.label}
                   </MobileLink>
-                )
+                ))}
+              </div>
+            </div>
+            <div className="flex flex-col gap-4">
+              <div className="text-sm font-medium text-muted-foreground">
+                Sections
+              </div>
+              <div className="flex flex-col gap-3">
+                {TOP_LEVEL_SECTIONS.map(({ name, href }) => {
+                  if (!showMcpDocs && href.includes("/mcp")) {
+                    return null
+                  }
+                  return (
+                    <MobileLink key={name} href={href} onOpenChange={setOpen}>
+                      {name}
+                    </MobileLink>
+                  )
+                })}
+              </div>
+            </div>
+            <div className="flex flex-col gap-8">
+              {tree?.children?.map((group, index) => {
+                if (group.type === "folder") {
+                  const pages = getPagesFromFolder(group, currentBase)
+                  return (
+                    <div key={index} className="flex flex-col gap-4">
+                      <div className="text-sm font-medium text-muted-foreground">
+                        {group.name}
+                      </div>
+                      <div className="flex flex-col gap-3">
+                        {pages.map((item) => {
+                          if (!showMcpDocs && item.url.includes("/mcp")) {
+                            return null
+                          }
+                          return (
+                            <MobileLink
+                              key={`${item.url}-${index}`}
+                              href={item.url}
+                              onOpenChange={setOpen}
+                              className="flex items-center gap-2"
+                            >
+                              {item.name}
+                            </MobileLink>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                }
               })}
             </div>
           </div>
-          <div className="flex flex-col gap-8">
-            {tree?.children?.map((group, index) => {
-              if (group.type === "folder") {
-                const pages = getPagesFromFolder(group, currentBase)
-                return (
-                  <div key={index} className="flex flex-col gap-4">
-                    <div className="text-sm font-medium text-muted-foreground">
-                      {group.name}
-                    </div>
-                    <div className="flex flex-col gap-3">
-                      {pages.map((item) => {
-                        if (!showMcpDocs && item.url.includes("/mcp")) {
-                          return null
-                        }
-                        return (
-                          <MobileLink
-                            key={`${item.url}-${index}`}
-                            href={item.url}
-                            onOpenChange={setOpen}
-                            className="flex items-center gap-2"
-                          >
-                            {item.name}
-                          </MobileLink>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )
-              }
-            })}
-          </div>
-        </div>
+        </ScrollArea>
       </PopoverContent>
     </Popover>
   )
