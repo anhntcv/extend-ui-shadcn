@@ -985,8 +985,6 @@ export function ESignatureDemo() {
 
 const eSignatureUsageCode = `"use client";
 
-import { FilePenIcon } from "@hugeicons/core-free-icons";
-
 import { SignatureFieldCard } from "@/components/ui/signature-field-card";
 
 export function ESignatureExample() {
@@ -1011,7 +1009,6 @@ export function ESignatureExample() {
         status="optional"
         pageLabel="p. 2"
         description="Optional date field"
-        icon={FilePenIcon}
         iconClassName="bg-amber-500/10 text-amber-700 dark:text-amber-300"
         actionLabel="Add date"
         onAction={() => {}}
@@ -1023,8 +1020,6 @@ export function ESignatureExample() {
 const eSignatureSourceCode = `"use client";
 
 import * as React from "react";
-import { FilePenIcon, Pen01Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -1034,7 +1029,6 @@ type SignatureFieldCardProps = React.HTMLAttributes<HTMLDivElement> & {
   status?: "unsigned" | "signed" | "optional";
   pageLabel?: string;
   description?: string;
-  icon?: React.ComponentProps<typeof HugeiconsIcon>["icon"];
   iconClassName?: string;
   actionLabel?: string;
   onAction?: () => void;
@@ -1045,7 +1039,6 @@ export function SignatureFieldCard({
   status = "unsigned",
   pageLabel,
   description,
-  icon = FilePenIcon,
   iconClassName = "bg-blue-500/10 text-blue-600 dark:text-blue-300",
   actionLabel,
   onAction,
@@ -1064,7 +1057,7 @@ export function SignatureFieldCard({
             iconClassName,
           )}
         >
-          <HugeiconsIcon icon={icon} className="size-4" />
+          <span className="text-xs font-semibold">S</span>
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-3">
@@ -1086,7 +1079,6 @@ export function SignatureFieldCard({
             className="mt-3 w-full"
             onClick={onAction}
           >
-            <HugeiconsIcon icon={Pen01Icon} className="size-4" />
             {actionLabel ?? (status === "signed" ? "Edit signature" : "Sign")}
           </Button>
         </div>

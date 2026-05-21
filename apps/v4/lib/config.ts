@@ -1,11 +1,10 @@
 export const siteConfig = {
   name: "Extend UI",
   url: "http://localhost:4000",
-  ogImage: "http://localhost:4000/og.jpg",
+  ogImage: "http://localhost:4000/opengraph-image.png",
   description:
     "Open source UI primitives for building document processing products with viewers, review surfaces, and validation workflows.",
   links: {
-    twitter: "https://twitter.com",
     github: "https://github.com/extend-hq/ui",
   },
   navItems: [

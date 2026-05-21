@@ -19,6 +19,7 @@ import {
   horizontalListSortingStrategy,
   SortableContext,
   useSortable,
+  verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import {
@@ -75,6 +76,15 @@ const splitterCollisionDetection: CollisionDetection = (args) => {
     })
   }
 
+  if (dragType === "split") {
+    return closestCenter({
+      ...args,
+      droppableContainers: args.droppableContainers.filter(
+        (container) => container.data.current?.type === "split"
+      ),
+    })
+  }
+
   return closestCenter(args)
 }
 
@@ -84,6 +94,10 @@ function toPageId(pageNumber: number): PageId {
 
 function getPageNumber(pageId: PageId): number {
   return Number(pageId.replace("page-", ""))
+}
+
+function getSplitSortableId(groupId: string) {
+  return `split-sortable-${groupId}`
 }
 
 function createInitialGroups(pageCount: number): SplitGroup[] {
@@ -370,6 +384,8 @@ function SplitGroupCard({
   pageRangeLabel,
   reactPdf,
   activePage,
+  canReorder = false,
+  dragHandleProps,
   isPageDragging = false,
   thumbnailImages,
   canRemove,
@@ -381,6 +397,8 @@ function SplitGroupCard({
   pageRangeLabel: string
   reactPdf: ReactPdfModule | null
   activePage: number
+  canReorder?: boolean
+  dragHandleProps?: React.ComponentPropsWithoutRef<"button">
   isPageDragging?: boolean
   thumbnailImages?: Record<PageId, string>
   canRemove: boolean
@@ -390,7 +408,7 @@ function SplitGroupCard({
 }) {
   if (!reactPdf) {
     return (
-      <Card className="rounded-xl">
+      <Card className="overflow-hidden rounded-xl before:rounded-[calc(var(--radius-xl)-1px)]">
         <div className="flex items-start justify-between gap-3 border-b p-3">
           <div className="flex min-w-0 items-start gap-2">
             <button
@@ -463,14 +481,20 @@ function SplitGroupCard({
   }
 
   return (
-    <Card className="rounded-xl">
+    <Card className="overflow-hidden rounded-xl before:rounded-[calc(var(--radius-xl)-1px)]">
       <div className="flex items-start justify-between gap-3 border-b p-3">
         <div className="flex min-w-0 items-start gap-2">
           <button
             type="button"
             aria-label={`Reorder ${group.title}`}
-            className="mt-0.5 inline-flex size-7 shrink-0 cursor-default items-center justify-center rounded-md text-muted-foreground"
-            disabled
+            className={cn(
+              "mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground",
+              canReorder
+                ? "cursor-grab hover:bg-muted active:cursor-grabbing"
+                : "cursor-default"
+            )}
+            disabled={!canReorder}
+            {...dragHandleProps}
           >
             <HugeiconsIcon icon={DragDropVerticalIcon} className="size-4" />
           </button>
@@ -543,6 +567,43 @@ function SplitGroupCard({
         )}
       </SplitGroupDropzone>
     </Card>
+  )
+}
+
+function SortableSplitGroupCard(
+  props: Omit<React.ComponentProps<typeof SplitGroupCard>, "dragHandleProps">
+) {
+  const { group } = props
+  const {
+    attributes,
+    isDragging,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({
+    id: getSplitSortableId(group.id),
+    data: {
+      groupId: group.id,
+      type: "split",
+    },
+  })
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(isDragging && "opacity-0")}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+    >
+      <SplitGroupCard
+        {...props}
+        canReorder
+        dragHandleProps={{ ...attributes, ...listeners }}
+      />
+    </div>
   )
 }
 
@@ -808,6 +869,28 @@ function SplitterGroupsPane({
     const dragType = event.active.data.current?.type
     const overId = event.over?.id
 
+    if (dragType === "split" && overId) {
+      const activeGroupId = event.active.data.current?.groupId as
+        | string
+        | undefined
+      const overGroupId = event.over?.data.current?.groupId as
+        | string
+        | undefined
+
+      setGroups((previousGroups) => {
+        const activeIndex = previousGroups.findIndex(
+          (group) => group.id === activeGroupId
+        )
+        const overIndex = previousGroups.findIndex(
+          (group) => group.id === overGroupId
+        )
+
+        if (activeIndex === -1 || overIndex === -1) return previousGroups
+
+        return arrayMove(previousGroups, activeIndex, overIndex)
+      })
+    }
+
     if (dragType === "page" && overId) {
       const activePageId = String(event.active.id) as PageId
       const overPageId = String(overId) as PageId
@@ -871,23 +954,28 @@ function SplitterGroupsPane({
           onDragCancel={handleDragCancel}
         >
           <ScrollArea className="min-h-0 flex-1" scrollFade>
-            <div className="space-y-3 p-3">
-              {groups.map((group) => (
-                <SplitGroupCard
-                  key={group.id}
-                  group={group}
-                  pageRangeLabel={pageRangeLabels[group.id] ?? "No pages"}
-                  reactPdf={reactPdf}
-                  activePage={visibleActivePage}
-                  isPageDragging={isPageDragging}
-                  thumbnailImages={thumbnailImages}
-                  canRemove={groups.length > 1}
-                  onRemove={() => removeSplit(group.id)}
-                  onSelectPage={onSelectPage}
-                  onThumbnailReady={handleThumbnailReady}
-                />
-              ))}
-            </div>
+            <SortableContext
+              items={groups.map((group) => getSplitSortableId(group.id))}
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-3 p-3">
+                {groups.map((group) => (
+                  <SortableSplitGroupCard
+                    key={group.id}
+                    group={group}
+                    pageRangeLabel={pageRangeLabels[group.id] ?? "No pages"}
+                    reactPdf={reactPdf}
+                    activePage={visibleActivePage}
+                    isPageDragging={isPageDragging}
+                    thumbnailImages={thumbnailImages}
+                    canRemove={groups.length > 1}
+                    onRemove={() => removeSplit(group.id)}
+                    onSelectPage={onSelectPage}
+                    onThumbnailReady={handleThumbnailReady}
+                  />
+                ))}
+              </div>
+            </SortableContext>
           </ScrollArea>
           <DragOverlay dropAnimation={DRAG_OVERLAY_DROP_ANIMATION}>
             {activePageId ? (
@@ -1267,9 +1355,10 @@ import {
   arrayMove,
   horizontalListSortingStrategy,
   useSortable,
+  verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Add01Icon } from "@hugeicons/core-free-icons";
+import { Add01Icon, DragDropVerticalIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type * as ReactPdf from "react-pdf";
 
@@ -1295,6 +1384,10 @@ function toPageId(pageNumber: number) {
 
 function getPageNumber(pageId: PageId) {
   return Number(pageId.replace("page-", ""));
+}
+
+function getSplitSortableId(groupId: string) {
+  return "split-sortable-" + groupId;
 }
 
 function createInitialGroups(pageCount: number): SplitGroup[] {
@@ -1429,15 +1522,27 @@ function PageThumbnail({
 
 function SplitGroupCard({
   group,
+  dragHandleProps,
   reactPdf,
 }: {
   group: SplitGroup;
+  dragHandleProps?: React.ComponentPropsWithoutRef<"button">;
   reactPdf: ReactPdfModule;
 }) {
   return (
     <section className="rounded-lg border bg-background">
       <div className="flex items-center justify-between gap-3 border-b p-3">
-        <div className="truncate text-sm font-medium">{group.title}</div>
+        <div className="flex min-w-0 items-center gap-2">
+          <button
+            type="button"
+            aria-label={"Reorder " + group.title}
+            className="inline-flex size-7 shrink-0 cursor-grab items-center justify-center rounded-md text-muted-foreground hover:bg-muted active:cursor-grabbing"
+            {...dragHandleProps}
+          >
+            <HugeiconsIcon icon={DragDropVerticalIcon} className="size-4" />
+          </button>
+          <div className="truncate text-sm font-medium">{group.title}</div>
+        </div>
         <div className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
           {group.pages.length} pages
         </div>
@@ -1460,6 +1565,36 @@ function SplitGroupCard({
         </SortableContext>
       </SplitDropzone>
     </section>
+  );
+}
+
+function SortableSplitGroupCard({
+  group,
+  reactPdf,
+}: {
+  group: SplitGroup;
+  reactPdf: ReactPdfModule;
+}) {
+  const { attributes, isDragging, listeners, setNodeRef, transform, transition } = useSortable({
+    id: getSplitSortableId(group.id),
+    data: { type: "split", groupId: group.id },
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(isDragging && "opacity-0")}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+    >
+      <SplitGroupCard
+        group={group}
+        reactPdf={reactPdf}
+        dragHandleProps={{ ...attributes, ...listeners }}
+      />
+    </div>
   );
 }
 
@@ -1532,6 +1667,19 @@ export function DocumentSplits({
   }, []);
 
   const handleDragEnd = React.useCallback((event: DragEndEvent) => {
+    if (event.active.data.current?.type === "split" && event.over) {
+      const activeGroupId = event.active.data.current.groupId;
+      const overGroupId = event.over.data.current?.groupId;
+
+      setGroups((current) => {
+        const activeIndex = current.findIndex((group) => group.id === activeGroupId);
+        const overIndex = current.findIndex((group) => group.id === overGroupId);
+        return activeIndex === -1 || overIndex === -1 ? current : arrayMove(current, activeIndex, overIndex);
+      });
+
+      return;
+    }
+
     if (event.active.data.current?.type !== "page" || !event.over) {
       dragStartGroupIdRef.current = null;
       setActivePageId(null);
@@ -1571,11 +1719,13 @@ export function DocumentSplits({
           }}
         >
           <ScrollArea className="h-full" scrollFade>
-            <div className="space-y-3 p-3">
-              {groups.map((group) => (
-                <SplitGroupCard key={group.id} group={group} reactPdf={pdfModule} />
-              ))}
-            </div>
+            <SortableContext items={groups.map((group) => getSplitSortableId(group.id))} strategy={verticalListSortingStrategy}>
+              <div className="space-y-3 p-3">
+                {groups.map((group) => (
+                  <SortableSplitGroupCard key={group.id} group={group} reactPdf={pdfModule} />
+                ))}
+              </div>
+            </SortableContext>
           </ScrollArea>
           <DragOverlay>
             {activePageId ? (

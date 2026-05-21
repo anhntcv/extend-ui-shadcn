@@ -1,8 +1,16 @@
-# Document UI
+# Extend UI
 
-A shadcn/ui-inspired marketing and documentation site for open source document components.
+Open source document components created by [Extend](https://www.extend.ai).
+Extend UI gives product teams the building blocks for document processing
+interfaces: PDF viewers, file uploads, thumbnails, citations, OCR blocks,
+human review, document splitting, and e-signature flows.
 
-![hero](apps/v4/public/opengraph-image.png)
+![Extend UI document components](apps/v4/public/extend-ui-readme.png)
+
+## Links
+
+- Documentation: `http://localhost:4000`
+- GitHub: [extend-hq/ui](https://github.com/extend-hq/ui)
 
 ## Development
 
@@ -18,6 +26,12 @@ The site runs at `http://localhost:4000`.
 - Docs
 - Components
 - Blocks
+- PDF Viewer blocks
+
+## Created By
+
+Extend UI is built and maintained by [Extend](https://www.extend.ai) for teams
+building modern document processing products.
 
 ## License
 
