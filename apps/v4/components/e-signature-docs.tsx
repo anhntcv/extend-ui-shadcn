@@ -909,14 +909,6 @@ function ESignatureExample() {
           iconClassName="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
           onAction={() => setDialogOpen(true)}
         />
-        <SignatureFieldExampleCard
-          label="Approval date"
-          status="optional"
-          pageLabel="p. 2"
-          description="Optional date field"
-          iconClassName="bg-amber-500/10 text-amber-700 dark:text-amber-300"
-          actionLabel="Add date"
-        />
       </div>
       <SignatureDialog
         open={dialogOpen}
@@ -1002,15 +994,6 @@ export function ESignatureExample() {
         pageLabel="p. 2"
         description="Completed by Andrew"
         iconClassName="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
-        onAction={() => {}}
-      />
-      <SignatureFieldCard
-        label="Approval date"
-        status="optional"
-        pageLabel="p. 2"
-        description="Optional date field"
-        iconClassName="bg-amber-500/10 text-amber-700 dark:text-amber-300"
-        actionLabel="Add date"
         onAction={() => {}}
       />
     </div>

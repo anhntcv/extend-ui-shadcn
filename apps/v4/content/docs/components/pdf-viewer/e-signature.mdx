@@ -55,10 +55,20 @@ npm install signature_pad
 - Required-field validation before submit.
 - Audit-friendly signed, pending, and declined states.
 
-## Common slots
+## API Reference
 
-| Slot       | Purpose                                      |
-| ---------- | -------------------------------------------- |
-| `field`    | Signature or form field positioned on a PDF. |
-| `status`   | Recipient and completion state.              |
-| `controls` | Review, clear, decline, or submit actions.   |
+### SignatureFieldCard
+
+The SignatureFieldCard component renders a signature field summary with status, recipient context, and an optional action.
+
+| Prop            | Type                                   | Default                                             | Required |
+| --------------- | -------------------------------------- | --------------------------------------------------- | -------- |
+| `label`         | `string`                               | `-`                                                 | Yes      |
+| `status`        | `"unsigned" \| "signed" \| "optional"` | `"unsigned"`                                        | No       |
+| `pageLabel`     | `string`                               | `-`                                                 | No       |
+| `description`   | `string`                               | `-`                                                 | No       |
+| `iconClassName` | `string`                               | `"bg-blue-500/10 text-blue-600 dark:text-blue-300"` | No       |
+| `actionLabel`   | `string`                               | `"Sign"` or `"Edit signature"`                      | No       |
+| `onAction`      | `() => void`                           | `-`                                                 | No       |
+| `className`     | `string`                               | `-`                                                 | No       |
+| `...props`      | `React.HTMLAttributes<HTMLDivElement>` | `-`                                                 | No       |

@@ -1,17 +1,61 @@
 "use client"
 
 import * as React from "react"
+import dynamic from "next/dynamic"
 import Link from "next/link"
 import { ArrowUpRight01Icon, Refresh01Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 
 import { Button } from "@/components/ui/button"
-import { CitationsBlock } from "@/components/citations-docs"
-import { DocumentSplitsBlock } from "@/components/document-splitter-docs"
-import { ESignatureBlock } from "@/components/e-signature-docs"
-import { HumanReviewBlock } from "@/components/human-review-docs"
-import { OcrBlocksBlock } from "@/components/ocr-blocks-docs"
-import { PdfDropzoneBlock } from "@/components/pdf-dropzone-block"
+
+const PreviewLoading = () => (
+  <div className="grid h-[420px] place-items-center bg-muted/20 text-sm text-muted-foreground">
+    Loading preview...
+  </div>
+)
+
+const PdfDropzoneBlock = dynamic(
+  () =>
+    import("@/components/pdf-dropzone-block").then(
+      (mod) => mod.PdfDropzoneBlock
+    ),
+  { loading: PreviewLoading, ssr: false }
+)
+const CitationsBlock = dynamic(
+  () => import("@/components/citations-docs").then((mod) => mod.CitationsBlock),
+  { loading: PreviewLoading, ssr: false }
+)
+const OcrBlocksBlock = dynamic(
+  () =>
+    import("@/components/ocr-blocks-docs").then((mod) => mod.OcrBlocksBlock),
+  { loading: PreviewLoading, ssr: false }
+)
+const ESignatureBlock = dynamic(
+  () =>
+    import("@/components/e-signature-docs").then((mod) => mod.ESignatureBlock),
+  { loading: PreviewLoading, ssr: false }
+)
+const HumanReviewBlock = dynamic(
+  () =>
+    import("@/components/human-review-docs").then(
+      (mod) => mod.HumanReviewBlock
+    ),
+  { loading: PreviewLoading, ssr: false }
+)
+const DocumentSplitsBlock = dynamic(
+  () =>
+    import("@/components/document-splitter-docs").then(
+      (mod) => mod.DocumentSplitsBlock
+    ),
+  { loading: PreviewLoading, ssr: false }
+)
+const XlsxDocumentSplitsBlock = dynamic(
+  () =>
+    import("@/components/document-splitter-docs").then(
+      (mod) => mod.XlsxDocumentSplitsBlock
+    ),
+  { loading: PreviewLoading, ssr: false }
+)
 
 const pdfViewerBlocks = [
   {
@@ -70,6 +114,15 @@ const pdfViewerBlocks = [
     docsHref: "/docs/components/pdf-viewer/document-splits",
     component: DocumentSplitsBlock,
   },
+  {
+    id: "excel-document-splits",
+    title: "Excel Document Splits",
+    description:
+      "Workbook sheets split into draggable groups with thumbnails from the XLSX viewer.",
+    command: "npx shadcn@latest add xlsx-viewer document-splits",
+    docsHref: "/docs/components/xlsx-viewer",
+    component: XlsxDocumentSplitsBlock,
+  },
 ]
 
 export function PdfViewerBlocks() {
@@ -87,11 +140,37 @@ function PdfViewerBlockPreview({
 }: {
   block: (typeof pdfViewerBlocks)[number]
 }) {
+  const rootRef = React.useRef<HTMLElement | null>(null)
+  const [isPreviewVisible, setIsPreviewVisible] = React.useState(false)
   const [previewKey, setPreviewKey] = React.useState(0)
   const Preview = block.component
 
+  React.useEffect(() => {
+    const root = rootRef.current
+    if (!root || isPreviewVisible) return
+
+    if (!("IntersectionObserver" in window)) {
+      setIsPreviewVisible(true)
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setIsPreviewVisible(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: "700px" }
+    )
+
+    observer.observe(root)
+
+    return () => observer.disconnect()
+  }, [isPreviewVisible])
+
   return (
-    <article id={block.id} className="space-y-3">
+    <article ref={rootRef} id={block.id} className="space-y-3">
       <div
         className={[
           "flex flex-col gap-3 sm:flex-row sm:items-end",
@@ -139,7 +218,7 @@ function PdfViewerBlockPreview({
           </div>
         </div>
         <div className="bg-background">
-          <Preview key={previewKey} />
+          {isPreviewVisible ? <Preview key={previewKey} /> : <PreviewLoading />}
         </div>
       </div>
     </article>

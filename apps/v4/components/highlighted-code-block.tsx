@@ -1,10 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { codeToHtml } from "shiki"
 
 import { cn } from "@/lib/utils"
 import { CopyButton } from "@/components/copy-button"
+
+const highlightedCodeCache = new Map<string, string>()
 
 export function HighlightedCodeBlock({
   code,
@@ -20,6 +21,8 @@ export function HighlightedCodeBlock({
   showCopy?: boolean
 }) {
   const [html, setHtml] = React.useState<string | null>(null)
+  const [isVisible, setIsVisible] = React.useState(false)
+  const containerRef = React.useRef<HTMLDivElement | null>(null)
   const visibleCode = React.useMemo(() => {
     if (!previewLines) {
       return code
@@ -27,11 +30,48 @@ export function HighlightedCodeBlock({
 
     return code.split("\n").slice(0, previewLines).join("\n")
   }, [code, previewLines])
+  const cacheKey = React.useMemo(
+    () => `${visibleCode}::${maxHeightClassName}::${showCopy}`,
+    [maxHeightClassName, showCopy, visibleCode]
+  )
+
+  React.useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    if (!("IntersectionObserver" in window)) {
+      setIsVisible(true)
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setIsVisible(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: "800px 0px" }
+    )
+
+    observer.observe(container)
+
+    return () => observer.disconnect()
+  }, [])
 
   React.useEffect(() => {
     let cancelled = false
 
     async function highlight() {
+      if (!isVisible) return
+
+      const cachedHtml = highlightedCodeCache.get(cacheKey)
+      if (cachedHtml) {
+        setHtml(cachedHtml)
+        return
+      }
+
+      const { codeToHtml } = await import("shiki")
       const highlighted = await codeToHtml(visibleCode, {
         lang: "tsx",
         themes: {
@@ -61,6 +101,7 @@ export function HighlightedCodeBlock({
       })
 
       if (!cancelled) {
+        highlightedCodeCache.set(cacheKey, highlighted)
         setHtml(highlighted)
       }
     }
@@ -71,10 +112,11 @@ export function HighlightedCodeBlock({
     return () => {
       cancelled = true
     }
-  }, [maxHeightClassName, showCopy, visibleCode])
+  }, [cacheKey, isVisible, maxHeightClassName, showCopy, visibleCode])
 
   return (
     <div
+      ref={containerRef}
       data-rehype-pretty-code-figure
       className={cn(
         "relative m-0! overflow-hidden rounded-lg border bg-code text-code-foreground",

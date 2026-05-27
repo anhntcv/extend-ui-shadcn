@@ -33,7 +33,7 @@ npx shadcn@latest add human-review
 <Step>Install the following dependencies:</Step>
 
 ```bash
-npm install @pierre/diffs @hugeicons/react @hugeicons/core-free-icons
+npm install @pierre/diffs
 ```
 
 <Step>Copy and paste the following code into your project.</Step>
@@ -55,11 +55,24 @@ npm install @pierre/diffs @hugeicons/react @hugeicons/core-free-icons
 - Per-field undo and Set to NULL actions.
 - Form and JSON diff views for the same reviewed output state.
 
-## Common slots
+## API Reference
 
-| Slot       | Purpose                                               |
-| ---------- | ----------------------------------------------------- |
-| `field`    | A schema property, extracted value, and review value. |
-| `actual`   | Read-only machine output for comparison.              |
-| `expected` | Editable reviewed output for correction.              |
-| `diff`     | JSON-level actual versus expected comparison.         |
+### HumanReviewPanel
+
+The HumanReviewPanel component renders editable review fields and a JSON diff for the same extraction output.
+
+| Prop             | Type                           | Default | Required |
+| ---------------- | ------------------------------ | ------- | -------- |
+| `fields`         | `ReviewField[]`                | `-`     | Yes      |
+| `values`         | `JsonObject`                   | `-`     | Yes      |
+| `onValuesChange` | `(values: JsonObject) => void` | `-`     | Yes      |
+| `className`      | `string`                       | `-`     | No       |
+
+### ReviewField
+
+| Prop       | Type                | Default | Required |
+| ---------- | ------------------- | ------- | -------- |
+| `key`      | `string`            | `-`     | Yes      |
+| `schema`   | `ReviewFieldSchema` | `-`     | Yes      |
+| `actual`   | `JsonPrimitive`     | `-`     | Yes      |
+| `expected` | `JsonPrimitive`     | `-`     | Yes      |

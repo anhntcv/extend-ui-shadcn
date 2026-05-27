@@ -1,10 +1,10 @@
 ---
 title: File Thumbnail
-description: Render a compact first-page preview for PDFs and direct image previews for image files.
+description: Render compact file preview images with a skeleton, fade transition, metadata, and fallback state.
 component: true
 ---
 
-File Thumbnail gives document lists, upload queues, and attachment trays a fast visual preview without mounting a full viewer.
+File Thumbnail gives document lists, upload queues, and attachment trays a consistent preview shell. The core component only renders an image URL, loading state, metadata, and fallback icon; generate PDF, DOCX, or XLSX preview images outside the component with the viewer libraries you already use.
 
 <FileThumbnailDemo />
 
@@ -28,12 +28,6 @@ npx shadcn@latest add file-thumbnail
 
 <Steps className="mb-0 pt-2">
 
-<Step>Install the following dependencies:</Step>
-
-```bash
-npm install react-pdf
-```
-
 <Step>Copy and paste the following code into your project.</Step>
 
 <FileThumbnailSource />
@@ -46,17 +40,47 @@ npm install react-pdf
 
 </CodeTabs>
 
-## Useful behaviors
+## Document Previews
 
-- Uses `react-pdf` `Thumbnail` for the first page instead of mounting a full PDF page viewer.
-- Lazily mounts PDF rendering when the thumbnail approaches the viewport.
-- Uses a native `img` tag for image files with browser-level lazy loading and async decoding.
-- Shows a shimmering file-preview state while PDF thumbnails render.
-- Falls back to a compact file icon when the preview cannot render.
+The preview can come from an image URL or a rendered preview node. For document thumbnails, the code example above shows:
 
-## Common slots
+```bash
+npm install react-pdf @extend-ai/react-docx @extend-ai/react-xlsx
+```
 
-| Slot       | Purpose                                                    |
-| ---------- | ---------------------------------------------------------- |
-| `preview`  | First-page PDF thumbnail, image preview, or fallback icon. |
-| `metadata` | File name, type, size, page count, or processing status.   |
+- Use `react-pdf` to render a first-page PDF thumbnail to a hidden canvas, then pass the resulting object URL to `previewImageUrl`.
+- Use `@extend-ai/react-docx` `useDocxViewerThumbnails` to attach a first-page DOCX thumbnail canvas outside the core component.
+- Use `@extend-ai/react-xlsx` `useXlsxViewerThumbnails` to paint a sheet thumbnail to a canvas, then pass the data URL to `previewImageUrl`.
+
+## Useful Behaviors
+
+- Keeps the reusable component free of PDF, DOCX, and XLSX renderer dependencies.
+- Shows a shimmering file-preview state while an external preview is being generated or loaded.
+- Fades the preview in after it loads.
+- Falls back to a compact file icon when no preview image is available or image loading fails.
+- Supports optional metadata for file name, type, size, page count, or processing status.
+
+## API Reference
+
+### FileThumbnail
+
+The FileThumbnail component renders the reusable thumbnail shell. It accepts externally generated image URLs or preview content without depending on PDF, DOCX, or XLSX renderers.
+
+| Prop               | Type              | Default | Required |
+| ------------------ | ----------------- | ------- | -------- |
+| `file`             | `ThumbnailFile`   | `-`     | Yes      |
+| `className`        | `string`          | `-`     | No       |
+| `previewClassName` | `string`          | `-`     | No       |
+| `previewContent`   | `React.ReactNode` | `-`     | No       |
+| `previewImageUrl`  | `string \| null`  | `-`     | No       |
+| `isLoading`        | `boolean`         | `false` | No       |
+| `hasError`         | `boolean`         | `false` | No       |
+| `showMetadata`     | `boolean`         | `true`  | No       |
+
+### ThumbnailFile
+
+| Prop   | Type     | Default | Required |
+| ------ | -------- | ------- | -------- |
+| `name` | `string` | `-`     | Yes      |
+| `type` | `string` | `-`     | Yes      |
+| `size` | `string` | `-`     | No       |

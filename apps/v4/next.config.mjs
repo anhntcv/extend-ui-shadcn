@@ -32,6 +32,25 @@ const nextConfig = {
   experimental: {
     turbopackFileSystemCacheForDev: true,
   },
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "pdfjs-dist$": "pdfjs-dist/build/pdf.min.mjs",
+    }
+
+    config.experiments = {
+      ...config.experiments,
+      asyncWebAssembly: true,
+    }
+
+    config.module.rules.unshift({
+      resourceQuery: /url/,
+      test: /\.wasm$/,
+      type: "asset/resource",
+    })
+
+    return config
+  },
   redirects() {
     return [
       {

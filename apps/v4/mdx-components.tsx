@@ -17,6 +17,7 @@ import {
   DocumentSplitsDemo,
   DocumentSplitsSource,
 } from "@/components/document-splitter-docs"
+import { DocxViewerDemo, DocxViewerSource } from "@/components/docx-viewer-docs"
 import { ESignatureDemo, ESignatureSource } from "@/components/e-signature-docs"
 import {
   FileThumbnailDemo,
@@ -30,6 +31,7 @@ import {
 import { getIconForLanguageExtension } from "@/components/icons"
 import { OcrBlocksDemo, OcrBlocksSource } from "@/components/ocr-blocks-docs"
 import { PdfViewerDemo, PdfViewerSource } from "@/components/pdf-viewer-docs"
+import { XlsxViewerDemo, XlsxViewerSource } from "@/components/xlsx-viewer-docs"
 import {
   Accordion,
   AccordionContent,
@@ -375,6 +377,8 @@ export const mdxComponents = {
   CsvViewerSource,
   DocumentSplitsDemo,
   DocumentSplitsSource,
+  DocxViewerDemo,
+  DocxViewerSource,
   ESignatureDemo,
   ESignatureSource,
   FileThumbnailDemo,
@@ -387,6 +391,8 @@ export const mdxComponents = {
   OcrBlocksSource,
   PdfViewerDemo,
   PdfViewerSource,
+  XlsxViewerDemo,
+  XlsxViewerSource,
   Link: ({ className, ...props }: React.ComponentProps<typeof Link>) => (
     <Link
       className={cn("font-medium underline underline-offset-4", className)}

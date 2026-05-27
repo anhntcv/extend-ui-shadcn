@@ -11,7 +11,7 @@ import {
   Upload01Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { Document, Page, pdfjs, Thumbnail } from "react-pdf"
+import type * as ReactPdf from "react-pdf"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -37,7 +37,7 @@ import {
   TooltipTrigger,
 } from "@/registry/new-york-v4/ui/tooltip"
 
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/legacy/build/pdf.worker.min.mjs`
+type ReactPdfModule = typeof ReactPdf
 
 const ZOOM_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2]
 const SAMPLE_PDF_URL = "/samples/attention.pdf"
@@ -47,6 +47,10 @@ const PAGE_BASE_HEIGHT = 792
 const MAX_DEVICE_PIXEL_RATIO = 2
 const THUMBNAIL_WIDTH = 92
 const DEFAULT_ZOOM = 0.75
+const PDF_WORKER_URL = new URL(
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url
+).toString()
 
 function createSearchStore() {
   let draftValue = ""
@@ -160,6 +164,7 @@ function ToolbarTooltip({
 }
 
 const PdfPage = React.memo(function PdfPage({
+  reactPdf,
   pageNumber,
   rotation,
   scale,
@@ -167,6 +172,7 @@ const PdfPage = React.memo(function PdfPage({
   shouldRenderPage,
   onFirstPageRender,
 }: {
+  reactPdf: ReactPdfModule
   pageNumber: number
   rotation: number
   scale: number
@@ -264,7 +270,7 @@ const PdfPage = React.memo(function PdfPage({
     >
       {shouldRenderPage ? (
         <>
-          <Page
+          <reactPdf.Page
             pageNumber={pageNumber}
             className="overflow-hidden border bg-background shadow-xs"
             renderAnnotationLayer={false}
@@ -320,6 +326,7 @@ const PdfPage = React.memo(function PdfPage({
 })
 
 const PdfPages = React.memo(function PdfPages({
+  reactPdf,
   pageNumbers,
   currentPage,
   rotation,
@@ -327,6 +334,7 @@ const PdfPages = React.memo(function PdfPages({
   searchStore,
   onFirstPageRender,
 }: {
+  reactPdf: ReactPdfModule
   pageNumbers: number[]
   currentPage: number
   rotation: number
@@ -346,6 +354,7 @@ const PdfPages = React.memo(function PdfPages({
       {pageNumbers.map((pageNumber) => (
         <PdfPage
           key={pageNumber}
+          reactPdf={reactPdf}
           pageNumber={pageNumber}
           rotation={rotation}
           scale={scale}
@@ -365,6 +374,7 @@ const PdfPages = React.memo(function PdfPages({
 })
 
 export function PdfViewerPreviewClient() {
+  const [reactPdf, setReactPdf] = React.useState<ReactPdfModule | null>(null)
   const [numPages, setNumPages] = React.useState<number | null>(null)
   const [currentPage, setCurrentPage] = React.useState(1)
   const [zoom, setZoom] = React.useState(DEFAULT_ZOOM)
@@ -378,6 +388,30 @@ export function PdfViewerPreviewClient() {
   const thumbnailClickScrollYRef = React.useRef<number | null>(null)
   const viewportRef = React.useRef<HTMLDivElement>(null)
   const searchStore = React.useMemo(() => createSearchStore(), [])
+
+  React.useEffect(() => {
+    let mounted = true
+
+    void import("react-pdf")
+      .then((module) => {
+        module.pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL
+
+        if (mounted) {
+          setReactPdf(module)
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setLoadError(true)
+          setIsDocumentLoading(false)
+          setIsPageRendering(false)
+        }
+      })
+
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   const handleFirstPageRender = React.useCallback(() => {
     setIsPageRendering(false)
@@ -421,7 +455,7 @@ export function PdfViewerPreviewClient() {
           : PAGE_BASE_HEIGHT / PAGE_BASE_WIDTH)
     ),
   }
-  const isViewerLoading = isDocumentLoading || isPageRendering
+  const isViewerLoading = !reactPdf || isDocumentLoading || isPageRendering
   const controlsDisabled = isViewerLoading || loadError || !numPages
 
   const updateCurrentPageFromViewport = React.useCallback(() => {
@@ -704,83 +738,88 @@ export function PdfViewerPreviewClient() {
             Unable to load the PDF preview.
           </div>
         ) : null}
-        <Document
-          key={fileUrl}
-          file={fileUrl}
-          onLoadStart={handleDocumentLoadStart}
-          onLoadSuccess={handleDocumentLoadSuccess}
-          onLoadError={handleDocumentLoadError}
-          className={cn(
-            "flex h-full min-h-0 w-full flex-1",
-            (isViewerLoading || loadError) && "invisible"
-          )}
-          loading={null}
-          error={null}
-        >
-          <div className="flex h-full min-h-0 w-full flex-1">
-            <aside
-              className={cn(
-                "hidden w-40 shrink-0 overflow-hidden border-r bg-sidebar transition-[margin-left,border-color] duration-200 ease-out md:block",
-                sidebarOpen && !isViewerLoading && !loadError
-                  ? "ml-0"
-                  : "-ml-40 border-r-0"
-              )}
-            >
-              <ScrollArea className="h-full" scrollFade>
-                <div className="p-4">
-                  <div className="flex flex-col items-center gap-3">
-                    {pageNumbers.map((pageNumber) => (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        key={pageNumber}
-                        className={cn(
-                          "!h-auto w-full flex-col items-center gap-2 p-2 text-xs text-muted-foreground shadow-none hover:bg-sidebar-accent",
-                          pageNumber === currentPage && "bg-sidebar-accent"
-                        )}
-                        onFocus={(event) => event.currentTarget.blur()}
-                        onMouseDown={preserveThumbnailClickScroll}
-                        onPointerDown={preserveThumbnailClickScroll}
-                        onClick={() => scrollToPage(pageNumber)}
-                      >
-                        <div
-                          className="shrink-0 overflow-hidden border bg-background shadow-xs"
-                          style={thumbnailSize}
+        {reactPdf ? (
+          <reactPdf.Document
+            key={fileUrl}
+            file={fileUrl}
+            onLoadStart={handleDocumentLoadStart}
+            onLoadSuccess={handleDocumentLoadSuccess}
+            onLoadError={() => {
+              handleDocumentLoadError()
+            }}
+            className={cn(
+              "flex h-full min-h-0 w-full flex-1",
+              (isViewerLoading || loadError) && "invisible"
+            )}
+            loading={null}
+            error={null}
+          >
+            <div className="flex h-full min-h-0 w-full flex-1">
+              <aside
+                className={cn(
+                  "hidden w-40 shrink-0 overflow-hidden border-r bg-sidebar transition-[margin-left,border-color] duration-200 ease-out md:block",
+                  sidebarOpen && !isViewerLoading && !loadError
+                    ? "ml-0"
+                    : "-ml-40 border-r-0"
+                )}
+              >
+                <ScrollArea className="h-full" scrollFade>
+                  <div className="p-4">
+                    <div className="flex flex-col items-center gap-3">
+                      {pageNumbers.map((pageNumber) => (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          key={pageNumber}
+                          className={cn(
+                            "!h-auto w-full flex-col items-center gap-2 p-2 text-xs text-muted-foreground shadow-none hover:bg-sidebar-accent",
+                            pageNumber === currentPage && "bg-sidebar-accent"
+                          )}
+                          onFocus={(event) => event.currentTarget.blur()}
+                          onMouseDown={preserveThumbnailClickScroll}
+                          onPointerDown={preserveThumbnailClickScroll}
+                          onClick={() => scrollToPage(pageNumber)}
                         >
-                          <Thumbnail
-                            pageNumber={pageNumber}
-                            className="flex size-full items-center justify-center [&_.react-pdf__Thumbnail__page]:!m-0 [&_.react-pdf__Thumbnail__page]:!h-auto [&_.react-pdf__Thumbnail__page]:!w-full [&_.react-pdf__Thumbnail__page]:overflow-hidden [&_canvas]:!h-auto [&_canvas]:!w-full"
-                            width={THUMBNAIL_WIDTH}
-                            rotate={rotation}
-                          />
-                        </div>
-                        {pageNumber}
-                      </Button>
-                    ))}
+                          <div
+                            className="shrink-0 overflow-hidden border bg-background shadow-xs"
+                            style={thumbnailSize}
+                          >
+                            <reactPdf.Thumbnail
+                              pageNumber={pageNumber}
+                              className="flex size-full items-center justify-center [&_.react-pdf__Thumbnail__page]:!m-0 [&_.react-pdf__Thumbnail__page]:!h-auto [&_.react-pdf__Thumbnail__page]:!w-full [&_.react-pdf__Thumbnail__page]:overflow-hidden [&_canvas]:!h-auto [&_canvas]:!w-full"
+                              width={THUMBNAIL_WIDTH}
+                              rotate={rotation}
+                            />
+                          </div>
+                          {pageNumber}
+                        </Button>
+                      ))}
+                    </div>
                   </div>
+                </ScrollArea>
+              </aside>
+              <ScrollArea
+                className="min-h-0 min-w-0 flex-1"
+                viewportClassName={cn(
+                  isPageRendering && !loadError && "invisible"
+                )}
+                viewportRef={viewportRef}
+              >
+                <div className="flex min-h-full w-max min-w-full flex-col items-center justify-start gap-6 p-6">
+                  <PdfPages
+                    reactPdf={reactPdf}
+                    pageNumbers={pageNumbers}
+                    currentPage={currentPage}
+                    rotation={rotation}
+                    scale={zoom}
+                    searchStore={searchStore}
+                    onFirstPageRender={handleFirstPageRender}
+                  />
                 </div>
               </ScrollArea>
-            </aside>
-            <ScrollArea
-              className="min-h-0 min-w-0 flex-1"
-              viewportClassName={cn(
-                isPageRendering && !loadError && "invisible"
-              )}
-              viewportRef={viewportRef}
-            >
-              <div className="flex min-h-full w-max min-w-full flex-col items-center justify-start gap-6 p-6">
-                <PdfPages
-                  pageNumbers={pageNumbers}
-                  currentPage={currentPage}
-                  rotation={rotation}
-                  scale={zoom}
-                  searchStore={searchStore}
-                  onFirstPageRender={handleFirstPageRender}
-                />
-              </div>
-            </ScrollArea>
-          </div>
-        </Document>
+            </div>
+          </reactPdf.Document>
+        ) : null}
       </div>
     </div>
   )

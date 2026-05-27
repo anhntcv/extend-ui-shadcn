@@ -1,93 +1,6 @@
 "use client"
 
 import * as React from "react"
-import dynamic from "next/dynamic"
-
-import { Button } from "@/components/ui/button"
-import { HighlightedCodeBlock } from "@/components/highlighted-code-block"
-
-function ViewerPreviewLoading() {
-  return (
-    <div className="grid h-[560px] place-items-center bg-background">
-      <div className="size-4 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-foreground" />
-    </div>
-  )
-}
-
-const CsvViewer = dynamic(
-  () => import("@/components/ui/csv-viewer").then((mod) => mod.CsvViewer),
-  {
-    ssr: false,
-    loading: () => <ViewerPreviewLoading />,
-  }
-)
-
-export const CsvViewerPreviewClient = CsvViewer
-
-export function CsvViewerDemo() {
-  const [isCodeVisible, setIsCodeVisible] = React.useState(false)
-
-  return (
-    <div
-      data-slot="component-preview"
-      className="group relative mt-4 mb-12 flex flex-col overflow-hidden rounded-xl border"
-    >
-      <CsvViewer />
-      <div
-        data-slot="code"
-        data-mobile-code-visible={isCodeVisible}
-        className="relative overflow-hidden **:data-[slot=copy-button]:right-4 **:data-[slot=copy-button]:hidden data-[mobile-code-visible=true]:**:data-[slot=copy-button]:flex [&_[data-rehype-pretty-code-figure]]:m-0! [&_[data-rehype-pretty-code-figure]]:rounded-t-none [&_[data-rehype-pretty-code-figure]]:border-t [&_pre]:max-h-72"
-      >
-        {isCodeVisible ? (
-          <HighlightedCodeBlock
-            code={csvViewerUsageCode}
-            className="rounded-none border-x-0 border-b-0"
-          />
-        ) : (
-          <div className="relative">
-            <HighlightedCodeBlock
-              code={csvViewerUsageCode}
-              className="rounded-none border-x-0 border-b-0"
-              maxHeightClassName="max-h-56"
-              previewLines={10}
-              showCopy={false}
-            />
-            <div className="absolute inset-0 flex items-center justify-center pb-4">
-              <div
-                className="absolute inset-0"
-                style={{
-                  background:
-                    "linear-gradient(to top, var(--color-code), color-mix(in oklab, var(--color-code) 60%, transparent), transparent)",
-                }}
-              />
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className="relative z-10 rounded-lg bg-background text-foreground shadow-none hover:bg-muted dark:bg-background dark:text-foreground dark:hover:bg-muted"
-                onClick={() => setIsCodeVisible(true)}
-              >
-                View Code
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-const csvViewerUsageCode = `"use client";
-
-import { CsvViewer } from "@/components/ui/csv-viewer";
-
-export function CsvViewerExample() {
-  return <CsvViewer />;
-}`
-
-const csvViewerSourceCode = `"use client"
-
-import * as React from "react"
 import type * as GlideDataGrid from "@glideapps/glide-data-grid"
 import type {
   GridCell,
@@ -121,7 +34,7 @@ import {
   TooltipTrigger,
 } from "@/registry/new-york-v4/ui/tooltip"
 
-const SAMPLE_CSV = \`Invoice,Customer,Status,Amount,Submitted
+const SAMPLE_CSV = `Invoice,Customer,Status,Amount,Submitted
 INV-1001,Northstar Supply,Approved,4280.50,2026-04-28
 INV-1002,Bluebird Medical,Needs review,1190.00,2026-04-29
 INV-1003,Aster Logistics,Approved,845.75,2026-04-30
@@ -131,7 +44,7 @@ INV-1006,Monarch Studio,Processing,1510.45,2026-05-03
 INV-1007,Orchard Bank,Approved,7820.00,2026-05-04
 INV-1008,Riverstone Energy,Needs review,632.25,2026-05-05
 INV-1009,Summit Health,Approved,2730.00,2026-05-06
-INV-1010,Westhaven Legal,Processing,410.80,2026-05-07\`
+INV-1010,Westhaven Legal,Processing,410.80,2026-05-07`
 
 const ZOOM_OPTIONS = [0.75, 1, 1.25, 1.5, 2] as const
 type GlideDataGridModule = typeof GlideDataGrid
@@ -142,7 +55,7 @@ function toDisplayString(value: unknown): string {
 
 function normalizeHeaderTitle(header: string, index: number): string {
   const trimmed = header.trim()
-  return trimmed.length > 0 ? trimmed : \`Column \${index + 1}\`
+  return trimmed.length > 0 ? trimmed : `Column ${index + 1}`
 }
 
 function parseDelimitedText(text: string): {
@@ -178,7 +91,7 @@ function parseDelimitedText(text: string): {
     ...fieldKeys.map((field, index) => normalizeHeaderTitle(field, index)),
     ...Array.from(
       { length: extraColumnCount },
-      (_, index) => \`Extra \${index + 1}\`
+      (_, index) => `Extra ${index + 1}`
     ),
   ]
 
@@ -306,11 +219,11 @@ export function CsvViewer() {
       cellHorizontalPadding: scale(8),
       cellVerticalPadding: Math.max(2, scale(3)),
       headerIconSize: scale(18),
-      baseFontStyle: \`\${scale(13)}px\`,
-      headerFontStyle: \`600 \${scale(13)}px\`,
-      markerFontStyle: \`\${scale(11)}px\`,
+      baseFontStyle: `${scale(13)}px`,
+      headerFontStyle: `600 ${scale(13)}px`,
+      markerFontStyle: `${scale(11)}px`,
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-      editorFontSize: \`\${scale(13)}px\`,
+      editorFontSize: `${scale(13)}px`,
     }),
     [isDark, scale]
   )
@@ -318,8 +231,8 @@ export function CsvViewer() {
   const columns = React.useMemo<GridColumn[]>(
     () =>
       Array.from({ length: columnCount }, (_, index) => ({
-        id: \`column-\${index}\`,
-        title: parsed.headers[index] ?? \`Column \${index + 1}\`,
+        id: `column-${index}`,
+        title: parsed.headers[index] ?? `Column ${index + 1}`,
         width: scale(index === 0 ? 180 : 160),
       })),
     [columnCount, parsed.headers, scale]
@@ -478,9 +391,4 @@ export function CsvViewer() {
       </div>
     </div>
   )
-}
-`
-
-export function CsvViewerSource() {
-  return <HighlightedCodeBlock code={csvViewerSourceCode} />
 }

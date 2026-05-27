@@ -13,7 +13,7 @@ import { useTheme } from "next-themes"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { FileThumbnail } from "@/components/file-thumbnail-docs"
+import { FileThumbnail } from "@/components/ui/file-thumbnail"
 import { HighlightedCodeBlock } from "@/components/highlighted-code-block"
 import { Card } from "@/registry/new-york-v4/ui/card"
 
@@ -301,12 +301,13 @@ export function FileUpload({
                 file={{
                   name: file.name,
                   type: file.type,
-                  url: file.url,
                   size: formatBytes(file.size),
                 }}
+                previewImageUrl={
+                  file.type.startsWith("image/") ? file.url : null
+                }
                 className="size-10 shrink-0 rounded-lg"
                 showMetadata={false}
-                thumbnailWidth={56}
               />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">{file.name}</div>
@@ -599,12 +600,11 @@ export function FileUpload({ className, onFilesChange }: FileUploadProps) {
                 file={{
                   name: file.name,
                   type: file.type,
-                  url: file.url,
                   size: formatBytes(file.size),
                 }}
+                previewImageUrl={file.type.startsWith("image/") ? file.url : null}
                 className="size-10 shrink-0 rounded-lg"
                 showMetadata={false}
-                thumbnailWidth={56}
               />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">{file.name}</div>

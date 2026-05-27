@@ -12,10 +12,11 @@ import {
   MobileRootPreview,
   RootComponentsCollage,
 } from "@/components/root-components-collage"
+import { RootLiquidLogo } from "@/components/root-liquid-logo"
 
 const title = "Document components for modern apps"
 const description =
-  "Open source viewers, uploads, thumbnails, citations, OCR blocks, and e-signing primitives for document processing products."
+  "Open source PDF, DOCX, and XLSX viewers, uploads, CSV previews, OCR blocks, and e-signing primitives for document processing products."
 
 export const dynamic = "force-static"
 export const revalidate = false
@@ -47,7 +48,8 @@ export const metadata: Metadata = {
 export default function IndexPage() {
   return (
     <div className="flex flex-1 flex-col">
-      <PageHeader className="[&_.container]:pt-20 md:[&_.container]:pt-28 lg:[&_.container]:pt-32">
+      <PageHeader className="[&_.container]:pt-12 md:[&_.container]:pt-16 lg:[&_.container]:pt-20">
+        <RootLiquidLogo />
         <PageHeaderHeading className="max-w-4xl">{title}</PageHeaderHeading>
         <PageHeaderDescription>{description}</PageHeaderDescription>
         <PageActions>

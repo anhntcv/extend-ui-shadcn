@@ -7,6 +7,46 @@ featured: true
 
 The Excel Viewer is the core spreadsheet preview for financial models, imports, exports, schedules, and operational reports.
 
+<XlsxViewerDemo />
+
+## Installation
+
+<CodeTabs>
+
+<TabsList>
+  <TabsTrigger value="cli">Command</TabsTrigger>
+  <TabsTrigger value="manual">Manual</TabsTrigger>
+</TabsList>
+<TabsContent value="cli">
+
+```bash
+npx shadcn@latest add xlsx-viewer
+```
+
+</TabsContent>
+
+<TabsContent value="manual">
+
+<Steps className="mb-0 pt-2">
+
+<Step>Install the following dependencies:</Step>
+
+```bash
+npm install @extend-ai/react-xlsx
+```
+
+<Step>Copy and paste the following code into your project.</Step>
+
+<XlsxViewerSource />
+
+<Step>Update the import paths to match your project setup.</Step>
+
+</Steps>
+
+</TabsContent>
+
+</CodeTabs>
+
 ## Useful behaviors
 
 - Sheet tabs, grid virtualization, column resizing, and frozen rows or columns.
@@ -14,10 +54,15 @@ The Excel Viewer is the core spreadsheet preview for financial models, imports, 
 - Search across sheets and cell ranges.
 - Optional metadata for workbook properties, hidden sheets, and named ranges.
 
-## Common slots
+## API Reference
 
-| Slot         | Purpose                                |
-| ------------ | -------------------------------------- |
-| `sheetTabs`  | Workbook sheet navigation.             |
-| `formulaBar` | Selected cell value, formula, or note. |
-| `statusBar`  | Selection summary and range metadata.  |
+### XlsxViewerPreview
+
+The XlsxViewerPreview component renders an Excel workbook with upload, theme, zoom, sheet navigation, and grid controls around the `@extend-ai/react-xlsx` viewer.
+
+| Prop        | Type      | Default                           | Required |
+| ----------- | --------- | --------------------------------- | -------- |
+| `className` | `string`  | `-`                               | No       |
+| `fileName`  | `string`  | `-`                               | No       |
+| `rounded`   | `boolean` | `false`                           | No       |
+| `src`       | `string`  | `"/samples/crazy-chart-zoo.xlsx"` | No       |

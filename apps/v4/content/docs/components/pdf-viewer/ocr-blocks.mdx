@@ -30,12 +30,6 @@ npx shadcn@latest add ocr-blocks
 
 <Steps className="mb-0 pt-2">
 
-<Step>Install the following dependencies:</Step>
-
-```bash
-npm install @hugeicons/react @hugeicons/core-free-icons
-```
-
 <Step>Copy and paste the following code into your project.</Step>
 
 <OcrBlocksSource />
@@ -55,9 +49,22 @@ npm install @hugeicons/react @hugeicons/core-free-icons
 - Hover and selection states that reveal text and geometry.
 - Region navigation from OCR results to the rendered PDF page.
 
-## Common slots
+## API Reference
 
-| Slot      | Purpose                                      |
-| --------- | -------------------------------------------- |
-| `overlay` | OCR boxes positioned over the rendered page. |
-| `details` | Selected text, confidence, and coordinates.  |
+### OcrBlockCard
+
+The OcrBlockCard component renders a selectable OCR result with label, type, text, confidence, and page context.
+
+| Prop              | Type                                                 | Default                                             | Required |
+| ----------------- | ---------------------------------------------------- | --------------------------------------------------- | -------- |
+| `label`           | `string`                                             | `-`                                                 | Yes      |
+| `kind`            | `string`                                             | `-`                                                 | Yes      |
+| `text`            | `string`                                             | `-`                                                 | Yes      |
+| `confidence`      | `number`                                             | `-`                                                 | No       |
+| `pageLabel`       | `string`                                             | `-`                                                 | No       |
+| `icon`            | `React.ComponentProps<typeof HugeiconsIcon>["icon"]` | `ParagraphIcon`                                     | No       |
+| `active`          | `boolean`                                            | `false`                                             | No       |
+| `iconClassName`   | `string`                                             | `"bg-blue-500/10 text-blue-600 dark:text-blue-300"` | No       |
+| `activeClassName` | `string`                                             | `"border-blue-500/60 bg-blue-500/5"`                | No       |
+| `className`       | `string`                                             | `-`                                                 | No       |
+| `...props`        | `React.ButtonHTMLAttributes<HTMLButtonElement>`      | `-`                                                 | No       |

@@ -49,9 +49,19 @@ npx shadcn@latest add citations
 - Citation lists grouped by answer, field, or reviewer note.
 - Empty and unresolved states when the cited page or region is unavailable.
 
-## Common slots
+## API Reference
 
-| Slot       | Purpose                                       |
-| ---------- | --------------------------------------------- |
-| `citation` | Source page, label, confidence, and snippet.  |
-| `anchor`   | Page region or text range highlighted in PDF. |
+### CitationCard
+
+The CitationCard component renders a clickable citation result that can focus a related PDF page or region.
+
+| Prop              | Type                                            | Default                              | Required |
+| ----------------- | ----------------------------------------------- | ------------------------------------ | -------- |
+| `label`           | `string`                                        | `-`                                  | Yes      |
+| `value`           | `string`                                        | `-`                                  | Yes      |
+| `snippet`         | `string`                                        | `-`                                  | No       |
+| `pageLabel`       | `string`                                        | `-`                                  | No       |
+| `active`          | `boolean`                                       | `false`                              | No       |
+| `accentClassName` | `string`                                        | `"border-blue-500/60 bg-blue-500/5"` | No       |
+| `className`       | `string`                                        | `-`                                  | No       |
+| `...props`        | `React.ButtonHTMLAttributes<HTMLButtonElement>` | `-`                                  | No       |

@@ -43,11 +43,10 @@ export function getPagesFromFolder(
       }
     }
 
-    // Fallback: return direct component pages. Nested folders are rendered as
-    // contextual subpages in the sidebar instead of top-level component links.
-    return folder.children.filter(
-      (child): child is PageTreePage =>
-        child.type === "page" && !child.url.endsWith("/components")
+    // Fallback: include nested component pages so the components index can act
+    // as the complete jump list, including PDF Viewer subpages.
+    return getAllPagesFromFolder(folder).filter(
+      (page) => !page.url.endsWith("/components")
     )
   }
 
