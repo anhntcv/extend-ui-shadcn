@@ -16,10 +16,9 @@ type Point = {
 
 type Citation = {
   id: string
-  label: string
+  description: string
   value: string
   page: number
-  referenceText: string
   polygon: Point[]
 }
 
@@ -44,10 +43,9 @@ const CITATION_STYLE = {
 const CITATIONS: Citation[] = [
   {
     id: "title",
-    label: "Title",
+    description: "Paper title extracted from the first page heading.",
     value: "Attention Is All You Need",
     page: 1,
-    referenceText: "Attention Is All You Need",
     polygon: [
       { x: 246, y: 188 },
       { x: 566, y: 188 },
@@ -57,11 +55,10 @@ const CITATIONS: Citation[] = [
   },
   {
     id: "authors",
-    label: "Authors",
+    description: "Authors listed beneath the paper title.",
     value:
       "Vaswani, Shazeer, Parmar, Uszkoreit, Jones, Gomez, Kaiser, Polosukhin",
     page: 1,
-    referenceText: "Ashish Vaswani ... Illia Polosukhin",
     polygon: [
       { x: 92, y: 206 },
       { x: 698, y: 206 },
@@ -71,12 +68,10 @@ const CITATIONS: Citation[] = [
   },
   {
     id: "abstract",
-    label: "Abstract claim",
+    description: "Central model claim from the abstract.",
     value:
       "The Transformer relies entirely on attention mechanisms and avoids recurrence and convolutions.",
     page: 1,
-    referenceText:
-      "The Transformer, based solely on attention mechanisms, dispensing with recurrence and convolutions entirely.",
     polygon: [
       { x: 108, y: 346 },
       { x: 692, y: 346 },
@@ -86,11 +81,9 @@ const CITATIONS: Citation[] = [
   },
   {
     id: "bleu",
-    label: "Translation quality",
+    description: "Reported machine translation benchmark result.",
     value: "28.4 BLEU on WMT 2014 English-to-German",
     page: 1,
-    referenceText:
-      "our model achieves 28.4 BLEU on the WMT 2014 English-to-German translation task",
     polygon: [
       { x: 108, y: 412 },
       { x: 692, y: 412 },
@@ -100,12 +93,10 @@ const CITATIONS: Citation[] = [
   },
   {
     id: "architecture",
-    label: "Background",
+    description: "Architecture property described in the background section.",
     value:
       "Self-attention connects positions in a sequence through constant-time operations.",
     page: 2,
-    referenceText:
-      "Self-attention connects all positions with a constant number of sequentially executed operations.",
     polygon: [
       { x: 76, y: 74 },
       { x: 718, y: 74 },
@@ -197,17 +188,26 @@ function CitationsPanel({
                     isActive && CITATION_STYLE.active
                   )}
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm font-medium">{citation.label}</div>
+                  <div className="mb-3 flex min-h-8 items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium">
+                        {citation.id}
+                      </div>
+                      <div className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                        {citation.description}
+                      </div>
+                    </div>
                     <div className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                       p. {citation.page}
                     </div>
                   </div>
-                  <div className="mt-1 text-sm text-foreground/90">
-                    {citation.value}
-                  </div>
-                  <div className="mt-2 line-clamp-2 text-xs text-muted-foreground">
-                    {citation.referenceText}
+                  <div className="rounded-md border bg-muted/30 p-2">
+                    <div className="mb-1 text-[11px] font-medium text-muted-foreground">
+                      Actual output
+                    </div>
+                    <div className="min-h-7 rounded-md bg-background px-2 py-1.5 text-sm">
+                      {citation.value}
+                    </div>
                   </div>
                 </button>
               )
@@ -269,16 +269,16 @@ export function CitationsBlock() {
 function CitationExampleCard({
   active,
   accentClassName,
-  label,
+  fieldKey,
   pageLabel,
-  snippet,
+  description,
   value,
 }: {
   active?: boolean
   accentClassName?: string
-  label: string
+  fieldKey: string
   pageLabel: string
-  snippet: string
+  description: string
   value: string
 }) {
   return (
@@ -291,15 +291,24 @@ function CitationExampleCard({
             "border-blue-500/60 bg-blue-500/5 shadow-[0_0_0_1px_rgb(59_130_246_/_8%)]")
       )}
     >
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-sm font-medium">{label}</div>
+      <div className="mb-3 flex min-h-8 items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="truncate text-sm font-medium">{fieldKey}</div>
+          <div className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+            {description}
+          </div>
+        </div>
         <div className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
           {pageLabel}
         </div>
       </div>
-      <div className="mt-1 text-sm text-foreground/90">{value}</div>
-      <div className="mt-2 line-clamp-2 text-xs text-muted-foreground">
-        {snippet}
+      <div className="rounded-md border bg-muted/30 p-2">
+        <div className="mb-1 text-[11px] font-medium text-muted-foreground">
+          Actual output
+        </div>
+        <div className="min-h-7 rounded-md bg-background px-2 py-1.5 text-sm">
+          {value}
+        </div>
       </div>
     </button>
   )
@@ -310,23 +319,23 @@ function CitationsExample() {
     <div className="flex h-[420px] flex-col gap-2 bg-background p-3">
       <CitationExampleCard
         active
-        label="Invoice total"
+        fieldKey="invoice_total"
         pageLabel="p. 1"
         value="$12,480.00"
-        snippet="Total amount due, including tax and service fees."
+        description="Total amount due, including tax and service fees."
       />
       <CitationExampleCard
-        label="Payment terms"
+        fieldKey="payment_terms"
         pageLabel="p. 2"
         value="Net 30"
-        snippet="Payment is due within thirty days of receipt."
+        description="Payment is due within thirty days of receipt."
         accentClassName="border-emerald-500/60 bg-emerald-500/5"
       />
       <CitationExampleCard
-        label="Purchase order"
+        fieldKey="purchase_order"
         pageLabel="p. 3"
         value="PO-1048"
-        snippet="Customer purchase order identifier."
+        description="Customer purchase order identifier."
         accentClassName="border-amber-500/60 bg-amber-500/5"
       />
     </div>
@@ -395,23 +404,23 @@ export function CitationsExample() {
     <div className="flex h-[420px] flex-col gap-2 bg-background p-3">
       <CitationCard
         active
-        label="Invoice total"
+        fieldKey="invoice_total"
         pageLabel="p. 1"
         value="$12,480.00"
-        snippet="Total amount due, including tax and service fees."
+        description="Total amount due, including tax and service fees."
       />
       <CitationCard
-        label="Payment terms"
+        fieldKey="payment_terms"
         pageLabel="p. 2"
         value="Net 30"
-        snippet="Payment is due within thirty days of receipt."
+        description="Payment is due within thirty days of receipt."
         accentClassName="border-emerald-500/60 bg-emerald-500/5"
       />
       <CitationCard
-        label="Purchase order"
+        fieldKey="purchase_order"
         pageLabel="p. 3"
         value="PO-1048"
-        snippet="Customer purchase order identifier."
+        description="Customer purchase order identifier."
         accentClassName="border-amber-500/60 bg-amber-500/5"
       />
     </div>
@@ -425,21 +434,21 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 type CitationCardProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  label: string;
+  fieldKey: string;
   value: string;
-  snippet?: string;
+  description?: string;
   pageLabel?: string;
   active?: boolean;
   accentClassName?: string;
 };
 
 export function CitationCard({
-  label,
+  fieldKey,
   value,
-  snippet,
+  description,
   pageLabel,
   active = false,
-  accentClassName = "border-blue-500/60 bg-blue-500/5",
+  accentClassName = "border-blue-500/60 bg-blue-500/5 shadow-[0_0_0_1px_rgb(59_130_246_/_8%)]",
   className,
   ...props
 }: CitationCardProps) {
@@ -453,20 +462,29 @@ export function CitationCard({
       )}
       {...props}
     >
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-sm font-medium">{label}</div>
+      <div className="mb-3 flex min-h-8 items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="truncate text-sm font-medium">{fieldKey}</div>
+          {description ? (
+            <div className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+              {description}
+            </div>
+          ) : null}
+        </div>
         {pageLabel ? (
           <div className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
             {pageLabel}
           </div>
         ) : null}
       </div>
-      <div className="mt-1 text-sm text-foreground/90">{value}</div>
-      {snippet ? (
-        <div className="mt-2 line-clamp-2 text-xs text-muted-foreground">
-          {snippet}
+      <div className="rounded-md border bg-muted/30 p-2">
+        <div className="mb-1 text-[11px] font-medium text-muted-foreground">
+          Actual output
         </div>
-      ) : null}
+        <div className="min-h-7 rounded-md bg-background px-2 py-1.5 text-sm">
+          {value}
+        </div>
+      </div>
     </button>
   );
 }`

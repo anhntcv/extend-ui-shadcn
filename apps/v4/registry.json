@@ -633,6 +633,36 @@
       ]
     },
     {
+      "name": "xlsx-editor",
+      "type": "registry:ui",
+      "title": "Excel Editor",
+      "description": "An experimental XLSX editor with formula input, undo and redo, sheet controls, export, and live workbook mutation.",
+      "dependencies": [
+        "@extend-ai/react-xlsx@^0.8.7",
+        "@hugeicons/core-free-icons@^4.1.1",
+        "@hugeicons/react@^1.1.6",
+        "next-themes@0.4.6"
+      ],
+      "registryDependencies": [
+        "button",
+        "input",
+        "scroll-area",
+        "select",
+        "separator",
+        "tooltip",
+        "utils",
+        "xlsx-viewer"
+      ],
+      "categories": ["documents"],
+      "files": [
+        {
+          "path": "components/ui/xlsx-editor.tsx",
+          "type": "registry:ui",
+          "target": "@ui/xlsx-editor.tsx"
+        }
+      ]
+    },
+    {
       "name": "csv-viewer",
       "type": "registry:ui",
       "title": "CSV Viewer",
@@ -698,7 +728,8 @@
       "description": "A structured OCR review block with confidence cards and PDF region overlays.",
       "dependencies": [
         "@hugeicons/core-free-icons@^4.1.1",
-        "@hugeicons/react@^1.1.6"
+        "@hugeicons/react@^1.1.6",
+        "react-markdown@^10.1.0"
       ],
       "registryDependencies": [
         "pdf-block-resizable-shell",

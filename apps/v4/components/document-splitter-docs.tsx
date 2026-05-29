@@ -419,7 +419,7 @@ function SplitGroupCard({
   onSelectItem: (itemId: DocumentSplitItemId) => void
 }) {
   return (
-    <Card className="overflow-hidden rounded-xl before:rounded-[calc(var(--radius-xl)-1px)]">
+    <Card className="w-full overflow-hidden rounded-xl before:rounded-[calc(var(--radius-xl)-1px)]">
       <div className="flex items-start justify-between gap-3 border-b p-3">
         <div className="flex min-w-0 items-start gap-2">
           <button
@@ -529,7 +529,7 @@ function SortableSplitGroupCard(
   return (
     <div
       ref={setNodeRef}
-      className={cn(isDragging && "opacity-0")}
+      className={cn("w-full", isDragging && "opacity-0")}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
@@ -590,12 +590,17 @@ function SplitGroupDragOverlay(
   props: Omit<
     React.ComponentProps<typeof SplitGroupCard>,
     "canRemove" | "canReorder" | "dragHandleProps" | "onRemove"
-  >
+  > & { width?: number }
 ) {
+  const { width, ...cardProps } = props
+
   return (
-    <div className="relative z-[1000] w-[min(360px,calc(100vw-2rem))]">
+    <div
+      className="relative z-[1000] max-w-[calc(100vw-2rem)]"
+      style={{ width }}
+    >
       <SplitGroupCard
-        {...props}
+        {...cardProps}
         canRemove={false}
         canReorder={false}
         onRemove={() => {}}
@@ -746,6 +751,9 @@ export function DocumentSplits({
   const [activeSplitGroupId, setActiveSplitGroupId] = React.useState<
     string | null
   >(null)
+  const [activeSplitGroupWidth, setActiveSplitGroupWidth] = React.useState<
+    number | undefined
+  >()
   const dragStartGroupIdRef = React.useRef<string | null>(null)
   const dragStartGroupsRef = React.useRef<SplitGroup[] | null>(null)
   const sensors = useSensors(
@@ -847,6 +855,7 @@ export function DocumentSplits({
         dragStartGroupsRef.current = splits
         setActivePageId(pageId)
         setActiveSplitGroupId(null)
+        setActiveSplitGroupWidth(undefined)
         return
       }
 
@@ -857,6 +866,7 @@ export function DocumentSplits({
         setActiveSplitGroupId(
           (event.active.data.current?.groupId as string | undefined) ?? null
         )
+        setActiveSplitGroupWidth(event.active.rect.current.initial?.width)
         return
       }
 
@@ -864,6 +874,7 @@ export function DocumentSplits({
       dragStartGroupsRef.current = null
       setActivePageId(null)
       setActiveSplitGroupId(null)
+      setActiveSplitGroupWidth(undefined)
     },
     [splits]
   )
@@ -964,6 +975,7 @@ export function DocumentSplits({
       dragStartGroupsRef.current = null
       setActivePageId(null)
       setActiveSplitGroupId(null)
+      setActiveSplitGroupWidth(undefined)
     },
     [updateSplits]
   )
@@ -977,6 +989,7 @@ export function DocumentSplits({
     dragStartGroupsRef.current = null
     setActivePageId(null)
     setActiveSplitGroupId(null)
+    setActiveSplitGroupWidth(undefined)
   }, [onSplitsChange])
 
   const isPageDragging = activePageId !== null
@@ -1066,6 +1079,7 @@ export function DocumentSplits({
               isPageDragging={false}
               thumbnailImages={thumbnailImages}
               thumbnailSize={thumbnailSize}
+              width={activeSplitGroupWidth}
               onSelectItem={selectItem}
             />
           ) : null}
@@ -2034,7 +2048,7 @@ function SplitGroupCard({
   onSelectPage: (pageNumber: number) => void;
 }) {
   return (
-    <section className="rounded-lg border bg-background">
+    <section className="w-full rounded-lg border bg-background">
       <div className="flex items-center justify-between gap-3 border-b p-3">
         <div className="flex min-w-0 items-center gap-2">
           <button
@@ -2107,7 +2121,7 @@ function SortableSplitGroupCard({
   return (
     <div
       ref={setNodeRef}
-      className={cn(isDragging && "opacity-0")}
+      className={cn("w-full", isDragging && "opacity-0")}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,

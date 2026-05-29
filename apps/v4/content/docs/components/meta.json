@@ -5,8 +5,14 @@
     "pdf-viewer",
     "docx-viewer",
     "xlsx-viewer",
+    "xlsx-editor",
     "csv-tsv-viewer",
     "file-thumbnail",
-    "file-upload"
+    "file-upload",
+    "citations",
+    "ocr-blocks",
+    "e-signature",
+    "human-review",
+    "document-splits"
   ]
 }

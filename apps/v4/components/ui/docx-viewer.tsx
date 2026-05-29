@@ -756,48 +756,60 @@ function DocxViewerContent({
         showNightRenderToggle={shouldRenderNightMode}
         zoomScale={zoomScale}
       />
-      <div className="flex min-h-0 flex-1 overflow-hidden bg-muted/30">
+      <div className="relative flex min-h-0 flex-1 overflow-hidden bg-muted/30">
         <aside
           className={cn(
-            "hidden w-40 shrink-0 overflow-hidden border-r bg-sidebar transition-[margin-left,border-color] duration-200 ease-out md:block",
-            sidebarOpen && pageCount ? "ml-0" : "-ml-40 border-r-0"
+            "absolute inset-y-0 left-0 z-30 w-40 shrink-0 overflow-hidden border-r bg-sidebar shadow-lg transition-[translate,border-color] duration-200 ease-out md:relative md:z-auto md:translate-x-0 md:shadow-none md:transition-[margin-left,border-color]",
+            sidebarOpen && (pageCount || isLoadingDocument)
+              ? "translate-x-0 md:ml-0"
+              : "pointer-events-none -translate-x-full border-r-0 md:pointer-events-auto md:-ml-40"
           )}
         >
           <ScrollArea className="h-full" scrollFade>
             <div className="p-4">
-              <div className="flex flex-col items-center gap-3">
-                {thumbnails.slice(0, pageCount || 0).map((thumbnail) => (
-                  <Button
-                    key={thumbnail.pageIndex}
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className={cn(
-                      "!h-auto w-full flex-col items-center gap-2 p-2 text-xs text-muted-foreground shadow-none hover:bg-sidebar-accent",
-                      thumbnail.pageNumber === activePage && "bg-sidebar-accent"
-                    )}
-                    onFocus={(event) => event.currentTarget.blur()}
-                    onClick={() => scrollToPage(thumbnail.pageNumber)}
-                  >
-                    <DocxSidebarThumbnail
-                      canvasRef={thumbnail.canvasRef}
-                      displayFileName={displayFileName}
-                      hasError={thumbnail.status === "error"}
-                      isActive={thumbnail.pageNumber === activePage}
-                      isLoading={
-                        !thumbnail.isMounted &&
-                        thumbnail.status !== "ready" &&
-                        thumbnail.status !== "error"
-                      }
-                      pageNumber={thumbnail.pageNumber}
-                      pixelHeightPx={thumbnail.pixelHeightPx}
-                      pixelWidthPx={thumbnail.pixelWidthPx}
-                      previewAspectRatio={thumbnail.aspectRatio}
-                    />
-                    {thumbnail.pageNumber}
-                  </Button>
-                ))}
-              </div>
+              {isLoadingDocument ? (
+                <>
+                  <div className="mx-auto h-28 w-20 rounded-sm border bg-background shadow-xs">
+                    <div className="h-full animate-pulse bg-muted" />
+                  </div>
+                  <div className="mx-auto mt-3 h-3 w-10 rounded-full bg-muted" />
+                </>
+              ) : (
+                <div className="flex flex-col items-center gap-3">
+                  {thumbnails.slice(0, pageCount || 0).map((thumbnail) => (
+                    <Button
+                      key={thumbnail.pageIndex}
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        "!h-auto w-full flex-col items-center gap-2 p-2 text-xs text-muted-foreground shadow-none hover:bg-sidebar-accent",
+                        thumbnail.pageNumber === activePage &&
+                          "bg-sidebar-accent"
+                      )}
+                      onFocus={(event) => event.currentTarget.blur()}
+                      onClick={() => scrollToPage(thumbnail.pageNumber)}
+                    >
+                      <DocxSidebarThumbnail
+                        canvasRef={thumbnail.canvasRef}
+                        displayFileName={displayFileName}
+                        hasError={thumbnail.status === "error"}
+                        isActive={thumbnail.pageNumber === activePage}
+                        isLoading={
+                          !thumbnail.isMounted &&
+                          thumbnail.status !== "ready" &&
+                          thumbnail.status !== "error"
+                        }
+                        pageNumber={thumbnail.pageNumber}
+                        pixelHeightPx={thumbnail.pixelHeightPx}
+                        pixelWidthPx={thumbnail.pixelWidthPx}
+                        previewAspectRatio={thumbnail.aspectRatio}
+                      />
+                      {thumbnail.pageNumber}
+                    </Button>
+                  ))}
+                </div>
+              )}
             </div>
           </ScrollArea>
         </aside>

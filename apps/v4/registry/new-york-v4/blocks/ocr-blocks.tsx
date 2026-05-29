@@ -7,6 +7,7 @@ import {
   Table01Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import ReactMarkdown from "react-markdown"
 
 import { cn } from "@/lib/utils"
 import { PDFViewer, type PDFViewerHandle } from "@/components/ui/pdf-viewer"
@@ -15,7 +16,6 @@ import { ScrollArea } from "@/registry/new-york-v4/ui/scroll-area"
 
 type OcrBlock = {
   id: string
-  label: string
   kind: string
   text: string
   page: number
@@ -30,9 +30,8 @@ const PAGE_HEIGHT = 612
 const OCR_BLOCKS: OcrBlock[] = [
   {
     id: "title",
-    label: "Paper title",
     kind: "Heading",
-    text: "Attention Is All You Need",
+    text: "**Attention Is All You Need**",
     page: 1,
     confidence: 0.99,
     icon: Heading01Icon,
@@ -46,9 +45,8 @@ const OCR_BLOCKS: OcrBlock[] = [
   },
   {
     id: "abstract",
-    label: "Abstract body",
     kind: "Paragraph",
-    text: "The dominant sequence transduction models are based on recurrent or convolutional neural networks.",
+    text: "The model relies **only on attention**, avoiding recurrence and convolutions.",
     page: 1,
     confidence: 0.94,
     icon: ParagraphIcon,
@@ -62,9 +60,8 @@ const OCR_BLOCKS: OcrBlock[] = [
   },
   {
     id: "table",
-    label: "Complexity table",
     kind: "Table",
-    text: "Layer type, complexity per layer, sequential operations, maximum path length.",
+    text: "- **Layer type**\n- Path length\n- Sequential operations",
     page: 6,
     confidence: 0.91,
     icon: Table01Icon,
@@ -92,6 +89,39 @@ function polygonToArea(polygon: OcrBlock["polygon"]) {
     width: `${((right - left) / PAGE_WIDTH) * 100}%`,
     height: `${((bottom - top) / PAGE_HEIGHT) * 100}%`,
   }
+}
+
+function OcrBlockMarkdown({ text }: { text: string }) {
+  return (
+    <ReactMarkdown
+      components={{
+        p: ({ node: _node, ...props }) => <p className="my-0" {...props} />,
+        strong: ({ node: _node, ...props }) => (
+          <strong className="font-semibold text-foreground" {...props} />
+        ),
+        ul: ({ node: _node, ...props }) => (
+          <ul className="my-0 list-disc space-y-0.5 pl-4" {...props} />
+        ),
+        li: ({ node: _node, ...props }) => <li className="pl-0.5" {...props} />,
+        table: ({ node: _node, ...props }) => (
+          <div className="overflow-hidden rounded-md border bg-background">
+            <table className="w-full border-collapse text-xs" {...props} />
+          </div>
+        ),
+        th: ({ node: _node, ...props }) => (
+          <th
+            className="border-b bg-muted px-2 py-1 text-left font-medium"
+            {...props}
+          />
+        ),
+        td: ({ node: _node, ...props }) => (
+          <td className="border-t px-2 py-1" {...props} />
+        ),
+      }}
+    >
+      {text}
+    </ReactMarkdown>
+  )
 }
 
 export function OcrBlocksBlock({ file }: { file?: string }) {
@@ -161,18 +191,15 @@ export function OcrBlocksBlock({ file }: { file?: string }) {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
-                          <div className="truncate text-sm font-medium">
-                            {block.label}
+                          <div className="text-xs font-medium text-muted-foreground">
+                            {block.kind} - {Math.round(block.confidence * 100)}%
                           </div>
                           <div className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                             p. {block.page}
                           </div>
                         </div>
-                        <div className="mt-0.5 text-xs font-medium text-muted-foreground">
-                          {block.kind} - {Math.round(block.confidence * 100)}%
-                        </div>
-                        <div className="mt-2 line-clamp-3 text-sm text-foreground/90">
-                          {block.text}
+                        <div className="mt-2 text-sm text-foreground/90">
+                          <OcrBlockMarkdown text={block.text} />
                         </div>
                       </div>
                     </div>

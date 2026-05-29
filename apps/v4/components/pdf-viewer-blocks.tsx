@@ -37,7 +37,7 @@ const pdfViewerBlocks = [
     description:
       "Evidence cards that scroll the PDF viewer to source bounding boxes.",
     command: getRegistryAddCommand("citations"),
-    docsHref: "/docs/components/pdf-viewer/citations",
+    docsHref: "/docs/components/citations",
     component: CitationsBlock,
   },
   {
@@ -47,7 +47,7 @@ const pdfViewerBlocks = [
       "Structured OCR review with typed blocks, confidence, and page overlays.",
     hideHeader: true,
     command: getRegistryAddCommand("ocr-blocks"),
-    docsHref: "/docs/components/pdf-viewer/ocr-blocks",
+    docsHref: "/docs/components/ocr-blocks",
     component: OcrBlocksBlock,
   },
   {
@@ -57,7 +57,7 @@ const pdfViewerBlocks = [
       "Signature fields connected to the PDF canvas and signed PDF export.",
     hideHeader: true,
     command: getRegistryAddCommand("e-signature"),
-    docsHref: "/docs/components/pdf-viewer/e-signature",
+    docsHref: "/docs/components/e-signature",
     component: ESignatureBlock,
   },
   {
@@ -66,7 +66,7 @@ const pdfViewerBlocks = [
     description:
       "Extraction review cards connected to source evidence in the PDF viewer.",
     command: getRegistryAddCommand("human-review"),
-    docsHref: "/docs/components/pdf-viewer/human-review",
+    docsHref: "/docs/components/human-review",
     component: HumanReviewBlock,
   },
   {
@@ -75,7 +75,7 @@ const pdfViewerBlocks = [
     description:
       "Lazy page thumbnails, draggable split groups, and PDF navigation.",
     command: getRegistryAddCommand("document-splits"),
-    docsHref: "/docs/components/pdf-viewer/document-splits",
+    docsHref: "/docs/components/document-splits",
     component: DocumentSplitsBlock,
   },
   {

@@ -308,7 +308,7 @@ function SplitGroupCard({
   onSelectPage: (pageNumber: number) => void
 }) {
   return (
-    <section className="rounded-lg border bg-background">
+    <section className="w-full rounded-lg border bg-background">
       <div className="flex items-center justify-between gap-3 border-b p-3">
         <div className="flex min-w-0 items-center gap-2">
           <button
@@ -408,7 +408,7 @@ function SortableSplitGroupCard({
   return (
     <div
       ref={setNodeRef}
-      className={cn(isDragging && "opacity-0")}
+      className={cn("w-full", isDragging && "opacity-0")}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
@@ -431,15 +431,20 @@ function SplitGroupDragOverlay({
   activePage,
   group,
   thumbnailImages,
+  width,
   onSelectPage,
 }: {
   activePage: number
   group: SplitGroup
   thumbnailImages: Record<PageId, string>
+  width?: number
   onSelectPage: (pageNumber: number) => void
 }) {
   return (
-    <div className="relative z-[1000] w-[min(360px,calc(100vw-2rem))]">
+    <div
+      className="relative z-[1000] max-w-[calc(100vw-2rem)]"
+      style={{ width }}
+    >
       <SplitGroupCard
         activePage={activePage}
         canRemove={false}
@@ -473,6 +478,9 @@ export function DocumentSplits({
   const [activeSplitGroupId, setActiveSplitGroupId] = React.useState<
     string | null
   >(null)
+  const [activeSplitGroupWidth, setActiveSplitGroupWidth] = React.useState<
+    number | undefined
+  >()
   const dragStartGroupIdRef = React.useRef<string | null>(null)
   const dragStartSplitsRef = React.useRef<SplitGroup[] | null>(null)
   const sensors = useSensors(
@@ -490,6 +498,7 @@ export function DocumentSplits({
         setActiveSplitGroupId(
           (event.active.data.current?.groupId as string | undefined) ?? null
         )
+        setActiveSplitGroupWidth(event.active.rect.current.initial?.width)
         return
       }
 
@@ -498,6 +507,7 @@ export function DocumentSplits({
         dragStartSplitsRef.current = null
         setActivePageId(null)
         setActiveSplitGroupId(null)
+        setActiveSplitGroupWidth(undefined)
         return
       }
 
@@ -506,6 +516,7 @@ export function DocumentSplits({
       dragStartSplitsRef.current = splits
       setActivePageId(pageId)
       setActiveSplitGroupId(null)
+      setActiveSplitGroupWidth(undefined)
     },
     [splits]
   )
@@ -559,6 +570,7 @@ export function DocumentSplits({
         dragStartSplitsRef.current = null
         setActivePageId(null)
         setActiveSplitGroupId(null)
+        setActiveSplitGroupWidth(undefined)
         return
       }
 
@@ -567,6 +579,7 @@ export function DocumentSplits({
         dragStartSplitsRef.current = null
         setActivePageId(null)
         setActiveSplitGroupId(null)
+        setActiveSplitGroupWidth(undefined)
         return
       }
 
@@ -588,6 +601,7 @@ export function DocumentSplits({
       dragStartSplitsRef.current = null
       setActivePageId(null)
       setActiveSplitGroupId(null)
+      setActiveSplitGroupWidth(undefined)
     },
     [onSplitsChange, splits]
   )
@@ -601,6 +615,7 @@ export function DocumentSplits({
     dragStartGroupIdRef.current = null
     setActivePageId(null)
     setActiveSplitGroupId(null)
+    setActiveSplitGroupWidth(undefined)
   }, [onSplitsChange])
 
   const activeSplitGroup = activeSplitGroupId
@@ -671,10 +686,7 @@ export function DocumentSplits({
             </div>
           </SortableContext>
         </ScrollArea>
-        <DragOverlay
-          dropAnimation={DRAG_OVERLAY_DROP_ANIMATION}
-          zIndex={1000}
-        >
+        <DragOverlay dropAnimation={DRAG_OVERLAY_DROP_ANIMATION} zIndex={1000}>
           {activePageId ? (
             <div
               className="relative overflow-hidden rounded-md border bg-background shadow-lg shadow-black/10"
@@ -694,6 +706,7 @@ export function DocumentSplits({
               activePage={activePage}
               group={activeSplitGroup}
               thumbnailImages={thumbnailImages}
+              width={activeSplitGroupWidth}
               onSelectPage={onSelectPage}
             />
           ) : null}

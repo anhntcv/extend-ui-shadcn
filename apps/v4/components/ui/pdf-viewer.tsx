@@ -120,18 +120,8 @@ function PDFViewerLoadingSkeleton() {
         </div>
         <div className="mx-auto mt-3 h-3 w-10 rounded-full bg-muted" />
       </div>
-      <div className="relative grid min-w-0 flex-1 place-items-center p-6">
-        <div className="w-full max-w-[360px] overflow-hidden rounded-sm border bg-background shadow-xs">
-          <div className="aspect-[8.5/11] animate-pulse bg-muted" />
-        </div>
-        <div className="absolute inset-0 grid place-items-center">
-          <div className="grid size-10 place-items-center rounded-full border bg-background/90 shadow-sm">
-            <HugeiconsIcon
-              icon={Loading03Icon}
-              className="size-4 animate-spin"
-            />
-          </div>
-        </div>
+      <div className="grid min-w-0 flex-1 place-items-center">
+        <HugeiconsIcon icon={Loading03Icon} className="size-4 animate-spin" />
       </div>
     </div>
   )
@@ -964,10 +954,10 @@ export const PDFViewer = React.forwardRef<PDFViewerHandle, PDFViewerProps>(
               <div className="flex h-full max-h-full min-h-0 w-full flex-1 overflow-hidden">
                 <aside
                   className={cn(
-                    "hidden w-40 shrink-0 overflow-hidden border-r bg-sidebar transition-[margin-left,border-color] duration-200 ease-out md:block",
+                    "absolute inset-y-0 left-0 z-30 w-40 shrink-0 overflow-hidden border-r bg-sidebar shadow-lg transition-[translate,border-color] duration-200 ease-out md:relative md:z-auto md:translate-x-0 md:shadow-none md:transition-[margin-left,border-color]",
                     sidebarOpen && !isLoading && !loadError
-                      ? "ml-0"
-                      : "-ml-40 border-r-0"
+                      ? "translate-x-0 md:ml-0"
+                      : "pointer-events-none -translate-x-full border-r-0 md:pointer-events-auto md:-ml-40"
                   )}
                 >
                   <ScrollArea className="h-full" scrollFade>

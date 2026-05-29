@@ -55,13 +55,13 @@ npx shadcn@latest add http://localhost:4000/r/citations.json
 
 The CitationCard component renders a clickable citation result that can focus a related PDF page or region.
 
-| Prop              | Type                                            | Default                              | Required |
-| ----------------- | ----------------------------------------------- | ------------------------------------ | -------- |
-| `label`           | `string`                                        | `-`                                  | Yes      |
-| `value`           | `string`                                        | `-`                                  | Yes      |
-| `snippet`         | `string`                                        | `-`                                  | No       |
-| `pageLabel`       | `string`                                        | `-`                                  | No       |
-| `active`          | `boolean`                                       | `false`                              | No       |
-| `accentClassName` | `string`                                        | `"border-blue-500/60 bg-blue-500/5"` | No       |
-| `className`       | `string`                                        | `-`                                  | No       |
-| `...props`        | `React.ButtonHTMLAttributes<HTMLButtonElement>` | `-`                                  | No       |
+| Prop              | Type                                            | Default                   | Required |
+| ----------------- | ----------------------------------------------- | ------------------------- | -------- |
+| `fieldKey`        | `string`                                        | `-`                       | Yes      |
+| `value`           | `string`                                        | `-`                       | Yes      |
+| `description`     | `string`                                        | `-`                       | No       |
+| `pageLabel`       | `string`                                        | `-`                       | No       |
+| `active`          | `boolean`                                       | `false`                   | No       |
+| `accentClassName` | `string`                                        | blue active field styling | No       |
+| `className`       | `string`                                        | `-`                       | No       |
+| `...props`        | `React.ButtonHTMLAttributes<HTMLButtonElement>` | `-`                       | No       |

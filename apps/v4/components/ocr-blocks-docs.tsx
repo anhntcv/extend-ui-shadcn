@@ -9,6 +9,7 @@ import {
   Table01Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import ReactMarkdown from "react-markdown"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -27,7 +28,6 @@ type OcrBlockType = "heading" | "paragraph" | "list" | "table" | "image"
 type OcrBlock = {
   id: string
   type: OcrBlockType
-  label: string
   text: string
   page: number
   confidence: number
@@ -113,8 +113,7 @@ const OCR_BLOCKS: OcrBlock[] = [
   {
     id: "title",
     type: "heading",
-    label: "Paper title",
-    text: "Attention Is All You Need",
+    text: "**Attention Is All You Need**",
     page: 1,
     confidence: 0.99,
     polygon: [
@@ -127,8 +126,7 @@ const OCR_BLOCKS: OcrBlock[] = [
   {
     id: "author-grid",
     type: "paragraph",
-    label: "Authors",
-    text: "Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit...",
+    text: "Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Lukasz Kaiser, and Illia Polosukhin.",
     page: 1,
     confidence: 0.96,
     polygon: [
@@ -141,8 +139,7 @@ const OCR_BLOCKS: OcrBlock[] = [
   {
     id: "abstract-heading",
     type: "heading",
-    label: "Section heading",
-    text: "Abstract",
+    text: "## Abstract",
     page: 1,
     confidence: 0.98,
     polygon: [
@@ -155,8 +152,7 @@ const OCR_BLOCKS: OcrBlock[] = [
   {
     id: "abstract-body",
     type: "paragraph",
-    label: "Abstract body",
-    text: "The dominant sequence transduction models are based on complex recurrent or convolutional neural networks...",
+    text: "The Transformer is based **solely on attention mechanisms**, dispensing with recurrence and convolutions entirely.",
     page: 1,
     confidence: 0.94,
     polygon: [
@@ -169,8 +165,7 @@ const OCR_BLOCKS: OcrBlock[] = [
   {
     id: "background-body",
     type: "paragraph",
-    label: "Background text",
-    text: "Recurrent neural networks, long short-term memory and gated recurrent neural networks...",
+    text: "Recurrent neural networks, **LSTM**, and gated recurrent neural networks have been established as sequence modeling approaches.",
     page: 2,
     confidence: 0.92,
     polygon: [
@@ -183,8 +178,7 @@ const OCR_BLOCKS: OcrBlock[] = [
   {
     id: "attention-diagram",
     type: "image",
-    label: "Architecture figure",
-    text: "Transformer architecture diagram",
+    text: "_Transformer_ architecture diagram",
     page: 2,
     confidence: 0.89,
     polygon: [
@@ -197,8 +191,7 @@ const OCR_BLOCKS: OcrBlock[] = [
   {
     id: "comparison-table",
     type: "table",
-    label: "Complexity table",
-    text: "Layer type, complexity per layer, sequential operations, maximum path length",
+    text: "- **Layer type**\n- Complexity per layer\n- Sequential operations\n- Maximum path length",
     page: 6,
     confidence: 0.91,
     polygon: [
@@ -211,8 +204,7 @@ const OCR_BLOCKS: OcrBlock[] = [
   {
     id: "layer-list",
     type: "list",
-    label: "Comparison criteria",
-    text: "Total computational complexity, parallelizable computation, and maximum path length",
+    text: "- Total computational complexity\n- Parallelizable computation\n- Maximum path length",
     page: 6,
     confidence: 0.88,
     polygon: [
@@ -265,6 +257,45 @@ function BlockOverlay({
         height: `${highlight.height}%`,
       }}
     />
+  )
+}
+
+function OcrBlockMarkdown({ text }: { text: string }) {
+  return (
+    <ReactMarkdown
+      components={{
+        h2: ({ node: _node, ...props }) => (
+          <div className="text-sm font-semibold text-foreground" {...props} />
+        ),
+        p: ({ node: _node, ...props }) => <p className="my-0" {...props} />,
+        strong: ({ node: _node, ...props }) => (
+          <strong className="font-semibold text-foreground" {...props} />
+        ),
+        em: ({ node: _node, ...props }) => (
+          <em className="text-foreground" {...props} />
+        ),
+        ul: ({ node: _node, ...props }) => (
+          <ul className="my-0 list-disc space-y-0.5 pl-4" {...props} />
+        ),
+        li: ({ node: _node, ...props }) => <li className="pl-0.5" {...props} />,
+        table: ({ node: _node, ...props }) => (
+          <div className="overflow-hidden rounded-md border bg-background">
+            <table className="w-full border-collapse text-xs" {...props} />
+          </div>
+        ),
+        th: ({ node: _node, ...props }) => (
+          <th
+            className="border-b bg-muted px-2 py-1 text-left font-medium"
+            {...props}
+          />
+        ),
+        td: ({ node: _node, ...props }) => (
+          <td className="border-t px-2 py-1" {...props} />
+        ),
+      }}
+    >
+      {text}
+    </ReactMarkdown>
   )
 }
 
@@ -328,20 +359,15 @@ function OcrBlocksPanel({
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
-                        <div className="truncate text-sm font-medium">
-                          {block.label}
+                        <div className={cn("text-xs font-medium", style.text)}>
+                          {style.label} · {Math.round(block.confidence * 100)}%
                         </div>
                         <div className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                           p. {block.page}
                         </div>
                       </div>
-                      <div
-                        className={cn("mt-0.5 text-xs font-medium", style.text)}
-                      >
-                        {style.label} · {Math.round(block.confidence * 100)}%
-                      </div>
-                      <div className="mt-2 line-clamp-3 text-sm text-foreground/90">
-                        {block.text}
+                      <div className="mt-2 text-sm text-foreground/90">
+                        <OcrBlockMarkdown text={block.text} />
                       </div>
                     </div>
                   </div>
@@ -412,7 +438,6 @@ function OcrExampleCard({
   icon,
   iconClassName,
   kind,
-  label,
   pageLabel,
   text,
 }: {
@@ -422,7 +447,6 @@ function OcrExampleCard({
   icon: typeof Heading01Icon
   iconClassName: string
   kind: string
-  label: string
   pageLabel: string
   text: string
 }) {
@@ -447,16 +471,15 @@ function OcrExampleCard({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <div className="truncate text-sm font-medium">{label}</div>
+            <div className="text-xs font-medium text-muted-foreground">
+              {kind} · {Math.round(confidence * 100)}%
+            </div>
             <div className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
               {pageLabel}
             </div>
           </div>
-          <div className="mt-0.5 text-xs font-medium text-muted-foreground">
-            {kind} · {Math.round(confidence * 100)}%
-          </div>
-          <div className="mt-2 line-clamp-3 text-sm text-foreground/90">
-            {text}
+          <div className="mt-2 text-sm text-foreground/90">
+            <OcrBlockMarkdown text={text} />
           </div>
         </div>
       </div>
@@ -470,30 +493,27 @@ function OcrBlocksExample() {
       <OcrExampleCard
         active
         icon={Heading01Icon}
-        label="Paper title"
         kind="Heading"
         pageLabel="p. 1"
         confidence={0.99}
-        text="Attention Is All You Need"
+        text="**Attention Is All You Need**"
         iconClassName="bg-violet-500/10 text-violet-600 dark:text-violet-300"
         activeClassName="border-violet-500/60 bg-violet-500/5"
       />
       <OcrExampleCard
         icon={ParagraphIcon}
-        label="Abstract body"
         kind="Paragraph"
         pageLabel="p. 1"
         confidence={0.94}
-        text="The dominant sequence transduction models are based on complex recurrent or convolutional neural networks."
+        text="The model relies **only on attention**, avoiding recurrence and convolutions."
         iconClassName="bg-blue-500/10 text-blue-600 dark:text-blue-300"
       />
       <OcrExampleCard
         icon={Table01Icon}
-        label="Complexity table"
         kind="Table"
         pageLabel="p. 6"
         confidence={0.91}
-        text="Layer type, complexity per layer, sequential operations, maximum path length."
+        text={"- **Layer type**\n- Path length\n- Sequential operations"}
         iconClassName="bg-amber-500/10 text-amber-700 dark:text-amber-300"
       />
     </div>
@@ -565,29 +585,26 @@ export function OcrBlocksExample() {
       <OcrBlockCard
         active
         icon={Heading01Icon}
-        label="Paper title"
         kind="Heading"
         pageLabel="p. 1"
         confidence={0.99}
-        text="Attention Is All You Need"
+        text="**Attention Is All You Need**"
         iconClassName="bg-violet-500/10 text-violet-600 dark:text-violet-300"
         activeClassName="border-violet-500/60 bg-violet-500/5"
       />
       <OcrBlockCard
         icon={ParagraphIcon}
-        label="Abstract body"
         kind="Paragraph"
         pageLabel="p. 1"
         confidence={0.94}
-        text="The dominant sequence transduction models are based on complex recurrent or convolutional neural networks."
+        text="The model relies **only on attention**, avoiding recurrence and convolutions."
       />
       <OcrBlockCard
         icon={Table01Icon}
-        label="Complexity table"
         kind="Table"
         pageLabel="p. 6"
         confidence={0.91}
-        text="Layer type, complexity per layer, sequential operations, maximum path length."
+        text={"- **Layer type**\\n- Path length\\n- Sequential operations"}
         iconClassName="bg-amber-500/10 text-amber-700 dark:text-amber-300"
       />
     </div>
@@ -599,11 +616,11 @@ const ocrBlocksSourceCode = `"use client";
 import * as React from "react";
 import { ParagraphIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import ReactMarkdown from "react-markdown";
 
 import { cn } from "@/lib/utils";
 
 type OcrBlockCardProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  label: string;
   kind: string;
   text: string;
   confidence?: number;
@@ -614,8 +631,40 @@ type OcrBlockCardProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   activeClassName?: string;
 };
 
+function OcrBlockMarkdown({ text }: { text: string }) {
+  return (
+    <ReactMarkdown
+      components={{
+        p: ({ node: _node, ...props }) => <p className="my-0" {...props} />,
+        strong: ({ node: _node, ...props }) => (
+          <strong className="font-semibold text-foreground" {...props} />
+        ),
+        ul: ({ node: _node, ...props }) => (
+          <ul className="my-0 list-disc space-y-0.5 pl-4" {...props} />
+        ),
+        li: ({ node: _node, ...props }) => <li className="pl-0.5" {...props} />,
+        table: ({ node: _node, ...props }) => (
+          <div className="overflow-hidden rounded-md border bg-background">
+            <table className="w-full border-collapse text-xs" {...props} />
+          </div>
+        ),
+        th: ({ node: _node, ...props }) => (
+          <th
+            className="border-b bg-muted px-2 py-1 text-left font-medium"
+            {...props}
+          />
+        ),
+        td: ({ node: _node, ...props }) => (
+          <td className="border-t px-2 py-1" {...props} />
+        ),
+      }}
+    >
+      {text}
+    </ReactMarkdown>
+  );
+}
+
 export function OcrBlockCard({
-  label,
   kind,
   text,
   confidence,
@@ -648,19 +697,18 @@ export function OcrBlockCard({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <div className="truncate text-sm font-medium">{label}</div>
+            <div className="text-xs font-medium text-muted-foreground">
+              {kind}
+              {typeof confidence === "number" ? \` · \${Math.round(confidence * 100)}%\` : null}
+            </div>
             {pageLabel ? (
               <div className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                 {pageLabel}
               </div>
             ) : null}
           </div>
-          <div className="mt-0.5 text-xs font-medium text-muted-foreground">
-            {kind}
-            {typeof confidence === "number" ? \` · \${Math.round(confidence * 100)}%\` : null}
-          </div>
-          <div className="mt-2 line-clamp-3 text-sm text-foreground/90">
-            {text}
+          <div className="mt-2 text-sm text-foreground/90">
+            <OcrBlockMarkdown text={text} />
           </div>
         </div>
       </div>
