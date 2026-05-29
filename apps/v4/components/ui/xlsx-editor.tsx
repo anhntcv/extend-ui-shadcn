@@ -30,7 +30,6 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Group, GroupText } from "@/components/ui/group"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Select,
   SelectContent,
@@ -485,11 +484,7 @@ export function XlsxEditorSurface({
         showNightRenderToggle={showNightRenderToggle}
       />
       <div className="flex min-h-0 flex-1 flex-col">
-        <ScrollArea
-          orientation="both"
-          className="min-h-0 flex-1 bg-muted/20"
-          viewportClassName="min-h-0"
-        >
+        <div className="min-h-0 flex-1 bg-muted/20">
           <XlsxViewer
             experimentalCanvas
             allowResizeInReadOnly
@@ -519,7 +514,7 @@ export function XlsxEditorSurface({
             }
             renderTableHeaderMenu={renderTableHeaderMenu}
           />
-        </ScrollArea>
+        </div>
         <WorkbookSheetTabs workbookIdentity={workbookIdentity} />
       </div>
     </div>

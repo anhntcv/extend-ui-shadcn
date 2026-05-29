@@ -8,12 +8,11 @@
     "xlsx-viewer",
     "xlsx-editor",
     "csv-tsv-viewer",
-    "file-thumbnail",
     "file-upload",
-    "citations",
+    "human-review",
+    "file-thumbnail",
     "ocr-blocks",
     "e-signature",
-    "human-review",
     "document-splits"
   ]
 }

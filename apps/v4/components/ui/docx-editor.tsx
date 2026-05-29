@@ -74,7 +74,6 @@ import {
 } from "@/components/ui/document-viewer-sidebar"
 import { FileThumbnail } from "@/components/ui/file-thumbnail"
 import { Input } from "@/components/ui/input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Select,
   SelectContent,
@@ -1891,7 +1890,7 @@ function DocxEditorContent({
           inline={sidebarInline}
           open={Boolean(sidebarOpen && (pageCount || isLoadingDocument))}
         >
-          <ScrollArea className="h-full" scrollFade>
+          <div className="h-full overflow-auto">
             <div className="p-4">
               {isLoadingDocument ? (
                 <>
@@ -1937,7 +1936,7 @@ function DocxEditorContent({
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
         </DocumentViewerThumbnailSidebar>
         <div
           ref={viewportRef}

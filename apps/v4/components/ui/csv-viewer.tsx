@@ -158,9 +158,40 @@ function ToolbarTooltip({
   )
 }
 
+function readIsDarkTheme() {
+  return (
+    typeof document !== "undefined" &&
+    document.documentElement.classList.contains("dark")
+  )
+}
+
+function useIsDarkTheme() {
+  const [isDark, setIsDark] = React.useState(readIsDarkTheme)
+
+  React.useEffect(() => {
+    if (typeof document === "undefined") return
+
+    const updateTheme = () => setIsDark(readIsDarkTheme())
+
+    updateTheme()
+
+    if (typeof MutationObserver === "undefined") return
+
+    const observer = new MutationObserver(updateTheme)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    })
+
+    return () => observer.disconnect()
+  }, [])
+
+  return isDark
+}
+
 export function CsvViewer({ className, data }: CsvViewerProps) {
   const inputRef = React.useRef<HTMLInputElement | null>(null)
-  const isDark = false
+  const isDark = useIsDarkTheme()
   const [glide, setGlide] = React.useState<GlideDataGridModule | null>(null)
   const [zoom, setZoom] = React.useState<(typeof ZOOM_OPTIONS)[number]>(1)
   const [parsed, setParsed] = React.useState(() =>

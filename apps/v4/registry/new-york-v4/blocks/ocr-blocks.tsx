@@ -31,7 +31,7 @@ const OCR_BLOCKS: OcrBlock[] = [
   {
     id: "title",
     kind: "Heading",
-    text: "**Attention Is All You Need**",
+    text: "# Attention Is All You Need",
     page: 1,
     confidence: 0.99,
     icon: Heading01Icon,
@@ -93,34 +93,61 @@ function polygonToArea(polygon: OcrBlock["polygon"]) {
 
 function OcrBlockMarkdown({ text }: { text: string }) {
   return (
-    <ReactMarkdown
-      components={{
-        p: ({ node: _node, ...props }) => <p className="my-0" {...props} />,
-        strong: ({ node: _node, ...props }) => (
-          <strong className="font-semibold text-foreground" {...props} />
-        ),
-        ul: ({ node: _node, ...props }) => (
-          <ul className="my-0 list-disc space-y-0.5 pl-4" {...props} />
-        ),
-        li: ({ node: _node, ...props }) => <li className="pl-0.5" {...props} />,
-        table: ({ node: _node, ...props }) => (
-          <div className="overflow-hidden rounded-md border bg-background">
-            <table className="w-full border-collapse text-xs" {...props} />
-          </div>
-        ),
-        th: ({ node: _node, ...props }) => (
-          <th
-            className="border-b bg-muted px-2 py-1 text-left font-medium"
-            {...props}
-          />
-        ),
-        td: ({ node: _node, ...props }) => (
-          <td className="border-t px-2 py-1" {...props} />
-        ),
-      }}
-    >
-      {text}
-    </ReactMarkdown>
+    <div className="space-y-1 text-sm leading-5 text-foreground/90">
+      <ReactMarkdown
+        components={{
+          h1: ({ node: _node, ...props }) => (
+            <h1
+              className="my-0 text-base leading-5 font-semibold text-foreground"
+              {...props}
+            />
+          ),
+          h2: ({ node: _node, ...props }) => (
+            <h2
+              className="my-0 text-[15px] leading-5 font-semibold text-foreground"
+              {...props}
+            />
+          ),
+          h3: ({ node: _node, ...props }) => (
+            <h3
+              className="my-0 text-sm leading-5 font-semibold text-foreground"
+              {...props}
+            />
+          ),
+          p: ({ node: _node, ...props }) => (
+            <p className="my-0 text-[13px] leading-5" {...props} />
+          ),
+          strong: ({ node: _node, ...props }) => (
+            <strong className="font-semibold text-foreground" {...props} />
+          ),
+          em: ({ node: _node, ...props }) => (
+            <em className="text-foreground" {...props} />
+          ),
+          ul: ({ node: _node, ...props }) => (
+            <ul className="my-0 list-disc space-y-0.5 pl-4" {...props} />
+          ),
+          li: ({ node: _node, ...props }) => (
+            <li className="pl-0.5 text-[13px] leading-5" {...props} />
+          ),
+          table: ({ node: _node, ...props }) => (
+            <div className="overflow-hidden rounded-md border bg-background">
+              <table className="w-full border-collapse text-xs" {...props} />
+            </div>
+          ),
+          th: ({ node: _node, ...props }) => (
+            <th
+              className="border-b bg-muted px-2 py-1 text-left font-medium"
+              {...props}
+            />
+          ),
+          td: ({ node: _node, ...props }) => (
+            <td className="border-t px-2 py-1" {...props} />
+          ),
+        }}
+      >
+        {text}
+      </ReactMarkdown>
+    </div>
   )
 }
 

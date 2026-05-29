@@ -6,7 +6,6 @@ import { type PageTreeFolder } from "@/lib/page-tree"
 import { source } from "@/lib/source"
 import { cn } from "@/lib/utils"
 import { Callout } from "@/components/callout"
-import { CitationsDemo, CitationsSource } from "@/components/citations-docs"
 import { CodeBlockCommand } from "@/components/code-block-command"
 import { CodeCollapsibleWrapper } from "@/components/code-collapsible-wrapper"
 import { CodeTabs } from "@/components/code-tabs"
@@ -373,8 +372,6 @@ export const mdxComponents = {
   CodeTabs,
   CodeCollapsibleWrapper,
   ComponentsList: ComponentsListWrapper,
-  CitationsDemo,
-  CitationsSource,
   CsvViewerDemo,
   CsvViewerSource,
   DocumentSplitsDemo,

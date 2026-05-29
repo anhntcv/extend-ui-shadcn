@@ -906,13 +906,17 @@ function XlsxThumbnailGeneratorContent({
   thumbnailWidth: number
 }) {
   const controller = useXlsxViewer()
-  const { thumbnails } = useXlsxViewerThumbnails({
-    includeHeaders: true,
-    resolution: {
-      maxHeight: thumbnailWidth,
-      maxWidth: thumbnailWidth,
-    },
-  })
+  const thumbnailOptions = React.useMemo(
+    () => ({
+      includeHeaders: true,
+      resolution: {
+        maxHeight: thumbnailWidth,
+        maxWidth: thumbnailWidth,
+      },
+    }),
+    [thumbnailWidth]
+  )
+  const { thumbnails } = useXlsxViewerThumbnails(thumbnailOptions)
   const firstThumbnail = thumbnails[0]
 
   React.useEffect(() => {

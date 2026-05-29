@@ -26,7 +26,6 @@ export const revalidate = false
 
 const blockIds = [
   "pdf-dropzone",
-  "citations",
   "ocr-blocks",
   "e-signature",
   "human-review",
@@ -37,7 +36,6 @@ const blockIds = [
 
 const blockCodeDependencies: Record<string, string[]> = {
   "pdf-dropzone": ["file-upload", "pdf-viewer", "file-thumbnail"],
-  citations: ["pdf-block-resizable-shell", "pdf-viewer", "file-thumbnail"],
   "ocr-blocks": ["pdf-block-resizable-shell", "pdf-viewer", "file-thumbnail"],
   "e-signature": ["pdf-block-resizable-shell", "pdf-viewer", "file-thumbnail"],
   "human-review": ["pdf-block-resizable-shell", "pdf-viewer", "file-thumbnail"],

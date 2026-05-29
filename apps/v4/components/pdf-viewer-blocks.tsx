@@ -28,7 +28,6 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { CitationsBlock } from "@/components/citations-docs"
 import { copyToClipboardWithMeta } from "@/components/copy-button"
 import {
   DocumentSplitsBlock,
@@ -139,15 +138,6 @@ const pdfViewerBlocks = [
     command: getRegistryAddCommand("pdf-dropzone"),
     docsHref: "/docs/components/file-upload",
     component: PdfDropzoneBlock,
-  },
-  {
-    id: "citations",
-    title: "Citations",
-    description:
-      "Evidence cards that scroll the PDF viewer to source bounding boxes.",
-    command: getRegistryAddCommand("citations"),
-    docsHref: "/docs/components/citations",
-    component: CitationsBlock,
   },
   {
     id: "ocr-blocks",

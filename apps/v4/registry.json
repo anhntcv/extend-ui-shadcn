@@ -780,26 +780,6 @@
       ]
     },
     {
-      "name": "citations",
-      "type": "registry:block",
-      "title": "Citations",
-      "description": "A PDF evidence review block with citation cards that focus page regions.",
-      "registryDependencies": [
-        "pdf-block-resizable-shell",
-        "pdf-viewer",
-        "scroll-area",
-        "utils"
-      ],
-      "categories": ["documents", "blocks"],
-      "files": [
-        {
-          "path": "registry/new-york-v4/blocks/citations.tsx",
-          "type": "registry:component",
-          "target": "@components/blocks/citations.tsx"
-        }
-      ]
-    },
-    {
       "name": "ocr-blocks",
       "type": "registry:block",
       "title": "OCR Blocks",
@@ -858,6 +838,7 @@
       "title": "Human Review",
       "description": "A human-in-the-loop extraction review block linked to source PDF evidence.",
       "dependencies": [
+        "@glideapps/glide-data-grid@6.0.4-alpha24",
         "@hugeicons/core-free-icons@^4.1.1",
         "@hugeicons/react@^1.1.6",
         "@pierre/diffs@^1.1.22"

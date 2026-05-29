@@ -55,6 +55,15 @@ const XLSX_LOADING_INDICATOR_DELAY_MS = 300
 const XLSX_DROPDOWN_Z_INDEX_CLASS = "z-[100010]"
 const ZOOM_OPTIONS = [10, 25, 50, 75, 100, 125, 150, 175, 200, 400] as const
 
+// Stable reference so the thumbnails memo isn't invalidated on every render
+// (e.g. by selection changes), which would recompute every sheet thumbnail.
+const XLSX_SHEET_TAB_THUMBNAIL_OPTIONS = {
+  resolution: {
+    maxHeight: 360,
+    maxWidth: 560,
+  },
+} as const
+
 const xlsxWorkbookBufferCache = new Map<string, ArrayBuffer>()
 const xlsxWorkbookBufferPromiseCache = new Map<string, Promise<ArrayBuffer>>()
 
@@ -375,18 +384,46 @@ function WorkbookToolbar({
   )
 }
 
+type WorkbookSheetTab = {
+  name: string
+  workbookSheetIndex: number
+}
+
+type WorkbookSheetTabsInnerProps = {
+  activeSheetIndex: number
+  onActiveSheetIndexChange: (index: number) => void
+  sheets: WorkbookSheetTab[]
+  workbookIdentity: string
+}
+
 export function WorkbookSheetTabs({
   workbookIdentity,
 }: {
   workbookIdentity: string
 }) {
   const { activeSheetIndex, setActiveSheetIndex, sheets } = useXlsxViewer()
-  const { thumbnails } = useXlsxViewerThumbnails({
-    resolution: {
-      maxHeight: 360,
-      maxWidth: 560,
-    },
-  })
+
+  const handleActiveSheetIndexChange = React.useCallback(
+    (index: number) => setActiveSheetIndex(index),
+    [setActiveSheetIndex]
+  )
+
+  return (
+    <WorkbookSheetTabsInner
+      activeSheetIndex={activeSheetIndex}
+      onActiveSheetIndexChange={handleActiveSheetIndexChange}
+      sheets={sheets}
+      workbookIdentity={workbookIdentity}
+    />
+  )
+}
+
+const WorkbookSheetTabsInner = React.memo(function WorkbookSheetTabsInner({
+  activeSheetIndex,
+  onActiveSheetIndexChange,
+  sheets,
+  workbookIdentity,
+}: WorkbookSheetTabsInnerProps) {
   const [visiblePreviewIndex, setVisiblePreviewIndex] = React.useState<
     number | null
   >(null)
@@ -394,9 +431,6 @@ export function WorkbookSheetTabs({
     left: 0,
     top: 0,
   })
-  const [thumbnailUrls, setThumbnailUrls] = React.useState<
-    Record<number, string>
-  >({})
   const scrollRef = React.useRef<HTMLDivElement | null>(null)
   const itemRefs = React.useRef<Record<number, HTMLButtonElement | null>>({})
   const openTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
@@ -496,30 +530,7 @@ export function WorkbookSheetTabs({
     clearCloseTimeout()
     setVisiblePreviewIndex(null)
     setPreviewPosition({ left: 0, top: 0 })
-    setThumbnailUrls({})
   }, [clearCloseTimeout, clearOpenTimeout, workbookIdentity])
-
-  React.useEffect(() => {
-    thumbnails.forEach((thumbnail) => {
-      if (thumbnailUrls[thumbnail.sheetIndex]) return
-
-      const canvas = document.createElement("canvas")
-      canvas.width = thumbnail.width
-      canvas.height = thumbnail.height
-
-      if (!thumbnail.paint(canvas)) return
-
-      const nextUrl = canvas.toDataURL("image/png")
-      setThumbnailUrls((current) => {
-        if (current[thumbnail.sheetIndex]) return current
-
-        return {
-          ...current,
-          [thumbnail.sheetIndex]: nextUrl,
-        }
-      })
-    })
-  }, [thumbnailUrls, thumbnails])
 
   React.useEffect(() => {
     if (visiblePreviewIndex === null) return
@@ -541,8 +552,6 @@ export function WorkbookSheetTabs({
 
   if (sheets.length <= 1) return null
 
-  const previewUrl =
-    visiblePreviewIndex === null ? null : thumbnailUrls[visiblePreviewIndex]
   const previewSheet =
     visiblePreviewIndex === null ? null : sheets[visiblePreviewIndex]
 
@@ -553,7 +562,7 @@ export function WorkbookSheetTabs({
     >
       <Tabs
         value={String(activeSheetIndex)}
-        onValueChange={(value) => setActiveSheetIndex(Number(value))}
+        onValueChange={(value) => onActiveSheetIndexChange(Number(value))}
         className="gap-0"
       >
         <ScrollArea
@@ -582,15 +591,12 @@ export function WorkbookSheetTabs({
           </div>
         </ScrollArea>
       </Tabs>
-      {typeof document !== "undefined" && previewSheet
+      {typeof document !== "undefined" &&
+      previewSheet &&
+      visiblePreviewIndex !== null
         ? createPortal(
             <div
-              className={cn(
-                "pointer-events-none fixed z-[2147483647] overflow-hidden rounded-lg border bg-background/95 shadow-xl backdrop-blur-md transition-[opacity,transform] duration-100",
-                previewUrl
-                  ? "translate-y-0 opacity-100"
-                  : "translate-y-1 opacity-0"
-              )}
+              className="pointer-events-none fixed z-[2147483647] translate-y-0 overflow-hidden rounded-lg border bg-background/95 opacity-100 shadow-xl backdrop-blur-md transition-[opacity,transform] duration-100"
               style={{
                 left: previewPosition.left,
                 top: previewPosition.top,
@@ -598,24 +604,56 @@ export function WorkbookSheetTabs({
               }}
             >
               <div className="relative aspect-[11/7] w-full overflow-hidden bg-muted/60">
-                {previewUrl ? (
-                  <img
-                    src={previewUrl}
-                    alt={`${previewSheet.name} preview`}
-                    className="absolute inset-0 size-full object-cover object-left-top"
-                    draggable={false}
-                  />
-                ) : (
-                  <div className="grid size-full place-items-center">
-                    <Spinner className="size-4 text-muted-foreground" />
-                  </div>
-                )}
+                <WorkbookSheetTabPreview
+                  key={`${workbookIdentity}-${visiblePreviewIndex}`}
+                  sheetIndex={visiblePreviewIndex}
+                />
               </div>
             </div>,
             document.body
           )
         : null}
     </div>
+  )
+})
+
+function WorkbookSheetTabPreview({ sheetIndex }: { sheetIndex: number }) {
+  const { thumbnails } = useXlsxViewerThumbnails(
+    XLSX_SHEET_TAB_THUMBNAIL_OPTIONS
+  )
+  const canvasRef = React.useRef<HTMLCanvasElement | null>(null)
+  const [isPainted, setIsPainted] = React.useState(false)
+  const thumbnail = thumbnails.find(
+    (candidate) => candidate.sheetIndex === sheetIndex
+  )
+
+  React.useEffect(() => {
+    setIsPainted(false)
+
+    if (!thumbnail || !canvasRef.current) return
+
+    canvasRef.current.width = thumbnail.width
+    canvasRef.current.height = thumbnail.height
+    setIsPainted(thumbnail.paint(canvasRef.current))
+  }, [thumbnail])
+
+  return (
+    <>
+      {thumbnail ? (
+        <canvas
+          ref={canvasRef}
+          className={cn(
+            "absolute inset-0 size-full object-cover object-left-top transition-opacity duration-100",
+            isPainted ? "opacity-100" : "opacity-0"
+          )}
+        />
+      ) : null}
+      {!isPainted ? (
+        <div className="absolute inset-0 grid place-items-center">
+          <Spinner className="size-4 text-muted-foreground" />
+        </div>
+      ) : null}
+    </>
   )
 }
 
@@ -661,11 +699,7 @@ export function XlsxWorkbookSurface({
         workbookIdentity={workbookIdentity}
       />
       <div className="flex min-h-0 flex-1 flex-col">
-        <ScrollArea
-          orientation="both"
-          className="min-h-0 flex-1 bg-muted/20"
-          viewportClassName="min-h-0"
-        >
+        <div className="min-h-0 flex-1 bg-muted/20">
           <XlsxViewer
             experimentalCanvas
             allowResizeInReadOnly
@@ -695,7 +729,7 @@ export function XlsxWorkbookSurface({
             }
             renderTableHeaderMenu={renderTableHeaderMenu}
           />
-        </ScrollArea>
+        </div>
         <WorkbookSheetTabs workbookIdentity={workbookIdentity} />
       </div>
     </div>
