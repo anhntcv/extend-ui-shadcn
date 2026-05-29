@@ -131,6 +131,15 @@ const blockFileTreeUnsafeCSS = `
 
 const pdfViewerBlocks = [
   {
+    id: "human-review",
+    title: "Human Review",
+    description:
+      "Extraction review cards connected to source evidence in the PDF viewer.",
+    command: getRegistryAddCommand("human-review"),
+    docsHref: "/docs/components/human-review",
+    component: HumanReviewBlock,
+  },
+  {
     id: "pdf-dropzone",
     title: "PDF Dropzone",
     description:
@@ -158,15 +167,6 @@ const pdfViewerBlocks = [
     command: getRegistryAddCommand("e-signature"),
     docsHref: "/docs/components/e-signature",
     component: ESignatureBlock,
-  },
-  {
-    id: "human-review",
-    title: "Human Review",
-    description:
-      "Extraction review cards connected to source evidence in the PDF viewer.",
-    command: getRegistryAddCommand("human-review"),
-    docsHref: "/docs/components/human-review",
-    component: HumanReviewBlock,
   },
   {
     id: "document-splits",

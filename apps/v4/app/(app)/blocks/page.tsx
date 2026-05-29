@@ -25,10 +25,10 @@ export const dynamic = "force-static"
 export const revalidate = false
 
 const blockIds = [
+  "human-review",
   "pdf-dropzone",
   "ocr-blocks",
   "e-signature",
-  "human-review",
   "document-splits",
   "excel-document-splits",
   "docx-editor-block",

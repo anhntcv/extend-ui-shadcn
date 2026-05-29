@@ -104,7 +104,7 @@ const DEFAULT_PAGE_HEIGHT = 792
 const DEFAULT_ZOOM = 0.75
 const ZOOM_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2]
 const MAX_DEVICE_PIXEL_RATIO = 2
-const DEFAULT_PAGE_RENDER_BUFFER = 2
+const DEFAULT_PAGE_RENDER_BUFFER = 4
 const THUMBNAIL_WIDTH = 92
 type SearchHighlight = {
   id: string
@@ -237,10 +237,9 @@ function PDFViewerPage({
   rotation,
   shouldRenderPage,
   searchQuery,
-  isFirstRenderedPage,
   pageClassName,
   renderPageOverlay,
-  onFirstPageSettled,
+  onPageSettled,
   onPagePointerDown,
   onPagePointerMove,
   onPagePointerUp,
@@ -254,10 +253,9 @@ function PDFViewerPage({
   rotation: number
   shouldRenderPage: boolean
   searchQuery: string
-  isFirstRenderedPage: boolean
   pageClassName?: (pageNumber: number) => string | undefined
   renderPageOverlay?: (props: PDFViewerPageOverlayProps) => React.ReactNode
-  onFirstPageSettled: () => void
+  onPageSettled: (pageNumber: number) => void
   onPagePointerDown?: (
     event: React.PointerEvent<HTMLDivElement>,
     pageNumber: number
@@ -375,11 +373,9 @@ function PDFViewerPage({
                 <Spinner className="size-4" />
               </div>
             }
-            onRenderSuccess={
-              isFirstRenderedPage ? onFirstPageSettled : undefined
-            }
+            onRenderSuccess={() => onPageSettled(pageNumber)}
             onRenderTextLayerSuccess={updateSearchHighlights}
-            onRenderError={isFirstRenderedPage ? onFirstPageSettled : undefined}
+            onRenderError={() => onPageSettled(pageNumber)}
           />
           {searchHighlights.length ? (
             <div className="pointer-events-none absolute inset-0 z-10">
@@ -454,6 +450,9 @@ export const PDFViewer = React.forwardRef<PDFViewerHandle, PDFViewerProps>(
     const [searchQuery, setSearchQuery] = React.useState("")
     const [isDocumentLoading, setIsDocumentLoading] = React.useState(true)
     const [isFirstPageRendering, setIsFirstPageRendering] = React.useState(true)
+    const [settledPageNumbers, setSettledPageNumbers] = React.useState<
+      Set<number>
+    >(() => new Set())
     const [loadError, setLoadError] = React.useState(false)
     const viewportRef = React.useRef<HTMLDivElement>(null)
     const [viewerShellRef, viewerShellWidth] = useElementWidth<HTMLDivElement>()
@@ -464,6 +463,7 @@ export const PDFViewer = React.forwardRef<PDFViewerHandle, PDFViewerProps>(
       setLoadError(false)
       setIsDocumentLoading(Boolean(file))
       setIsFirstPageRendering(Boolean(file))
+      setSettledPageNumbers(new Set())
       setNumPages(0)
       setActivePage(1)
     }, [file])
@@ -682,6 +682,7 @@ export const PDFViewer = React.forwardRef<PDFViewerHandle, PDFViewerProps>(
       setLoadError(false)
       setNumPages(0)
       setActivePage(1)
+      setSettledPageNumbers(new Set())
       onActivePageChange?.(1)
       setSearchQuery("")
       setSearchDraft("")
@@ -693,6 +694,7 @@ export const PDFViewer = React.forwardRef<PDFViewerHandle, PDFViewerProps>(
         setNumPages(nextNumPages)
         setIsDocumentLoading(false)
         setIsFirstPageRendering(true)
+        setSettledPageNumbers(new Set())
         setLoadError(false)
         setActivePage(1)
         onActivePageChange?.(1)
@@ -710,6 +712,28 @@ export const PDFViewer = React.forwardRef<PDFViewerHandle, PDFViewerProps>(
       setLoadError(true)
       setNumPages(0)
     }, [])
+
+    const handlePageSettled = React.useCallback(
+      (pageNumber: number) => {
+        setSettledPageNumbers((currentPageNumbers) => {
+          if (currentPageNumbers.has(pageNumber)) return currentPageNumbers
+
+          const nextPageNumbers = new Set(currentPageNumbers)
+          nextPageNumbers.add(pageNumber)
+          return nextPageNumbers
+        })
+
+        if (pageNumber === firstRenderedPage) {
+          setIsFirstPageRendering(false)
+        }
+      },
+      [firstRenderedPage]
+    )
+
+    React.useEffect(() => {
+      setSettledPageNumbers(new Set())
+      setIsFirstPageRendering(Boolean(pdfFile))
+    }, [pdfFile, renderedPageWidth, rotation])
 
     const handleUpload = React.useCallback(
       (file: File) => {
@@ -1020,6 +1044,7 @@ export const PDFViewer = React.forwardRef<PDFViewerHandle, PDFViewerProps>(
                     {renderedPageNumbers.map((pageNumber) => {
                       const shouldRenderPage =
                         Math.abs(pageNumber - activePage) <= pageRenderBuffer ||
+                        settledPageNumbers.has(pageNumber) ||
                         renderedPageNumbers.length <= pageRenderBuffer * 2 + 1
                       const pageStyle = {
                         width: renderedPageWidth,
@@ -1042,12 +1067,9 @@ export const PDFViewer = React.forwardRef<PDFViewerHandle, PDFViewerProps>(
                           rotation={rotation}
                           shouldRenderPage={shouldRenderPage}
                           searchQuery={pageSearchQuery}
-                          isFirstRenderedPage={pageNumber === firstRenderedPage}
                           pageClassName={pageClassName}
                           renderPageOverlay={renderPageOverlay}
-                          onFirstPageSettled={() =>
-                            setIsFirstPageRendering(false)
-                          }
+                          onPageSettled={handlePageSettled}
                           onPagePointerDown={onPagePointerDown}
                           onPagePointerMove={onPagePointerMove}
                           onPagePointerUp={onPagePointerUp}
