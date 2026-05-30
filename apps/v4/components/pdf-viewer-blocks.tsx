@@ -21,6 +21,7 @@ import {
 import type { ImperativePanelHandle } from "react-resizable-panels"
 
 import { siteConfig } from "@/lib/config"
+import { useMounted } from "@/hooks/use-mounted"
 import { Button } from "@/components/ui/button"
 import {
   ResizableHandle,
@@ -230,6 +231,7 @@ function PdfViewerBlockPreview({
   const [activeFile, setActiveFile] = React.useState<string | null>(
     codeSamples[0]?.targetPath ?? null
   )
+  const isMounted = useMounted()
   const previewPanelRef = React.useRef<ImperativePanelHandle>(null)
   const Preview = block.component
   const activeCodeSample =
@@ -363,7 +365,11 @@ function PdfViewerBlockPreview({
                 minSize={30}
                 className="min-w-0 overflow-hidden rounded-xl bg-background"
               >
-                <Preview key={previewKey} />
+                {isMounted ? (
+                  <Preview key={previewKey} />
+                ) : (
+                  <BlockPreviewPlaceholder />
+                )}
               </ResizablePanel>
               <ResizableHandle className="relative w-3 bg-transparent p-0 after:absolute after:top-1/2 after:right-0 after:h-8 after:w-1.5 after:-translate-y-1/2 after:rounded-full after:bg-border after:transition-all after:hover:h-10" />
               <ResizablePanel defaultSize={0} minSize={0} />
@@ -378,12 +384,20 @@ function PdfViewerBlockPreview({
         )}
         {view === "preview" ? (
           <div className="overflow-hidden rounded-xl border bg-background md:hidden">
-            <Preview key={previewKey} />
+            {isMounted ? (
+              <Preview key={previewKey} />
+            ) : (
+              <BlockPreviewPlaceholder />
+            )}
           </div>
         ) : null}
       </div>
     </article>
   )
+}
+
+function BlockPreviewPlaceholder() {
+  return <div className="h-full min-h-[560px] bg-muted/20" />
 }
 
 function BlockCodePanel({

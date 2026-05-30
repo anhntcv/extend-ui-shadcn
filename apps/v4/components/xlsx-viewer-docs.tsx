@@ -509,6 +509,12 @@ const WorkbookSheetTabsInner = React.memo(function WorkbookSheetTabsInner({
     left: 0,
     top: 0,
   })
+  const { thumbnails } = useXlsxViewerThumbnails(
+    XLSX_SHEET_TAB_THUMBNAIL_OPTIONS
+  )
+  const [thumbnailUrls, setThumbnailUrls] = React.useState<
+    Record<number, string>
+  >({})
   const scrollRef = React.useRef<HTMLDivElement | null>(null)
   const itemRefs = React.useRef<Record<number, HTMLButtonElement | null>>({})
   const openTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
@@ -608,7 +614,27 @@ const WorkbookSheetTabsInner = React.memo(function WorkbookSheetTabsInner({
     clearCloseTimeout()
     setVisiblePreviewIndex(null)
     setPreviewPosition({ left: 0, top: 0 })
+    setThumbnailUrls({})
   }, [clearCloseTimeout, clearOpenTimeout, workbookIdentity])
+
+  React.useEffect(() => {
+    thumbnails.forEach((thumbnail) => {
+      setThumbnailUrls((current) => {
+        if (current[thumbnail.sheetIndex]) return current
+
+        const canvas = document.createElement("canvas")
+        canvas.width = thumbnail.width
+        canvas.height = thumbnail.height
+
+        if (!thumbnail.paint(canvas)) return current
+
+        return {
+          ...current,
+          [thumbnail.sheetIndex]: canvas.toDataURL("image/png"),
+        }
+      })
+    })
+  }, [thumbnails])
 
   React.useEffect(() => {
     if (visiblePreviewIndex === null) return
@@ -632,6 +658,8 @@ const WorkbookSheetTabsInner = React.memo(function WorkbookSheetTabsInner({
 
   const previewSheet =
     visiblePreviewIndex === null ? null : sheets[visiblePreviewIndex]
+  const previewUrl =
+    visiblePreviewIndex === null ? null : (thumbnailUrls[visiblePreviewIndex] ?? null)
 
   return (
     <div
@@ -671,7 +699,8 @@ const WorkbookSheetTabsInner = React.memo(function WorkbookSheetTabsInner({
       </Tabs>
       {typeof document !== "undefined" &&
       previewSheet &&
-      visiblePreviewIndex !== null
+      visiblePreviewIndex !== null &&
+      previewUrl
         ? createPortal(
             <div
               className="pointer-events-none fixed z-[2147483647] translate-y-0 overflow-hidden rounded-lg border bg-background/95 opacity-100 shadow-xl backdrop-blur-md transition-[opacity,transform] duration-100"
@@ -682,9 +711,11 @@ const WorkbookSheetTabsInner = React.memo(function WorkbookSheetTabsInner({
               }}
             >
               <div className="relative aspect-[11/7] w-full overflow-hidden bg-muted/60">
-                <WorkbookSheetTabPreview
-                  key={\`\${workbookIdentity}-\${visiblePreviewIndex}\`}
-                  sheetIndex={visiblePreviewIndex}
+                <img
+                  key={\`\${workbookIdentity}-\${visiblePreviewIndex}-\${previewUrl}\`}
+                  src={previewUrl}
+                  alt={\`\${previewSheet.name} preview\`}
+                  className="absolute inset-0 h-full w-full object-cover object-left-top"
                 />
               </div>
             </div>,
@@ -694,46 +725,6 @@ const WorkbookSheetTabsInner = React.memo(function WorkbookSheetTabsInner({
     </div>
   )
 })
-
-function WorkbookSheetTabPreview({ sheetIndex }: { sheetIndex: number }) {
-  const { thumbnails } = useXlsxViewerThumbnails(
-    XLSX_SHEET_TAB_THUMBNAIL_OPTIONS
-  )
-  const canvasRef = React.useRef<HTMLCanvasElement | null>(null)
-  const [isPainted, setIsPainted] = React.useState(false)
-  const thumbnail = thumbnails.find(
-    (candidate) => candidate.sheetIndex === sheetIndex
-  )
-
-  React.useEffect(() => {
-    setIsPainted(false)
-
-    if (!thumbnail || !canvasRef.current) return
-
-    canvasRef.current.width = thumbnail.width
-    canvasRef.current.height = thumbnail.height
-    setIsPainted(thumbnail.paint(canvasRef.current))
-  }, [thumbnail])
-
-  return (
-    <>
-      {thumbnail ? (
-        <canvas
-          ref={canvasRef}
-          className={cn(
-            "absolute inset-0 size-full object-cover object-left-top transition-opacity duration-100",
-            isPainted ? "opacity-100" : "opacity-0"
-          )}
-        />
-      ) : null}
-      {!isPainted ? (
-        <div className="absolute inset-0 grid place-items-center">
-          <Spinner className="size-4 text-muted-foreground" />
-        </div>
-      ) : null}
-    </>
-  )
-}
 
 export function XlsxWorkbookSurface({
   className,

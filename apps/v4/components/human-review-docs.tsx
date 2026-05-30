@@ -29,6 +29,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { MultiFileDiff, Virtualizer } from "@pierre/diffs/react"
 
 import { cn } from "@/lib/utils"
+import { useMounted } from "@/hooks/use-mounted"
 import { Button } from "@/components/ui/button"
 import { PDFViewer, type PDFViewerHandle } from "@/components/ui/pdf-viewer"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -799,6 +800,7 @@ function HumanReviewArrayValueGrid({
   const rows = getArrayValue(value)
   const itemSchema = getArrayItemSchema(schema)
   const gridTheme = useHumanReviewGridTheme()
+  const isMounted = useMounted()
   const isDark = useIsDarkTheme()
   const [localNestedStack, setLocalNestedStack] = React.useState<
     ArrayNestedView[]
@@ -1170,25 +1172,29 @@ function HumanReviewArrayValueGrid({
           <span>{rows.length} rows</span>
         </div>
         <div className="h-[220px]">
-          <DataEditor
-            columns={columns}
-            rows={rows.length}
-            getCellContent={getCellContent}
-            cellActivationBehavior="double-click"
-            drawCell={drawCell}
-            gridSelection={gridSelection}
-            onCellEdited={updateCellValue}
-            onCellActivated={openNestedCell}
-            onGridSelectionChange={handleGridSelectionChange}
-            rowMarkers="number"
-            smoothScrollX
-            smoothScrollY
-            theme={gridTheme}
-            width="100%"
-            height="100%"
-            rowHeight={32}
-            headerHeight={34}
-          />
+          {isMounted ? (
+            <DataEditor
+              columns={columns}
+              rows={rows.length}
+              getCellContent={getCellContent}
+              cellActivationBehavior="double-click"
+              drawCell={drawCell}
+              gridSelection={gridSelection}
+              onCellEdited={updateCellValue}
+              onCellActivated={openNestedCell}
+              onGridSelectionChange={handleGridSelectionChange}
+              rowMarkers="number"
+              smoothScrollX
+              smoothScrollY
+              theme={gridTheme}
+              width="100%"
+              height="100%"
+              rowHeight={32}
+              headerHeight={34}
+            />
+          ) : (
+            <div className="h-full bg-muted/20" />
+          )}
         </div>
       </div>
       {activeNestedView ? (
