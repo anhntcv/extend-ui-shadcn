@@ -34,7 +34,6 @@ import {
   DragDropVerticalIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { useTheme } from "next-themes"
 import type * as ReactPdf from "react-pdf"
 
 import { cn } from "@/lib/utils"
@@ -46,7 +45,7 @@ import {
 import { PDFViewer, type PDFViewerHandle } from "@/components/ui/pdf-viewer"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
-  useWorkbookNightRenderPreference,
+  useControllableDarkMode,
   WorkbookSheetTabs,
   WorkbookTableHeaderMenu,
   XlsxWorkbookSurface,
@@ -1247,21 +1246,17 @@ function WorkbookViewerPane({
 }: {
   workbookIdentity: string
 }) {
-  const { resolvedTheme } = useTheme()
-  const { nightRenderEnabled, setNightRenderEnabled } =
-    useWorkbookNightRenderPreference()
-  const shouldRenderNightMode = resolvedTheme === "dark"
-  const effectiveIsDark = shouldRenderNightMode && nightRenderEnabled
+  const [effectiveIsDark, setIsDark] = useControllableDarkMode({})
 
   return (
     <XlsxWorkbookSurface
       className="h-full"
       isDark={effectiveIsDark}
-      onIsDarkChange={setNightRenderEnabled}
+      onIsDarkChange={setIsDark}
       onUploadClick={() => {}}
       renderTableHeaderMenu={(props) => <WorkbookTableHeaderMenu {...props} />}
       rounded={false}
-      showNightRenderToggle={shouldRenderNightMode}
+      showNightRenderToggle
       showUploadButton={false}
       workbookIdentity={workbookIdentity}
     />

@@ -32,7 +32,7 @@ npx shadcn@latest add http://localhost:4000/r/docx-viewer.json
 <Step>Install the following dependencies:</Step>
 
 ```bash
-npm install @extend-ai/react-docx @hugeicons/core-free-icons @hugeicons/react next-themes
+npm install @extend-ai/react-docx
 ```
 
 <Step>Copy and paste the following code into your project.</Step>
@@ -60,10 +60,13 @@ npm install @extend-ai/react-docx @hugeicons/core-free-icons @hugeicons/react ne
 
 The DocxViewerPreview component renders a DOCX file with upload, theme, and zoom controls around the `@extend-ai/react-docx` viewer.
 
-| Prop                          | Type      | Default                | Required |
-| ----------------------------- | --------- | ---------------------- | -------- |
-| `className`                   | `string`  | `-`                    | No       |
-| `defaultThumbnailSidebarOpen` | `boolean` | `true`                 | No       |
-| `fileName`                    | `string`  | `-`                    | No       |
-| `rounded`                     | `boolean` | `false`                | No       |
-| `src`                         | `string`  | `-`                    | No       |
+| Prop                          | Type                        | Default | Required |
+| ----------------------------- | --------------------------- | ------- | -------- |
+| `className`                   | `string`                    | `-`     | No       |
+| `defaultIsDark`               | `boolean`                   | `false` | No       |
+| `defaultThumbnailSidebarOpen` | `boolean`                   | `true`  | No       |
+| `fileName`                    | `string`                    | `-`     | No       |
+| `isDark`                      | `boolean`                   | `-`     | No       |
+| `onIsDarkChange`              | `(isDark: boolean) => void` | `-`     | No       |
+| `rounded`                     | `boolean`                   | `false` | No       |
+| `src`                         | `string`                    | `-`     | No       |

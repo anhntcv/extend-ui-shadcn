@@ -32,7 +32,7 @@ npx shadcn@latest add http://localhost:4000/r/xlsx-viewer.json
 <Step>Install the following dependencies:</Step>
 
 ```bash
-npm install @extend-ai/react-xlsx @hugeicons/core-free-icons @hugeicons/react next-themes
+npm install @extend-ai/react-xlsx
 ```
 
 <Step>Copy and paste the following code into your project.</Step>
@@ -60,9 +60,12 @@ npm install @extend-ai/react-xlsx @hugeicons/core-free-icons @hugeicons/react ne
 
 The XlsxViewerPreview component renders an Excel workbook with upload, theme, zoom, sheet navigation, and grid controls around the `@extend-ai/react-xlsx` viewer.
 
-| Prop        | Type      | Default                           | Required |
-| ----------- | --------- | --------------------------------- | -------- |
-| `className` | `string`  | `-`                               | No       |
-| `fileName`  | `string`  | `-`                               | No       |
-| `rounded`   | `boolean` | `false`                           | No       |
-| `src`       | `string`  | `-`                               | No       |
+| Prop             | Type                        | Default | Required |
+| ---------------- | --------------------------- | ------- | -------- |
+| `className`      | `string`                    | `-`     | No       |
+| `defaultIsDark`  | `boolean`                   | `false` | No       |
+| `fileName`       | `string`                    | `-`     | No       |
+| `isDark`         | `boolean`                   | `-`     | No       |
+| `onIsDarkChange` | `(isDark: boolean) => void` | `-`     | No       |
+| `rounded`        | `boolean`                   | `false` | No       |
+| `src`            | `string`                    | `-`     | No       |

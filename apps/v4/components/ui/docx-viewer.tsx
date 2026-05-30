@@ -16,7 +16,6 @@ import {
   Upload01Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { useTheme } from "next-themes"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -169,27 +168,31 @@ function useDelayedLoadingIndicator(isLoading: boolean, delayMs: number) {
   return showSpinner
 }
 
-function useDocumentNightRenderPreference() {
-  const [nightRenderEnabled, setNightRenderEnabled] = React.useState(false)
-  const [nightRenderPrefLoaded, setNightRenderPrefLoaded] =
-    React.useState(false)
+function useControllableDarkMode({
+  defaultIsDark = false,
+  isDark,
+  onIsDarkChange,
+}: {
+  defaultIsDark?: boolean
+  isDark?: boolean
+  onIsDarkChange?: (isDark: boolean) => void
+}) {
+  const [uncontrolledIsDark, setUncontrolledIsDark] =
+    React.useState(defaultIsDark)
+  const resolvedIsDark = isDark ?? uncontrolledIsDark
 
-  React.useEffect(() => {
-    const storedValue = window.localStorage.getItem("docx-night-render")
-    setNightRenderEnabled(storedValue === "true")
-    setNightRenderPrefLoaded(true)
-  }, [])
+  const setIsDark = React.useCallback(
+    (nextIsDark: boolean) => {
+      if (isDark === undefined) {
+        setUncontrolledIsDark(nextIsDark)
+      }
 
-  const updateNightRenderEnabled = React.useCallback((checked: boolean) => {
-    setNightRenderEnabled(checked)
-    window.localStorage.setItem("docx-night-render", String(checked))
-  }, [])
+      onIsDarkChange?.(nextIsDark)
+    },
+    [isDark, onIsDarkChange]
+  )
 
-  return {
-    nightRenderEnabled,
-    nightRenderPrefLoaded,
-    setNightRenderEnabled: updateNightRenderEnabled,
-  }
+  return [resolvedIsDark, setIsDark] as const
 }
 
 function isDocxPaddingWarning(args: unknown[]) {
@@ -444,47 +447,27 @@ function DocxSidebarThumbnail({
 export function DocxViewerPreview({
   className,
   defaultThumbnailSidebarOpen = true,
+  defaultIsDark = false,
   fileName,
+  isDark: controlledIsDark,
+  onIsDarkChange,
   rounded = false,
   src,
 }: {
   className?: string
   defaultThumbnailSidebarOpen?: boolean
+  defaultIsDark?: boolean
   fileName?: string
+  isDark?: boolean
+  onIsDarkChange?: (isDark: boolean) => void
   rounded?: boolean
   src?: string
 }) {
-  const { resolvedTheme } = useTheme()
-  const { nightRenderEnabled, nightRenderPrefLoaded, setNightRenderEnabled } =
-    useDocumentNightRenderPreference()
-  const isViewerHydrated = resolvedTheme !== undefined && nightRenderPrefLoaded
-  const shouldShowHydrationSpinner = useDelayedLoadingIndicator(
-    !isViewerHydrated,
-    DOCX_LOADING_INDICATOR_DELAY_MS
-  )
-
-  if (!isViewerHydrated) {
-    return (
-      <div
-        className={cn(
-          "flex h-[640px] min-h-0 flex-col overflow-hidden bg-background",
-          className
-        )}
-      >
-        <div
-          className={cn(
-            "min-h-0 flex-1 overflow-hidden bg-muted/30 p-4",
-            rounded && "rounded-b-lg"
-          )}
-        >
-          <ViewerLoadingSurface showSpinner={shouldShowHydrationSpinner} />
-        </div>
-      </div>
-    )
-  }
-
-  const shouldRenderNightMode = resolvedTheme === "dark"
-  const effectiveIsDark = shouldRenderNightMode && nightRenderEnabled
+  const [effectiveIsDark, setIsDark] = useControllableDarkMode({
+    defaultIsDark,
+    isDark: controlledIsDark,
+    onIsDarkChange,
+  })
 
   return (
     <DocxViewerContent
@@ -493,8 +476,8 @@ export function DocxViewerPreview({
       effectiveIsDark={effectiveIsDark}
       fileName={fileName}
       rounded={rounded}
-      setNightRenderEnabled={setNightRenderEnabled}
-      shouldRenderNightMode={shouldRenderNightMode}
+      setNightRenderEnabled={setIsDark}
+      shouldRenderNightMode
       url={src}
     />
   )

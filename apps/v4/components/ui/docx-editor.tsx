@@ -63,7 +63,6 @@ import {
   Upload01Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { useTheme } from "next-themes"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -364,27 +363,31 @@ function useDelayedLoadingIndicator(isLoading: boolean, delayMs: number) {
   return showSpinner
 }
 
-function useDocumentNightRenderPreference() {
-  const [nightRenderEnabled, setNightRenderEnabled] = React.useState(false)
-  const [nightRenderPrefLoaded, setNightRenderPrefLoaded] =
-    React.useState(false)
+function useControllableDarkMode({
+  defaultIsDark = false,
+  isDark,
+  onIsDarkChange,
+}: {
+  defaultIsDark?: boolean
+  isDark?: boolean
+  onIsDarkChange?: (isDark: boolean) => void
+}) {
+  const [uncontrolledIsDark, setUncontrolledIsDark] =
+    React.useState(defaultIsDark)
+  const resolvedIsDark = isDark ?? uncontrolledIsDark
 
-  React.useEffect(() => {
-    const storedValue = window.localStorage.getItem("docx-editor-night-render")
-    setNightRenderEnabled(storedValue === "true")
-    setNightRenderPrefLoaded(true)
-  }, [])
+  const setIsDark = React.useCallback(
+    (nextIsDark: boolean) => {
+      if (isDark === undefined) {
+        setUncontrolledIsDark(nextIsDark)
+      }
 
-  const updateNightRenderEnabled = React.useCallback((checked: boolean) => {
-    setNightRenderEnabled(checked)
-    window.localStorage.setItem("docx-editor-night-render", String(checked))
-  }, [])
+      onIsDarkChange?.(nextIsDark)
+    },
+    [isDark, onIsDarkChange]
+  )
 
-  return {
-    nightRenderEnabled,
-    nightRenderPrefLoaded,
-    setNightRenderEnabled: updateNightRenderEnabled,
-  }
+  return [resolvedIsDark, setIsDark] as const
 }
 
 function isDocxPaddingWarning(args: unknown[]) {
@@ -758,6 +761,7 @@ function DocxEditorToolbar({
   editor,
   isReadOnly,
   onImageUploadClick,
+  onIsDarkChange,
   onIsReadOnlyChange,
   onOpenLinkEditor,
   onToggleSidebar,
@@ -772,6 +776,7 @@ function DocxEditorToolbar({
   editor: DocxEditorController
   isReadOnly: boolean
   onImageUploadClick: () => void
+  onIsDarkChange: (checked: boolean) => void
   onIsReadOnlyChange: (checked: boolean) => void
   onOpenLinkEditor: () => void
   onToggleSidebar: () => void
@@ -905,9 +910,11 @@ function DocxEditorToolbar({
                     : "Use dark document"
                 }
                 disabled={controlsDisabled}
-                onClick={() =>
-                  setDocumentTheme(documentTheme === "dark" ? "light" : "dark")
-                }
+                onClick={() => {
+                  const nextIsDark = documentTheme !== "dark"
+                  setDocumentTheme(nextIsDark ? "dark" : "light")
+                  onIsDarkChange(nextIsDark)
+                }}
               >
                 <HugeiconsIcon
                   icon={documentTheme === "dark" ? Sun03Icon : Moon02Icon}
@@ -1496,46 +1503,26 @@ function DocxEditorToolbar({
 
 export function DocxEditorPreview({
   className,
+  defaultIsDark = false,
   fileName,
+  isDark: controlledIsDark,
+  onIsDarkChange,
   rounded = false,
   src,
 }: {
   className?: string
+  defaultIsDark?: boolean
   fileName?: string
+  isDark?: boolean
+  onIsDarkChange?: (isDark: boolean) => void
   rounded?: boolean
   src?: string
 }) {
-  const { resolvedTheme } = useTheme()
-  const { nightRenderEnabled, nightRenderPrefLoaded, setNightRenderEnabled } =
-    useDocumentNightRenderPreference()
-  const isViewerHydrated = resolvedTheme !== undefined && nightRenderPrefLoaded
-  const shouldShowHydrationSpinner = useDelayedLoadingIndicator(
-    !isViewerHydrated,
-    DOCX_LOADING_INDICATOR_DELAY_MS
-  )
-
-  if (!isViewerHydrated) {
-    return (
-      <div
-        className={cn(
-          "flex h-[720px] min-h-0 flex-col overflow-hidden bg-background",
-          className
-        )}
-      >
-        <div
-          className={cn(
-            "min-h-0 flex-1 overflow-hidden bg-muted/30 p-4",
-            rounded && "rounded-b-lg"
-          )}
-        >
-          <EditorLoadingSurface showSpinner={shouldShowHydrationSpinner} />
-        </div>
-      </div>
-    )
-  }
-
-  const shouldRenderNightMode = resolvedTheme === "dark"
-  const effectiveIsDark = shouldRenderNightMode && nightRenderEnabled
+  const [effectiveIsDark, setIsDark] = useControllableDarkMode({
+    defaultIsDark,
+    isDark: controlledIsDark,
+    onIsDarkChange,
+  })
 
   return (
     <DocxEditorContent
@@ -1543,8 +1530,8 @@ export function DocxEditorPreview({
       effectiveIsDark={effectiveIsDark}
       fileName={fileName}
       rounded={rounded}
-      setNightRenderEnabled={setNightRenderEnabled}
-      shouldRenderNightMode={shouldRenderNightMode}
+      setIsDark={setIsDark}
+      shouldRenderNightMode
       url={src}
     />
   )
@@ -1555,7 +1542,7 @@ function DocxEditorContent({
   effectiveIsDark,
   fileName,
   rounded,
-  setNightRenderEnabled: _setNightRenderEnabled,
+  setIsDark,
   shouldRenderNightMode,
   url,
 }: {
@@ -1563,7 +1550,7 @@ function DocxEditorContent({
   effectiveIsDark: boolean
   fileName?: string
   rounded: boolean
-  setNightRenderEnabled: (checked: boolean) => void
+  setIsDark: (checked: boolean) => void
   shouldRenderNightMode: boolean
   url?: string
 }) {
@@ -1840,6 +1827,7 @@ function DocxEditorContent({
         editor={editor}
         isReadOnly={isReadOnly}
         onImageUploadClick={() => imageInputRef.current?.click()}
+        onIsDarkChange={setIsDark}
         onIsReadOnlyChange={setIsReadOnly}
         onOpenLinkEditor={openLinkEditor}
         onToggleSidebar={() => setSidebarOpen((open) => !open)}

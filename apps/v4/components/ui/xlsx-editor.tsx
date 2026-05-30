@@ -24,7 +24,6 @@ import {
   Upload01Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { useTheme } from "next-themes"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -39,7 +38,7 @@ import {
 } from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
 import {
-  useWorkbookNightRenderPreference,
+  useControllableDarkMode,
   WorkbookSheetTabs,
   WorkbookTableHeaderMenu,
 } from "@/components/ui/xlsx-viewer"
@@ -523,46 +522,26 @@ export function XlsxEditorSurface({
 
 export function XlsxEditorPreview({
   className,
+  defaultIsDark = false,
   fileName,
+  isDark: controlledIsDark,
+  onIsDarkChange,
   rounded = false,
   src,
 }: {
   className?: string
+  defaultIsDark?: boolean
   fileName?: string
+  isDark?: boolean
+  onIsDarkChange?: (isDark: boolean) => void
   rounded?: boolean
   src?: string
 }) {
-  const { resolvedTheme } = useTheme()
-  const { nightRenderEnabled, nightRenderPrefLoaded, setNightRenderEnabled } =
-    useWorkbookNightRenderPreference()
-  const isViewerHydrated = resolvedTheme !== undefined && nightRenderPrefLoaded
-  const shouldShowHydrationSpinner = useDelayedLoadingIndicator(
-    !isViewerHydrated,
-    XLSX_LOADING_INDICATOR_DELAY_MS
-  )
-
-  if (!isViewerHydrated) {
-    return (
-      <div
-        className={cn(
-          "flex h-[640px] min-h-0 flex-col overflow-hidden bg-background",
-          className
-        )}
-      >
-        <div
-          className={cn(
-            "min-h-0 flex-1 overflow-hidden bg-muted/30 p-4",
-            rounded && "rounded-b-lg"
-          )}
-        >
-          <EditorLoadingSurface showSpinner={shouldShowHydrationSpinner} />
-        </div>
-      </div>
-    )
-  }
-
-  const shouldRenderNightMode = resolvedTheme === "dark"
-  const effectiveIsDark = shouldRenderNightMode && nightRenderEnabled
+  const [effectiveIsDark, setIsDark] = useControllableDarkMode({
+    defaultIsDark,
+    isDark: controlledIsDark,
+    onIsDarkChange,
+  })
 
   return (
     <XlsxEditorContent
@@ -570,8 +549,8 @@ export function XlsxEditorPreview({
       effectiveIsDark={effectiveIsDark}
       fileName={fileName}
       rounded={rounded}
-      setNightRenderEnabled={setNightRenderEnabled}
-      shouldRenderNightMode={shouldRenderNightMode}
+      setNightRenderEnabled={setIsDark}
+      shouldRenderNightMode
       url={src}
     />
   )

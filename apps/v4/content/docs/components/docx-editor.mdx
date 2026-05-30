@@ -32,7 +32,7 @@ npx shadcn@latest add http://localhost:4000/r/docx-editor.json
 <Step>Install the following dependencies:</Step>
 
 ```bash
-npm install @extend-ai/react-docx @hugeicons/core-free-icons @hugeicons/react next-themes
+npm install @extend-ai/react-docx
 ```
 
 <Step>
@@ -69,9 +69,12 @@ npx shadcn@latest add http://localhost:4000/r/file-thumbnail.json
 
 The DocxEditorPreview component renders an editable DOCX file with upload, toolbar, thumbnails, zoom, and export controls.
 
-| Prop        | Type      | Default | Required |
-| ----------- | --------- | ------- | -------- |
-| `className` | `string`  | `-`     | No       |
-| `fileName`  | `string`  | `-`     | No       |
-| `rounded`   | `boolean` | `false` | No       |
-| `src`       | `string`  | `-`     | No       |
+| Prop             | Type                        | Default | Required |
+| ---------------- | --------------------------- | ------- | -------- |
+| `className`      | `string`                    | `-`     | No       |
+| `defaultIsDark`  | `boolean`                   | `false` | No       |
+| `fileName`       | `string`                    | `-`     | No       |
+| `isDark`         | `boolean`                   | `-`     | No       |
+| `onIsDarkChange` | `(isDark: boolean) => void` | `-`     | No       |
+| `rounded`        | `boolean`                   | `false` | No       |
+| `src`            | `string`                    | `-`     | No       |

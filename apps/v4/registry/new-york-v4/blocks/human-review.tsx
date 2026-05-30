@@ -229,34 +229,6 @@ const REVIEW_FIELDS: ReviewField[] = [
     },
   },
   {
-    key: "total_amount",
-    schema: {
-      type: "number",
-      title: "Total amount",
-      description: "Final amount due including tax.",
-    },
-    actual: 12480,
-    expected: 12480.75,
-    location: {
-      page: 1,
-      area: { left: 13.5, top: 66, width: 73.5, height: 7.5 },
-    },
-  },
-  {
-    key: "payment_terms",
-    schema: {
-      type: "string",
-      title: "Payment terms",
-      enum: ["Due on receipt", "Net 15", "Net 30"],
-    },
-    actual: "Net 15",
-    expected: "Net 30",
-    location: {
-      page: 1,
-      area: { left: 13.5, top: 55.5, width: 73.5, height: 7.5 },
-    },
-  },
-  {
     key: "line_items",
     schema: {
       type: "array",
@@ -352,6 +324,34 @@ const REVIEW_FIELDS: ReviewField[] = [
     location: {
       page: 1,
       area: { left: 13.5, top: 66, width: 73.5, height: 7.5 },
+    },
+  },
+  {
+    key: "total_amount",
+    schema: {
+      type: "number",
+      title: "Total amount",
+      description: "Final amount due including tax.",
+    },
+    actual: 12480,
+    expected: 12480.75,
+    location: {
+      page: 1,
+      area: { left: 13.5, top: 66, width: 73.5, height: 7.5 },
+    },
+  },
+  {
+    key: "payment_terms",
+    schema: {
+      type: "string",
+      title: "Payment terms",
+      enum: ["Due on receipt", "Net 15", "Net 30"],
+    },
+    actual: "Net 15",
+    expected: "Net 30",
+    location: {
+      page: 1,
+      area: { left: 13.5, top: 55.5, width: 73.5, height: 7.5 },
     },
   },
   {

@@ -106,7 +106,6 @@ import {
   Upload01Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { useTheme } from "next-themes"
 import { createPortal } from "react-dom"
 
 import { cn } from "@/lib/utils"
@@ -141,6 +140,15 @@ const XLSX_SOURCE_CACHE_LIMIT = 3
 const XLSX_LOADING_INDICATOR_DELAY_MS = 300
 const XLSX_DROPDOWN_Z_INDEX_CLASS = "z-[100010]"
 const ZOOM_OPTIONS = [10, 25, 50, 75, 100, 125, 150, 175, 200, 400] as const
+
+// Stable reference so the thumbnails memo isn't invalidated on every render
+// (e.g. by selection changes), which would recompute every sheet thumbnail.
+const XLSX_SHEET_TAB_THUMBNAIL_OPTIONS = {
+  resolution: {
+    maxHeight: 360,
+    maxWidth: 560,
+  },
+} as const
 
 const xlsxWorkbookBufferCache = new Map<string, ArrayBuffer>()
 const xlsxWorkbookBufferPromiseCache = new Map<string, Promise<ArrayBuffer>>()
@@ -229,27 +237,31 @@ function useDelayedLoadingIndicator(isLoading: boolean, delayMs: number) {
   return showSpinner
 }
 
-export function useWorkbookNightRenderPreference() {
-  const [nightRenderEnabled, setNightRenderEnabled] = React.useState(false)
-  const [nightRenderPrefLoaded, setNightRenderPrefLoaded] =
-    React.useState(false)
+export function useControllableDarkMode({
+  defaultIsDark = false,
+  isDark,
+  onIsDarkChange,
+}: {
+  defaultIsDark?: boolean
+  isDark?: boolean
+  onIsDarkChange?: (isDark: boolean) => void
+}) {
+  const [uncontrolledIsDark, setUncontrolledIsDark] =
+    React.useState(defaultIsDark)
+  const resolvedIsDark = isDark ?? uncontrolledIsDark
 
-  React.useEffect(() => {
-    const storedValue = window.localStorage.getItem("xlsx-night-render")
-    setNightRenderEnabled(storedValue === "true")
-    setNightRenderPrefLoaded(true)
-  }, [])
+  const setIsDark = React.useCallback(
+    (nextIsDark: boolean) => {
+      if (isDark === undefined) {
+        setUncontrolledIsDark(nextIsDark)
+      }
 
-  const updateNightRenderEnabled = React.useCallback((checked: boolean) => {
-    setNightRenderEnabled(checked)
-    window.localStorage.setItem("xlsx-night-render", String(checked))
-  }, [])
+      onIsDarkChange?.(nextIsDark)
+    },
+    [isDark, onIsDarkChange]
+  )
 
-  return {
-    nightRenderEnabled,
-    nightRenderPrefLoaded,
-    setNightRenderEnabled: updateNightRenderEnabled,
-  }
+  return [resolvedIsDark, setIsDark] as const
 }
 
 function ToolbarTooltip({
@@ -659,7 +671,9 @@ const WorkbookSheetTabsInner = React.memo(function WorkbookSheetTabsInner({
   const previewSheet =
     visiblePreviewIndex === null ? null : sheets[visiblePreviewIndex]
   const previewUrl =
-    visiblePreviewIndex === null ? null : (thumbnailUrls[visiblePreviewIndex] ?? null)
+    visiblePreviewIndex === null
+      ? null
+      : (thumbnailUrls[visiblePreviewIndex] ?? null)
 
   return (
     <div
@@ -807,46 +821,26 @@ export function XlsxWorkbookSurface({
 
 export function XlsxViewerPreview({
   className,
+  defaultIsDark = false,
   fileName,
+  isDark: controlledIsDark,
+  onIsDarkChange,
   rounded = false,
   src,
 }: {
   className?: string
+  defaultIsDark?: boolean
   fileName?: string
+  isDark?: boolean
+  onIsDarkChange?: (isDark: boolean) => void
   rounded?: boolean
   src?: string
 }) {
-  const { resolvedTheme } = useTheme()
-  const { nightRenderEnabled, nightRenderPrefLoaded, setNightRenderEnabled } =
-    useWorkbookNightRenderPreference()
-  const isViewerHydrated = resolvedTheme !== undefined && nightRenderPrefLoaded
-  const shouldShowHydrationSpinner = useDelayedLoadingIndicator(
-    !isViewerHydrated,
-    XLSX_LOADING_INDICATOR_DELAY_MS
-  )
-
-  if (!isViewerHydrated) {
-    return (
-      <div
-        className={cn(
-          "flex h-[640px] min-h-0 flex-col overflow-hidden bg-background",
-          className
-        )}
-      >
-        <div
-          className={cn(
-            "min-h-0 flex-1 overflow-hidden bg-muted/30 p-4",
-            rounded && "rounded-b-lg"
-          )}
-        >
-          <ViewerLoadingSurface showSpinner={shouldShowHydrationSpinner} />
-        </div>
-      </div>
-    )
-  }
-
-  const shouldRenderNightMode = resolvedTheme === "dark"
-  const effectiveIsDark = shouldRenderNightMode && nightRenderEnabled
+  const [effectiveIsDark, setIsDark] = useControllableDarkMode({
+    defaultIsDark,
+    isDark: controlledIsDark,
+    onIsDarkChange,
+  })
 
   return (
     <XlsxViewerContent
@@ -854,8 +848,8 @@ export function XlsxViewerPreview({
       effectiveIsDark={effectiveIsDark}
       fileName={fileName}
       rounded={rounded}
-      setNightRenderEnabled={setNightRenderEnabled}
-      shouldRenderNightMode={shouldRenderNightMode}
+      setNightRenderEnabled={setIsDark}
+      shouldRenderNightMode
       url={src}
     />
   )
