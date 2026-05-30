@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 
+import { highlightCode } from "@/lib/highlight-code"
 import { PdfViewerBlocks } from "@/components/pdf-viewer-blocks"
 
 type RegistryFile = {
@@ -19,6 +20,7 @@ type BlockCodeSample = {
   sourcePath: string
   targetPath: string
   content: string
+  highlightedContent: string
 }
 
 export const dynamic = "force-static"
@@ -82,6 +84,10 @@ async function getBlockCodeSamples(): Promise<
             sourcePath: file.path,
             targetPath: normalizeRegistryTarget(file),
             content,
+            highlightedContent: await highlightCode(
+              content,
+              getCodeLanguage(file.path)
+            ),
           }
         })
       )
@@ -91,6 +97,18 @@ async function getBlockCodeSamples(): Promise<
   )
 
   return Object.fromEntries(samples)
+}
+
+function getCodeLanguage(filePath: string) {
+  const extension = filePath.split(".").pop()
+
+  if (extension === "ts" || extension === "tsx") return "tsx"
+  if (extension === "js" || extension === "jsx") return "jsx"
+  if (extension === "css") return "css"
+  if (extension === "json") return "json"
+  if (extension === "md" || extension === "mdx") return "mdx"
+
+  return "tsx"
 }
 
 function collectRegistryFiles(

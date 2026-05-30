@@ -4,7 +4,10 @@ import * as React from "react"
 import Link from "next/link"
 import {
   ArrowUpRight01Icon,
+  ArrowRight01Icon,
   CodeIcon,
+  File01Icon,
+  Folder01Icon,
   LaptopIcon,
   Refresh01Icon,
   SmartPhone01Icon,
@@ -13,14 +16,11 @@ import {
   Tick02Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import {
-  FileTree as TreesFileTree,
-  useFileTree,
-  useFileTreeSelection,
-} from "@pierre/trees/react"
 import type { ImperativePanelHandle } from "react-resizable-panels"
 
 import { siteConfig } from "@/lib/config"
+import { cn } from "@/lib/utils"
+import { useMediaQuery } from "@/hooks/use-media-query"
 import { useMounted } from "@/hooks/use-mounted"
 import { Button } from "@/components/ui/button"
 import {
@@ -28,15 +28,13 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { copyToClipboardWithMeta } from "@/components/copy-button"
+import { CopyButton, copyToClipboardWithMeta } from "@/components/copy-button"
 import {
   DocumentSplitsBlock,
   XlsxDocumentSplitsBlock,
 } from "@/components/document-splitter-docs"
 import { DocxEditorBlock } from "@/components/docx-editor-docs"
 import { ESignatureBlock } from "@/components/e-signature-docs"
-import { HighlightedCodeBlock } from "@/components/highlighted-code-block"
 import { HumanReviewBlock } from "@/components/human-review-docs"
 import { OcrBlocksBlock } from "@/components/ocr-blocks-docs"
 import { PdfDropzoneBlock } from "@/components/pdf-dropzone-block"
@@ -45,10 +43,16 @@ type BlockCodeSample = {
   sourcePath: string
   targetPath: string
   content: string
+  highlightedContent: string
 }
 
 type BlockViewportSize = "desktop" | "tablet" | "mobile"
 type BlockView = "preview" | "code"
+type BlockFileTreeNode = {
+  children?: BlockFileTreeNode[]
+  name: string
+  path?: string
+}
 
 function getRegistryAddCommand(name: string) {
   return `npx shadcn@latest add ${siteConfig.url}/r/${name}.json`
@@ -66,69 +70,6 @@ const blockViewportSizes: Array<{
 ]
 
 const BLOCK_VIEWPORT_HEIGHT_CLASS = "h-[680px]"
-
-const blockFileTreeUnsafeCSS = `
-  :host {
-    --trees-item-height: 28px;
-    --trees-density-override: 0.9;
-    color: var(--code-foreground);
-    font-family: var(--font-sans);
-  }
-
-  [data-file-tree-virtualized-wrapper] {
-    background: transparent;
-  }
-
-  [data-file-tree-virtualized-scroll] {
-    scrollbar-width: thin;
-  }
-
-  button[data-type='item'] {
-    border-radius: 0.375rem;
-    color: color-mix(in oklch, var(--code-foreground) 82%, transparent);
-    font-size: 12px;
-    margin-inline: 0.5rem;
-    min-height: 28px;
-    width: calc(100% - 1rem);
-  }
-
-  button[data-type='item']:hover,
-  button[data-type='item'][data-item-selected] {
-    background: color-mix(in oklch, var(--muted-foreground) 15%, transparent);
-    color: var(--foreground);
-  }
-
-  button[data-type='item']:focus-visible {
-    outline: 2px solid color-mix(in oklch, var(--ring) 45%, transparent);
-    outline-offset: -1px;
-  }
-
-  [data-item-section='icon'] svg {
-    opacity: 0.72;
-  }
-
-  button[data-item-type='folder'] > [data-item-section='content'] {
-    align-items: center;
-    display: inline-flex;
-    gap: 0.375rem;
-  }
-
-  button[data-item-type='folder'] > [data-item-section='content']::before {
-    background-color: currentColor;
-    content: "";
-    display: block;
-    flex: 0 0 auto;
-    height: 0.875rem;
-    opacity: 0.72;
-    width: 0.875rem;
-    -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 6.75C2 5.23 3.23 4 4.75 4h3.67c.73 0 1.43.29 1.94.8L11.56 6h7.69C20.77 6 22 7.23 22 8.75v8.5C22 18.77 20.77 20 19.25 20H4.75C3.23 20 2 18.77 2 17.25V6.75Z'/%3E%3C/svg%3E") center / contain no-repeat;
-    mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 6.75C2 5.23 3.23 4 4.75 4h3.67c.73 0 1.43.29 1.94.8L11.56 6h7.69C20.77 6 22 7.23 22 8.75v8.5C22 18.77 20.77 20 19.25 20H4.75C3.23 20 2 18.77 2 17.25V6.75Z'/%3E%3C/svg%3E") center / contain no-repeat;
-  }
-
-  button[data-item-type='folder'] > [data-item-section='content'] > * {
-    min-width: 0;
-  }
-`
 
 const pdfViewerBlocks = [
   {
@@ -225,6 +166,7 @@ function PdfViewerBlockPreview({
 }) {
   const [previewKey, setPreviewKey] = React.useState(0)
   const [view, setView] = React.useState<BlockView>("preview")
+  const [hasOpenedCode, setHasOpenedCode] = React.useState(false)
   const [activeViewport, setActiveViewport] =
     React.useState<BlockViewportSize>("desktop")
   const [isCommandCopied, setIsCommandCopied] = React.useState(false)
@@ -233,16 +175,47 @@ function PdfViewerBlockPreview({
   )
   const isMounted = useMounted()
   const previewPanelRef = React.useRef<ImperativePanelHandle>(null)
+  const codePanelMountFrameRef = React.useRef<number | null>(null)
   const Preview = block.component
   const activeCodeSample =
     codeSamples.find((sample) => sample.targetPath === activeFile) ??
     codeSamples[0]
+  const isDesktopViewport = useMediaQuery("(min-width: 768px)")
+
+  const scheduleCodePanelMount = React.useCallback(() => {
+    if (hasOpenedCode || codePanelMountFrameRef.current !== null) return
+
+    codePanelMountFrameRef.current = window.requestAnimationFrame(() => {
+      codePanelMountFrameRef.current = window.requestAnimationFrame(() => {
+        codePanelMountFrameRef.current = null
+        setHasOpenedCode(true)
+      })
+    })
+  }, [hasOpenedCode])
+
+  function setBlockView(nextView: BlockView) {
+    if (nextView === "code" && !hasOpenedCode) {
+      setView(nextView)
+      scheduleCodePanelMount()
+      return
+    }
+
+    setView(nextView)
+  }
 
   function resizeViewport(viewport: (typeof blockViewportSizes)[number]) {
     setView("preview")
     setActiveViewport(viewport.id)
     previewPanelRef.current?.resize(viewport.panelSize)
   }
+
+  React.useEffect(() => {
+    return () => {
+      if (codePanelMountFrameRef.current !== null) {
+        window.cancelAnimationFrame(codePanelMountFrameRef.current)
+      }
+    }
+  }, [])
 
   React.useEffect(() => {
     if (!isCommandCopied) return
@@ -269,18 +242,10 @@ function PdfViewerBlockPreview({
     <article id={block.id} className="scroll-mt-24 space-y-2">
       <div
         data-view={view}
-        className="group/block-preview overflow-hidden rounded-xl bg-background"
+        className="group/block-preview overflow-hidden rounded-xl"
       >
         <div className="flex min-h-11 flex-wrap items-center gap-2 px-2 pb-2">
-          <Tabs
-            value={view}
-            onValueChange={(value) => setView(value as BlockView)}
-          >
-            <TabsList>
-              <TabsTrigger value="preview">Preview</TabsTrigger>
-              <TabsTrigger value="code">Code</TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <BlockViewToggle view={view} onViewChange={setBlockView} />
           <a
             href={`#${block.id}`}
             className="min-w-0 flex-1 truncate text-sm font-medium underline-offset-2 hover:underline"
@@ -350,7 +315,7 @@ function PdfViewerBlockPreview({
             </Button>
           </div>
         </div>
-        {view === "preview" ? (
+        <div className={view === "preview" ? "block" : "hidden"}>
           <div
             className={`relative hidden ${BLOCK_VIEWPORT_HEIGHT_CLASS} overflow-hidden rounded-xl border bg-muted/30 md:block`}
           >
@@ -365,30 +330,34 @@ function PdfViewerBlockPreview({
                 minSize={30}
                 className="min-w-0 overflow-hidden rounded-xl bg-background"
               >
-                {isMounted ? (
-                  <Preview key={previewKey} />
-                ) : (
-                  <BlockPreviewPlaceholder />
-                )}
+                <BlockPreviewSurface
+                  Preview={Preview}
+                  isMounted={isMounted}
+                  previewKey={previewKey}
+                  shouldRenderPreview={isDesktopViewport}
+                />
               </ResizablePanel>
               <ResizableHandle className="relative w-3 bg-transparent p-0 after:absolute after:top-1/2 after:right-0 after:h-8 after:w-1.5 after:-translate-y-1/2 after:rounded-full after:bg-border after:transition-all after:hover:h-10" />
               <ResizablePanel defaultSize={0} minSize={0} />
             </ResizablePanelGroup>
           </div>
-        ) : (
-          <BlockCodePanel
-            codeSamples={codeSamples}
-            activeFile={activeFile}
-            onActiveFileChange={setActiveFile}
-          />
-        )}
-        {view === "preview" ? (
           <div className="overflow-hidden rounded-xl border bg-background md:hidden">
-            {isMounted ? (
-              <Preview key={previewKey} />
-            ) : (
-              <BlockPreviewPlaceholder />
-            )}
+            <BlockPreviewSurface
+              Preview={Preview}
+              isMounted={isMounted}
+              previewKey={previewKey}
+              shouldRenderPreview={!isDesktopViewport}
+            />
+          </div>
+        </div>
+        {view === "code" && !hasOpenedCode ? <BlockCodePanelShell /> : null}
+        {hasOpenedCode ? (
+          <div className={view === "code" ? "block" : "hidden"}>
+            <BlockCodePanel
+              codeSamples={codeSamples}
+              activeFile={activeFile}
+              onActiveFileChange={setActiveFile}
+            />
           </div>
         ) : null}
       </div>
@@ -398,6 +367,78 @@ function PdfViewerBlockPreview({
 
 function BlockPreviewPlaceholder() {
   return <div className="h-full min-h-[560px] bg-muted/20" />
+}
+
+function BlockViewToggle({
+  view,
+  onViewChange,
+}: {
+  view: BlockView
+  onViewChange: (view: BlockView) => void
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Block view"
+      className="flex w-fit items-center gap-0.5 rounded-lg bg-muted p-0.5 text-muted-foreground/72"
+    >
+      {(["preview", "code"] as const).map((item) => {
+        const isActive = view === item
+
+        return (
+          <button
+            key={item}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            className={cn(
+              "flex h-8 items-center justify-center rounded-md px-2.5 text-sm font-medium whitespace-nowrap outline-none transition-colors hover:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring",
+              isActive &&
+                "bg-background text-foreground shadow-sm/5 dark:bg-input"
+            )}
+            onClick={() => onViewChange(item)}
+          >
+            {item === "preview" ? "Preview" : "Code"}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+const BlockPreviewSurface = React.memo(function BlockPreviewSurface({
+  Preview,
+  isMounted,
+  previewKey,
+  shouldRenderPreview,
+}: {
+  Preview: React.ComponentType
+  isMounted: boolean
+  previewKey: number
+  shouldRenderPreview: boolean
+}) {
+  if (!isMounted || !shouldRenderPreview) {
+    return <BlockPreviewPlaceholder />
+  }
+
+  return <Preview key={previewKey} />
+})
+
+function BlockCodePanelShell() {
+  return (
+    <div
+      className={`flex ${BLOCK_VIEWPORT_HEIGHT_CLASS} overflow-hidden rounded-xl border bg-code text-code-foreground`}
+    >
+      <div className="hidden w-72 shrink-0 border-r bg-code md:block">
+        <div className="flex h-12 items-center border-b px-4 text-sm font-medium">
+          Files
+        </div>
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="h-12 border-b" />
+      </div>
+    </div>
+  )
 }
 
 function BlockCodePanel({
@@ -441,12 +482,24 @@ function BlockCodePanel({
         <div className="flex h-12 items-center gap-2 border-b px-4 text-sm">
           <HugeiconsIcon icon={CodeIcon} className="size-4 opacity-70" />
           <span className="truncate">{activeCodeSample.targetPath}</span>
+          <CopyButton
+            value={activeCodeSample.content}
+            className="static ml-auto size-7 bg-transparent"
+            event="copy_block_code"
+          />
         </div>
-        <HighlightedCodeBlock
-          code={activeCodeSample.content}
-          className="min-h-0 flex-1 rounded-none border-0 [&_pre]:h-full [&>div]:h-full"
-          maxHeightClassName="h-full max-h-none"
-        />
+        <figure
+          data-rehype-pretty-code-figure
+          className="m-0! min-h-0 flex-1 overflow-hidden"
+        >
+          <div
+            key={activeCodeSample.targetPath}
+            className="h-full [&_pre]:h-full [&_pre]:max-h-none"
+            dangerouslySetInnerHTML={{
+              __html: activeCodeSample.highlightedContent,
+            }}
+          />
+        </figure>
       </div>
     </div>
   )
@@ -461,55 +514,117 @@ function BlockFileTree({
   activeFile: string
   onActiveFileChange: (file: string) => void
 }) {
-  const filePaths = React.useMemo(
-    () => codeSamples.map((sample) => sample.targetPath),
+  const fileTree = React.useMemo(
+    () => createBlockFileTree(codeSamples.map((sample) => sample.targetPath)),
     [codeSamples]
   )
-  const filePathSet = React.useMemo(() => new Set(filePaths), [filePaths])
-  const activeFileRef = React.useRef(activeFile)
-  const { model } = useFileTree({
-    flattenEmptyDirectories: false,
-    initialExpansion: "open",
-    initialSelectedPaths: [activeFile],
-    paths: filePaths,
-    unsafeCSS: blockFileTreeUnsafeCSS,
-  })
-  const selectedPaths = useFileTreeSelection(model)
-
-  React.useEffect(() => {
-    activeFileRef.current = activeFile
-    const activeItem = model.getItem(activeFile)
-
-    if (activeItem && !activeItem.isSelected()) {
-      activeItem.select()
-      model.scrollToPath(activeFile, { focus: false, offset: "nearest" })
-    }
-  }, [activeFile, model])
-
-  React.useEffect(() => {
-    const selectedFile = [...selectedPaths]
-      .reverse()
-      .find((path) => filePathSet.has(path))
-
-    if (selectedFile && selectedFile !== activeFileRef.current) {
-      onActiveFileChange(selectedFile)
-    }
-  }, [filePathSet, onActiveFileChange, selectedPaths])
 
   return (
-    <TreesFileTree
-      model={model}
-      className="h-[calc(34rem-3rem)]"
-      style={
-        {
-          "--trees-bg-override": "var(--code)",
-          "--trees-border-color-override": "var(--border)",
-          "--trees-fg-override": "var(--code-foreground)",
-          "--trees-selected-bg-override":
-            "color-mix(in oklch, var(--muted-foreground) 15%, transparent)",
-          height: "calc(34rem - 3rem)",
-        } as React.CSSProperties
-      }
-    />
+    <div className="h-[calc(34rem-3rem)] overflow-auto p-2">
+      <div className="space-y-1">
+        {fileTree.map((item) => (
+          <BlockFileTreeItem
+            key={item.path ?? item.name}
+            activeFile={activeFile}
+            item={item}
+            level={0}
+            onActiveFileChange={onActiveFileChange}
+          />
+        ))}
+      </div>
+    </div>
   )
+}
+
+function BlockFileTreeItem({
+  activeFile,
+  item,
+  level,
+  onActiveFileChange,
+}: {
+  activeFile: string
+  item: BlockFileTreeNode
+  level: number
+  onActiveFileChange: (file: string) => void
+}) {
+  if (item.children?.length) {
+    return (
+      <div>
+        <div
+          className="flex h-7 items-center gap-1.5 rounded-md px-2 text-xs text-code-foreground/80"
+          style={{ paddingLeft: `${level * 0.75 + 0.5}rem` }}
+        >
+          <HugeiconsIcon
+            icon={ArrowRight01Icon}
+            className="size-3 rotate-90 opacity-60"
+          />
+          <HugeiconsIcon icon={Folder01Icon} className="size-3.5 opacity-70" />
+          <span className="truncate">{item.name}</span>
+        </div>
+        <div>
+          {item.children.map((child) => (
+            <BlockFileTreeItem
+              key={child.path ?? `${item.name}/${child.name}`}
+              activeFile={activeFile}
+              item={child}
+              level={level + 1}
+              onActiveFileChange={onActiveFileChange}
+            />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (!item.path) return null
+
+  return (
+    <button
+      type="button"
+      className={cn(
+        "flex h-7 w-full items-center gap-1.5 rounded-md px-2 text-left text-xs text-code-foreground/80 outline-none hover:bg-muted-foreground/15 hover:text-code-foreground focus-visible:ring-2 focus-visible:ring-ring/45",
+        activeFile === item.path && "bg-muted-foreground/15 text-code-foreground"
+      )}
+      style={{ paddingLeft: `${level * 0.75 + 0.5}rem` }}
+      onClick={() => onActiveFileChange(item.path!)}
+    >
+      <HugeiconsIcon icon={File01Icon} className="size-3.5 shrink-0 opacity-70" />
+      <span className="truncate">{item.name}</span>
+    </button>
+  )
+}
+
+function createBlockFileTree(paths: string[]) {
+  const root: BlockFileTreeNode[] = []
+
+  for (const filePath of paths) {
+    const parts = filePath.split("/")
+    let currentLevel = root
+
+    parts.forEach((part, index) => {
+      const isFile = index === parts.length - 1
+      const existingNode = currentLevel.find((node) => node.name === part)
+
+      if (existingNode) {
+        if (isFile) {
+          existingNode.path = filePath
+        } else {
+          currentLevel = existingNode.children ?? []
+        }
+        return
+      }
+
+      const nextNode: BlockFileTreeNode = isFile
+        ? { name: part, path: filePath }
+        : { children: [], name: part }
+
+      currentLevel.push(nextNode)
+
+      if (!isFile) {
+        currentLevel = nextNode.children!
+      }
+    })
+  }
+
+  return root
 }
