@@ -561,21 +561,6 @@
       ]
     },
     {
-      "name": "document-viewer-sidebar",
-      "type": "registry:ui",
-      "title": "Document Viewer Sidebar",
-      "description": "Shared thumbnail sidebar behavior for document viewers, including viewer-width responsive overlay and inline modes.",
-      "registryDependencies": ["utils"],
-      "categories": ["documents"],
-      "files": [
-        {
-          "path": "components/ui/document-viewer-sidebar.tsx",
-          "type": "registry:ui",
-          "target": "@ui/document-viewer-sidebar.tsx"
-        }
-      ]
-    },
-    {
       "name": "pdf-viewer",
       "type": "registry:ui",
       "title": "PDF Viewer",
@@ -920,6 +905,21 @@
           "path": "registry/new-york-v4/blocks/docx-editor.tsx",
           "type": "registry:component",
           "target": "@components/blocks/docx-editor.tsx"
+        }
+      ]
+    },
+    {
+      "name": "document-viewer-sidebar",
+      "type": "registry:ui",
+      "title": "Document Viewer Sidebar",
+      "description": "Shared thumbnail sidebar behavior for document viewers, including viewer-width responsive overlay and inline modes.",
+      "registryDependencies": ["utils"],
+      "categories": ["documents"],
+      "files": [
+        {
+          "path": "components/ui/document-viewer-sidebar.tsx",
+          "type": "registry:ui",
+          "target": "@ui/document-viewer-sidebar.tsx"
         }
       ]
     }

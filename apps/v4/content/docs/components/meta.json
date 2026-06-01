@@ -13,6 +13,7 @@
     "file-thumbnail",
     "ocr-blocks",
     "e-signature",
-    "document-splits"
+    "document-splits",
+    "document-viewer-sidebar"
   ]
 }
