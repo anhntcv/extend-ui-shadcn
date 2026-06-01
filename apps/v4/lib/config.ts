@@ -1,7 +1,9 @@
+const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://ui.extend.ai"
+
 export const siteConfig = {
   name: "Extend UI",
-  url: "http://localhost:4000",
-  ogImage: "http://localhost:4000/opengraph-image.png",
+  url: appUrl,
+  ogImage: `${appUrl}/opengraph-image.png`,
   description:
     "Open source UI primitives for building document processing products with viewers, review surfaces, and validation workflows.",
   links: {

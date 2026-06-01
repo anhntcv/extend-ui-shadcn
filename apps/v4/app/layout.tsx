@@ -57,7 +57,7 @@ export const metadata: Metadata = {
     shortcut: [{ url: "/extend.svg", type: "image/svg+xml" }],
     apple: "/apple-touch-icon.png",
   },
-  manifest: `${siteConfig.url}/site.webmanifest`,
+  manifest: "/site.webmanifest",
 }
 
 export default function RootLayout({

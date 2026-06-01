@@ -5,13 +5,15 @@ import {
   DataEditor,
   emptyGridSelection,
   GridCellKind,
-  type DrawCellCallback,
   type EditableGridCell,
   type GridCell,
   type GridColumn,
   type GridSelection,
   type Item,
+  type NumberCell,
+  type ProvideEditorComponent,
   type Rectangle,
+  type TextCell,
   type Theme,
 } from "@glideapps/glide-data-grid"
 import {
@@ -555,6 +557,202 @@ function areGridSelectionsEqual(left: GridSelection, right: GridSelection) {
   )
 }
 
+function getGridSelectionRanges(selection: GridSelection | undefined) {
+  const current = selection?.current
+  if (!current) return []
+
+  return [...(current.rangeStack ?? []), current.range]
+}
+
+function areArrayNestedViewsEqual(
+  left: ArrayNestedView[],
+  right: ArrayNestedView[]
+) {
+  if (left === right) return true
+  if (left.length !== right.length) return false
+
+  return left.every((view, index) => {
+    const other = right[index]
+
+    return (
+      view.rowIndex === other?.rowIndex &&
+      view.columnId === other.columnId &&
+      view.title === other.title &&
+      view.schema === other.schema &&
+      Object.is(view.value, other.value)
+    )
+  })
+}
+
+type HumanReviewOverlayCell = TextCell | NumberCell
+
+type HumanReviewTextOverlayEditorProps = React.ComponentProps<
+  ProvideEditorComponent<HumanReviewOverlayCell>
+> & {
+  overlayOpenRef: React.RefObject<boolean>
+  readOnly?: boolean
+}
+
+function HumanReviewTextOverlayEditor({
+  isHighlighted,
+  onFinishedEditing,
+  overlayOpenRef,
+  readOnly = false,
+  validatedSelection,
+  value,
+}: HumanReviewTextOverlayEditorProps) {
+  const inputRef = React.useRef<HTMLTextAreaElement | null>(null)
+  const initialValue =
+    value.kind === GridCellKind.Number ? value.displayData : value.data
+  const latestValueRef = React.useRef(initialValue)
+  const finishedRef = React.useRef(false)
+
+  const finishEditing = React.useCallback(
+    (
+      shouldSave: boolean,
+      movement: readonly [-1 | 0 | 1, -1 | 0 | 1] = [0, 0]
+    ) => {
+      if (finishedRef.current) return
+
+      finishedRef.current = true
+      overlayOpenRef.current = false
+
+      if (!shouldSave || readOnly) {
+        onFinishedEditing(undefined, movement)
+        return
+      }
+
+      if (value.kind === GridCellKind.Number) {
+        const numericValue = Number(latestValueRef.current)
+
+        onFinishedEditing(
+          {
+            ...value,
+            data: Number.isFinite(numericValue) ? numericValue : value.data,
+            displayData: latestValueRef.current,
+          },
+          movement
+        )
+        return
+      }
+
+      onFinishedEditing(
+        {
+          ...value,
+          data: latestValueRef.current,
+          displayData: latestValueRef.current,
+        },
+        movement
+      )
+    },
+    [onFinishedEditing, overlayOpenRef, readOnly, value]
+  )
+
+  React.useEffect(() => {
+    overlayOpenRef.current = true
+
+    const input = inputRef.current
+    if (!input) {
+      return () => {
+        overlayOpenRef.current = false
+      }
+    }
+
+    const handleInput = (event: Event) => {
+      event.stopPropagation()
+      latestValueRef.current = input.value
+    }
+    const stopTextInputPropagation = (event: Event) => {
+      event.stopPropagation()
+    }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      event.stopPropagation()
+
+      if (event.key === "Escape") {
+        event.preventDefault()
+        finishEditing(false)
+        return
+      }
+
+      if (event.key === "Tab") {
+        event.preventDefault()
+        finishEditing(true, [event.shiftKey ? -1 : 1, 0])
+        return
+      }
+
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault()
+        finishEditing(true, [0, 1])
+      }
+    }
+
+    input.addEventListener("input", handleInput)
+    input.addEventListener("beforeinput", stopTextInputPropagation, true)
+    input.addEventListener("keydown", handleKeyDown, true)
+
+    if (!readOnly) {
+      input.focus()
+
+      if (validatedSelection !== undefined) {
+        const selectionRange =
+          typeof validatedSelection === "number"
+            ? [validatedSelection, validatedSelection]
+            : validatedSelection
+        input.setSelectionRange(selectionRange[0], selectionRange[1])
+      } else if (isHighlighted) {
+        input.setSelectionRange(0, input.value.length)
+      } else {
+        input.setSelectionRange(input.value.length, input.value.length)
+      }
+    }
+
+    return () => {
+      input.removeEventListener("input", handleInput)
+      input.removeEventListener("beforeinput", stopTextInputPropagation, true)
+      input.removeEventListener("keydown", handleKeyDown, true)
+      overlayOpenRef.current = false
+    }
+  }, [
+    finishEditing,
+    isHighlighted,
+    overlayOpenRef,
+    validatedSelection,
+    readOnly,
+  ])
+
+  React.useEffect(() => {
+    const handlePointerOutside = (event: PointerEvent | MouseEvent) => {
+      const input = inputRef.current
+      const overlayRoot = input?.closest(".gdg-clip-region")
+
+      if (!overlayRoot || overlayRoot.contains(event.target as Node | null)) {
+        return
+      }
+
+      finishEditing(true)
+    }
+
+    document.addEventListener("pointerdown", handlePointerOutside, true)
+    document.addEventListener("contextmenu", handlePointerOutside, true)
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerOutside, true)
+      document.removeEventListener("contextmenu", handlePointerOutside, true)
+    }
+  }, [finishEditing])
+
+  return (
+    <textarea
+      ref={inputRef}
+      className="gdg-input"
+      defaultValue={initialValue}
+      disabled={readOnly}
+      dir="auto"
+      style={{ height: "100%", minHeight: 32, resize: "none", width: "100%" }}
+    />
+  )
+}
+
 function getFieldIcon(type: SchemaPropertyType) {
   if (type === "number" || type === "integer") return InputNumericIcon
   if (type === "boolean") return TextCheckIcon
@@ -814,24 +1012,6 @@ function getNestedArrayValue({
   })
 }
 
-function isCellInRange(col: number, row: number, range: Rectangle) {
-  return (
-    col >= range.x &&
-    col < range.x + range.width &&
-    row >= range.y &&
-    row < range.y + range.height
-  )
-}
-
-function getRangeEdges(col: number, row: number, range: Rectangle) {
-  return {
-    bottom: row === range.y + range.height - 1,
-    left: col === range.x,
-    right: col === range.x + range.width - 1,
-    top: row === range.y,
-  }
-}
-
 function HumanReviewArrayValueGrid({
   activeNestedSide = null,
   activeSelectionSide = null,
@@ -879,6 +1059,7 @@ function HumanReviewArrayValueGrid({
   >([])
   const [localGridSelection, setLocalGridSelection] =
     React.useState<GridSelection>(emptyGridSelection)
+  const fastTextOverlayOpenRef = React.useRef(false)
   const nestedStack = sharedNestedStack ?? localNestedStack
   const syncedGridSelection = sharedGridSelection ?? localGridSelection
   const gridSelection =
@@ -887,28 +1068,6 @@ function HumanReviewArrayValueGrid({
       selectionDepth !== nestedStackBaseDepth)
       ? emptyGridSelection
       : syncedGridSelection
-  const sharedSelectionRange = sharedGridSelection?.current?.range
-  const sharedSelectionRangeStack = sharedGridSelection?.current?.rangeStack
-  const mirroredSelectionRanges = React.useMemo<readonly Rectangle[]>(() => {
-    if (
-      !activeSelectionSide ||
-      activeSelectionSide === viewSide ||
-      selectionDepth !== nestedStackBaseDepth ||
-      !sharedSelectionRange ||
-      !sharedSelectionRangeStack
-    ) {
-      return []
-    }
-
-    return [...sharedSelectionRangeStack, sharedSelectionRange]
-  }, [
-    activeSelectionSide,
-    nestedStackBaseDepth,
-    selectionDepth,
-    sharedSelectionRange,
-    sharedSelectionRangeStack,
-    viewSide,
-  ])
   const visibleNestedStack = nestedStack.slice(nestedStackBaseDepth)
   const activeNestedView = visibleNestedStack[0] ?? null
   const activeNestedValue = activeNestedView
@@ -931,7 +1090,33 @@ function HumanReviewArrayValueGrid({
   const mirroredCellBackground = isDark
     ? "rgba(167, 139, 250, 0.18)"
     : "rgba(237, 233, 254, 0.9)"
-  const mirroredCellBorder = isDark ? "rgb(196, 181, 253)" : "rgb(124, 58, 237)"
+  const mirroredHighlightRegions = React.useMemo<
+    React.ComponentProps<typeof DataEditor>["highlightRegions"]
+  >(() => {
+    if (
+      !activeSelectionSide ||
+      activeSelectionSide === viewSide ||
+      selectionDepth !== nestedStackBaseDepth
+    ) {
+      return undefined
+    }
+
+    const ranges = getGridSelectionRanges(sharedGridSelection)
+    if (!ranges.length) return undefined
+
+    return ranges.map((range) => ({
+      color: mirroredCellBackground,
+      range,
+      style: "dashed" as const,
+    }))
+  }, [
+    activeSelectionSide,
+    mirroredCellBackground,
+    nestedStackBaseDepth,
+    selectionDepth,
+    sharedGridSelection,
+    viewSide,
+  ])
 
   const setNestedStack = React.useCallback(
     (
@@ -955,6 +1140,13 @@ function HumanReviewArrayValueGrid({
   const handleGridSelectionChange = React.useCallback(
     (selection: GridSelection) => {
       if (onGridSelectionChange) {
+        if (
+          sharedGridSelection &&
+          areGridSelectionsEqual(sharedGridSelection, selection)
+        ) {
+          return
+        }
+
         onGridSelectionChange(selection, viewSide, nestedStackBaseDepth)
         return
       }
@@ -963,7 +1155,7 @@ function HumanReviewArrayValueGrid({
         areGridSelectionsEqual(current, selection) ? current : selection
       )
     },
-    [nestedStackBaseDepth, onGridSelectionChange, viewSide]
+    [nestedStackBaseDepth, onGridSelectionChange, sharedGridSelection, viewSide]
   )
 
   const columns = React.useMemo<GridColumn[]>(() => {
@@ -1002,9 +1194,6 @@ function HumanReviewArrayValueGrid({
       const matchedNestedCell =
         activeNestedView?.rowIndex === row &&
         activeNestedView.columnId === columnId
-      const matchesMirroredSelection = mirroredSelectionRanges.some((range) =>
-        isCellInRange(col, row, range)
-      )
       const nestedCellTheme: Partial<Theme> | undefined = matchedNestedCell
         ? {
             bgCell: isMirroredNestedTarget
@@ -1013,13 +1202,6 @@ function HumanReviewArrayValueGrid({
             textDark: blueCellText,
           }
         : undefined
-      const selectionCellTheme: Partial<Theme> | undefined =
-        matchesMirroredSelection
-          ? {
-              bgCell: mirroredCellBackground,
-              textDark: isDark ? "rgb(233, 213, 255)" : "rgb(91, 33, 182)",
-            }
-          : undefined
 
       if (isComplexSchema(cellSchema)) {
         return {
@@ -1032,7 +1214,6 @@ function HumanReviewArrayValueGrid({
           activationBehaviorOverride: "double-click",
           themeOverride: {
             textDark: blueCellText,
-            ...(selectionCellTheme ?? {}),
             ...(nestedCellTheme ?? {}),
           },
         }
@@ -1044,7 +1225,6 @@ function HumanReviewArrayValueGrid({
           data: typeof cellValue === "boolean" ? cellValue : false,
           allowOverlay: false,
           readonly: readOnly,
-          ...(selectionCellTheme ? { themeOverride: selectionCellTheme } : {}),
         }
       }
 
@@ -1054,8 +1234,7 @@ function HumanReviewArrayValueGrid({
           data: typeof cellValue === "number" ? cellValue : undefined,
           displayData: typeof cellValue === "number" ? String(cellValue) : "",
           allowOverlay: true,
-          readonly: readOnly,
-          ...(selectionCellTheme ? { themeOverride: selectionCellTheme } : {}),
+          readonly: false,
         }
       }
 
@@ -1074,8 +1253,7 @@ function HumanReviewArrayValueGrid({
             ? ""
             : String(cellValue),
         allowOverlay: true,
-        readonly: readOnly,
-        ...(selectionCellTheme ? { themeOverride: selectionCellTheme } : {}),
+        readonly: false,
       }
     },
     [
@@ -1083,10 +1261,8 @@ function HumanReviewArrayValueGrid({
       blueCellText,
       columns,
       isMirroredNestedTarget,
-      isDark,
       itemSchema,
       mirroredCellBackground,
-      mirroredSelectionRanges,
       readOnly,
       rows,
       selectedCellBackground,
@@ -1114,58 +1290,43 @@ function HumanReviewArrayValueGrid({
     },
     [columns, itemSchema, onChange, readOnly, rows, value]
   )
-
-  const drawCell = React.useCallback<DrawCellCallback>(
-    (args, drawContent) => {
-      drawContent()
-
-      const selectionRange = mirroredSelectionRanges.find((range) =>
-        isCellInRange(args.col, args.row, range)
-      )
-
-      if (!selectionRange) {
-        return
+  const provideEditor = React.useCallback<
+    NonNullable<React.ComponentProps<typeof DataEditor>["provideEditor"]>
+  >(
+    (cell) => {
+      if (
+        cell.kind !== GridCellKind.Text &&
+        cell.kind !== GridCellKind.Number
+      ) {
+        return undefined
       }
 
-      const { ctx, rect } = args
-      const edges = getRangeEdges(args.col, args.row, selectionRange)
+      return {
+        editor: (props) => {
+          if (
+            props.value.kind !== GridCellKind.Text &&
+            props.value.kind !== GridCellKind.Number
+          ) {
+            return null
+          }
 
-      ctx.save()
-      ctx.strokeStyle = mirroredCellBorder
-      ctx.lineWidth = 1.5
-      ctx.setLineDash([4, 3])
-
-      if (edges.top) {
-        ctx.beginPath()
-        ctx.moveTo(rect.x + 1.5, rect.y + 1.5)
-        ctx.lineTo(rect.x + rect.width - 1.5, rect.y + 1.5)
-        ctx.stroke()
+          return (
+            <HumanReviewTextOverlayEditor
+              {...(props as React.ComponentProps<
+                ProvideEditorComponent<HumanReviewOverlayCell>
+              >)}
+              overlayOpenRef={fastTextOverlayOpenRef}
+              readOnly={readOnly}
+            />
+          )
+        },
       }
-
-      if (edges.right) {
-        ctx.beginPath()
-        ctx.moveTo(rect.x + rect.width - 1.5, rect.y + 1.5)
-        ctx.lineTo(rect.x + rect.width - 1.5, rect.y + rect.height - 1.5)
-        ctx.stroke()
-      }
-
-      if (edges.bottom) {
-        ctx.beginPath()
-        ctx.moveTo(rect.x + 1.5, rect.y + rect.height - 1.5)
-        ctx.lineTo(rect.x + rect.width - 1.5, rect.y + rect.height - 1.5)
-        ctx.stroke()
-      }
-
-      if (edges.left) {
-        ctx.beginPath()
-        ctx.moveTo(rect.x + 1.5, rect.y + 1.5)
-        ctx.lineTo(rect.x + 1.5, rect.y + rect.height - 1.5)
-        ctx.stroke()
-      }
-
-      ctx.restore()
     },
-    [mirroredCellBorder, mirroredSelectionRanges]
+    [readOnly]
+  )
+  const handleOutsideClick = React.useCallback(
+    () => !fastTextOverlayOpenRef.current,
+    []
   )
 
   const openNestedCell = React.useCallback(
@@ -1251,11 +1412,13 @@ function HumanReviewArrayValueGrid({
             rows={rows.length}
             getCellContent={getCellContent}
             cellActivationBehavior="double-click"
-            drawCell={drawCell}
             gridSelection={gridSelection}
+            highlightRegions={mirroredHighlightRegions}
             onCellEdited={updateCellValue}
             onCellActivated={openNestedCell}
             onGridSelectionChange={handleGridSelectionChange}
+            provideEditor={provideEditor}
+            isOutsideClick={handleOutsideClick}
             rowMarkers="number"
             smoothScrollX
             smoothScrollY
@@ -1441,10 +1604,17 @@ function HumanReviewFieldCardBase({
     React.useState<SyncedArraySelection>(EMPTY_SYNCED_ARRAY_SELECTION)
   const updateSyncedArrayNestedView = React.useCallback(
     (stack: ArrayNestedView[], side: ArrayReviewSide) => {
-      setSyncedArrayNestedView({
-        activeSide: stack.length ? side : null,
-        stack,
-      })
+      const activeSide = stack.length ? side : null
+
+      setSyncedArrayNestedView((current) =>
+        current.activeSide === activeSide &&
+        areArrayNestedViewsEqual(current.stack, stack)
+          ? current
+          : {
+              activeSide,
+              stack,
+            }
+      )
     },
     []
   )
