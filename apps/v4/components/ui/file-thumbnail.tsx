@@ -252,6 +252,23 @@ function canvasToBlob(canvas: HTMLCanvasElement | null) {
   })
 }
 
+function canvasHasVisiblePixels(canvas: HTMLCanvasElement) {
+  const context = canvas.getContext("2d")
+  if (!context || canvas.width <= 0 || canvas.height <= 0) return false
+
+  try {
+    const { data } = context.getImageData(0, 0, canvas.width, canvas.height)
+
+    for (let index = 3; index < data.length; index += 4) {
+      if (data[index] > 0) return true
+    }
+
+    return false
+  } catch {
+    return true
+  }
+}
+
 export function FileThumbnailLoadingOverlay() {
   return (
     <div
@@ -676,8 +693,9 @@ function DocxFileThumbnail({
   const attachThumbnailCanvas = React.useCallback(
     (canvas: HTMLCanvasElement | null) => {
       setThumbnailCanvas(canvas)
+      if (canvas) firstThumbnail?.canvasRef(canvas)
     },
-    []
+    [firstThumbnail]
   )
 
   React.useEffect(() => {
@@ -693,8 +711,6 @@ function DocxFileThumbnail({
 
     let isCurrent = true
     let timeoutId: number | undefined
-    let animationFrameId: number | undefined
-    let nestedAnimationFrameId: number | undefined
     let attempts = 0
 
     const getRenderedPageSurface = () => {
@@ -712,48 +728,50 @@ function DocxFileThumbnail({
       return hasText || hasEmbeddedContent ? pageSurface : null
     }
 
-    const renderThumbnail = () => {
+    const checkThumbnail = () => {
       if (!isCurrent) return
+
+      if (canvasHasVisiblePixels(thumbnailCanvas)) {
+        setIsReady(true)
+        return
+      }
 
       if (!getRenderedPageSurface()) {
         attempts += 1
 
         if (attempts > 50) {
-          setHasError(true)
+          setIsReady(true)
           return
         }
 
-        timeoutId = window.setTimeout(renderThumbnail, 100)
+        timeoutId = window.setTimeout(checkThumbnail, 100)
         return
       }
 
-      animationFrameId = window.requestAnimationFrame(() => {
-        nestedAnimationFrameId = window.requestAnimationFrame(() => {
-          void firstThumbnail
-            .renderToCanvas(thumbnailCanvas)
-            .then(() => {
-              if (isCurrent) setIsReady(true)
-            })
-            .catch(() => {
-              if (isCurrent) setHasError(true)
-            })
-        })
-      })
+      attempts += 1
+
+      if (attempts > 50) {
+        setIsReady(true)
+        return
+      }
+
+      timeoutId = window.setTimeout(checkThumbnail, 100)
     }
 
-    renderThumbnail()
+    checkThumbnail()
 
     return () => {
       isCurrent = false
       if (timeoutId !== undefined) window.clearTimeout(timeoutId)
-      if (animationFrameId !== undefined) {
-        window.cancelAnimationFrame(animationFrameId)
-      }
-      if (nestedAnimationFrameId !== undefined) {
-        window.cancelAnimationFrame(nestedAnimationFrameId)
-      }
     }
-  }, [firstThumbnail, hasError, isActive, isReady, thumbnailCanvas])
+  }, [
+    firstThumbnail,
+    firstThumbnail?.isMounted,
+    hasError,
+    isActive,
+    isReady,
+    thumbnailCanvas,
+  ])
 
   const previewContent = thumbnailSize ? (
     <canvas
@@ -776,11 +794,11 @@ function DocxFileThumbnail({
         previewClassName={cn("bg-white", previewClassName)}
         showMetadata={showMetadata}
       />
-      {isActive && !hasError && !isReady ? (
+      {isActive && !hasError ? (
         <div
           ref={hiddenDocxViewerRef}
           aria-hidden="true"
-          className="pointer-events-none fixed top-0 left-[-10000px] w-[816px] overflow-hidden bg-white"
+          className="pointer-events-none fixed top-[100vh] left-0 -z-10 h-[1056px] w-[816px] overflow-hidden bg-white"
         >
           <div className="w-[816px]">
             <DocxEditorViewer
@@ -836,9 +854,7 @@ function XlsxFileThumbnail({
       <FileThumbnailShell
         file={file}
         previewImageUrl={imageUrl}
-        isLoading={Boolean(
-          externalIsLoading || (isActive && !imageUrl && !hasError)
-        )}
+        isLoading={Boolean(externalIsLoading || (!imageUrl && !hasError))}
         hasError={Boolean(externalHasError || hasError)}
         className={className}
         previewAspectRatio={previewAspectRatio}

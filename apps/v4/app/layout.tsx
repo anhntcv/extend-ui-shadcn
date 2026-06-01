@@ -102,7 +102,7 @@ export default function RootLayout({
             </ActiveThemeProvider>
           </LayoutProvider>
         </ThemeProvider>
-        <div id="portal" />
+        <div id="portal" className="fixed top-0 left-0 z-[9999]" />
       </body>
     </html>
   )

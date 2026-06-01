@@ -3,7 +3,6 @@
 import type * as React from "react"
 import dynamic from "next/dynamic"
 
-import { useMediaQuery } from "@/hooks/use-media-query"
 import { Spinner } from "@/components/ui/spinner"
 import { CsvViewerPreviewClient } from "@/components/csv-viewer-docs"
 import {
@@ -46,45 +45,33 @@ const XlsxViewerPreview = dynamic(
 export function MobileRootPreview() {
   return (
     <ComponentCrop className="h-[560px] border bg-background">
-      <PdfViewerPreview />
+      <PdfViewerPreview showRotateControls={false} />
     </ComponentCrop>
   )
 }
 
 export function RootComponentsCollage() {
-  const isLargeLayout = useMediaQuery("lg")
-
-  if (!isLargeLayout) {
-    return (
-      <div className="mx-auto grid gap-4 py-1 md:grid-cols-2">
-        <div className="flex flex-col gap-4">
-          <PdfViewerTile />
-          <CsvViewerTile />
-          <XlsxViewerTile />
-        </div>
-        <div className="flex flex-col gap-4">
-          <FileUploadTile />
-          <FileThumbnailTile />
-          <DocxViewerTile />
-          <OcrBlocksTile />
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="mx-auto grid gap-4 py-1 lg:grid-cols-3">
-      <div className="flex flex-col gap-4">
+    <div className="mx-auto columns-2 gap-4 py-1 lg:columns-3">
+      <div className="mb-4 break-inside-avoid">
         <PdfViewerTile />
+      </div>
+      <div className="mb-4 break-inside-avoid">
         <CsvViewerTile />
       </div>
-      <div className="flex flex-col gap-4">
+      <div className="mb-4 break-inside-avoid">
         <FileUploadTile />
+      </div>
+      <div className="mb-4 break-inside-avoid">
         <FileThumbnailTile />
+      </div>
+      <div className="mb-4 break-inside-avoid">
         <DocxViewerTile />
       </div>
-      <div className="flex flex-col gap-4">
+      <div className="mb-4 break-inside-avoid">
         <XlsxViewerTile />
+      </div>
+      <div className="mb-4 break-inside-avoid">
         <OcrBlocksTile />
       </div>
     </div>
@@ -94,7 +81,7 @@ export function RootComponentsCollage() {
 function PdfViewerTile() {
   return (
     <ComponentCrop className="h-[560px] border bg-background">
-      <PdfViewerPreview />
+      <PdfViewerPreview showRotateControls={false} />
     </ComponentCrop>
   )
 }
@@ -120,7 +107,7 @@ function FileUploadTile() {
 
 function FileThumbnailTile() {
   return (
-    <ComponentCrop className="h-[340px] border bg-background">
+    <ComponentCrop className="border bg-background">
       <RootFileThumbnailGrid />
     </ComponentCrop>
   )
@@ -155,7 +142,7 @@ function OcrBlocksTile() {
 
 function RootFileThumbnailGrid() {
   return (
-    <div className="flex h-full flex-wrap content-start items-start justify-center gap-3 bg-background px-3 py-1.5">
+    <div className="flex flex-wrap content-start items-start justify-center gap-3 bg-background px-3 py-4">
       {SAMPLE_FILES.map((file, index) => (
         <div
           key={file.url}
