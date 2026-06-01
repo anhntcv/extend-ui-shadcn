@@ -102,6 +102,7 @@ export default function RootLayout({
             </ActiveThemeProvider>
           </LayoutProvider>
         </ThemeProvider>
+        <div id="portal" />
       </body>
     </html>
   )

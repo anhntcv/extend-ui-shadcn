@@ -6,6 +6,7 @@ import {
   useDocxEditor,
   useDocxViewerThumbnails,
   type DocxDocumentTheme,
+  type DocxEditorController,
 } from "@extend-ai/react-docx"
 import {
   MinusSignCircleIcon,
@@ -538,6 +539,14 @@ function DocxViewerContent({
   )
   const editor = useDocxEditor(editorOptions)
   const { importDocxFile, setDocumentTheme, status } = editor
+  const [reportedPageCount, setReportedPageCount] = React.useState(0)
+  const thumbnailEditor = React.useMemo<DocxEditorController>(
+    () => ({
+      ...editor,
+      totalPages: Math.max(editor.totalPages, reportedPageCount),
+    }),
+    [editor, editor.totalPages, reportedPageCount]
+  )
   const thumbnailOptions = React.useMemo(
     () => ({
       pixelRatio: 2,
@@ -548,11 +557,13 @@ function DocxViewerContent({
     }),
     []
   )
-  const { thumbnails } = useDocxViewerThumbnails(editor, thumbnailOptions)
+  const { thumbnails } = useDocxViewerThumbnails(
+    thumbnailEditor,
+    thumbnailOptions
+  )
   const [zoomScale, setZoomScale] = React.useState(50)
   const [loadError, setLoadError] = React.useState<string>()
   const [isLoadingDocument, setIsLoadingDocument] = React.useState(true)
-  const [reportedPageCount, setReportedPageCount] = React.useState(0)
   const shouldShowDocumentSpinner = useDelayedLoadingIndicator(
     isLoadingDocument,
     DOCX_LOADING_INDICATOR_DELAY_MS

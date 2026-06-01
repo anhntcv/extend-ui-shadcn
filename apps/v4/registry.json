@@ -543,8 +543,8 @@
       "title": "File Thumbnail",
       "description": "A compact file preview thumbnail with built-in image, PDF, DOCX, and XLSX first-page thumbnail generation.",
       "dependencies": [
-        "@extend-ai/react-docx@^0.6.5",
-        "@extend-ai/react-xlsx@^0.8.7",
+        "@extend-ai/react-docx@^0.6.6",
+        "@extend-ai/react-xlsx@^0.9.2",
         "@hugeicons/core-free-icons@^4.1.1",
         "@hugeicons/react@^1.1.6",
         "pdfjs-dist@5.4.296",
@@ -613,7 +613,7 @@
       "title": "DOCX Viewer",
       "description": "A DOCX viewer with upload, zoom, theme controls, cached source loading, and read-only rendering.",
       "dependencies": [
-        "@extend-ai/react-docx@^0.6.5",
+        "@extend-ai/react-docx@^0.6.6",
         "@hugeicons/core-free-icons@^4.1.1",
         "@hugeicons/react@^1.1.6"
       ],
@@ -643,7 +643,7 @@
       "title": "DOCX Editor",
       "description": "An experimental DOCX editor with a Word-style toolbar, page thumbnails, import, export, and live document mutation.",
       "dependencies": [
-        "@extend-ai/react-docx@^0.6.5",
+        "@extend-ai/react-docx@^0.6.6",
         "@hugeicons/core-free-icons@^4.1.1",
         "@hugeicons/react@^1.1.6"
       ],
@@ -675,7 +675,7 @@
       "title": "Excel Viewer",
       "description": "An XLSX viewer with workbook loading, thumbnails, sheet tabs, upload, zoom, and theme controls.",
       "dependencies": [
-        "@extend-ai/react-xlsx@^0.8.7",
+        "@extend-ai/react-xlsx@^0.9.2",
         "@hugeicons/core-free-icons@^4.1.1",
         "@hugeicons/react@^1.1.6"
       ],
@@ -705,7 +705,7 @@
       "title": "Excel Editor",
       "description": "An experimental XLSX editor with formula input, undo and redo, sheet controls, export, and live workbook mutation.",
       "dependencies": [
-        "@extend-ai/react-xlsx@^0.8.7",
+        "@extend-ai/react-xlsx@^0.9.2",
         "@hugeicons/core-free-icons@^4.1.1",
         "@hugeicons/react@^1.1.6"
       ],

@@ -293,7 +293,8 @@ function FileThumbnailShell({
   const showLoading = isLoading || isImageLoading
   const hasPreviewContent = Boolean(previewContent)
   const showFallback =
-    hasError || imageFailed || (!previewImageUrl && !hasPreviewContent)
+    !showLoading &&
+    (hasError || imageFailed || (!previewImageUrl && !hasPreviewContent))
   const markImageLoaded = React.useCallback((image: HTMLImageElement) => {
     const didLoad = image.naturalWidth > 0 && image.naturalHeight > 0
 

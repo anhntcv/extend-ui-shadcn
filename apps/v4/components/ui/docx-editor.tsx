@@ -1596,6 +1596,14 @@ function DocxEditorContent({
   )
   const editor = useDocxEditor(editorOptions)
   const { importDocxFile, setDocumentTheme, status } = editor
+  const [reportedPageCount, setReportedPageCount] = React.useState(0)
+  const thumbnailEditor = React.useMemo<DocxEditorController>(
+    () => ({
+      ...editor,
+      totalPages: Math.max(editor.totalPages, reportedPageCount),
+    }),
+    [editor, editor.totalPages, reportedPageCount]
+  )
   const thumbnailOptions = React.useMemo(
     () => ({
       pixelRatio: 2,
@@ -1606,7 +1614,10 @@ function DocxEditorContent({
     }),
     []
   )
-  const { thumbnails } = useDocxViewerThumbnails(editor, thumbnailOptions)
+  const { thumbnails } = useDocxViewerThumbnails(
+    thumbnailEditor,
+    thumbnailOptions
+  )
   const shouldShowDocumentSpinner = useDelayedLoadingIndicator(
     isLoadingDocument,
     DOCX_LOADING_INDICATOR_DELAY_MS
@@ -1618,10 +1629,13 @@ function DocxEditorContent({
   const sidebarInline = useInlineThumbnailSidebar(viewerShellWidth)
   const pageCount =
     hasDocument && !isLoadingDocument && !loadError
-      ? Math.max(1, editor.totalPages)
+      ? Math.max(1, reportedPageCount || editor.totalPages)
       : 0
   const controlsDisabled =
     !hasDocument || isLoadingDocument || Boolean(loadError)
+  const handlePageCountChange = React.useCallback((nextPageCount: number) => {
+    setReportedPageCount(Math.max(1, Math.round(nextPageCount || 1)))
+  }, [])
 
   useSuppressDocxPaddingWarning(!isLoadingDocument && !loadError)
 
@@ -1652,11 +1666,13 @@ function DocxEditorContent({
       if (!uploadedDocxFile && !url) {
         setIsLoadingDocument(false)
         setLoadError(undefined)
+        setReportedPageCount(0)
         return
       }
 
       setIsLoadingDocument(true)
       setLoadError(undefined)
+      setReportedPageCount(0)
 
       try {
         const docxFile =
@@ -1775,6 +1791,7 @@ function DocxEditorContent({
 
     setZoomScale(DOCX_EDITOR_DEFAULT_ZOOM_SCALE)
     setActivePage(1)
+    setReportedPageCount(0)
     setUploadedDocxFile({
       file,
       identity: `${file.name}-${file.size}-${file.lastModified}`,
@@ -1983,6 +2000,7 @@ function DocxEditorContent({
                   pageGapBackgroundColor={viewerBackgroundColor}
                   pageVirtualization={{ enabled: false }}
                   deferInitialPaginationPaint={false}
+                  onPageCountChange={handlePageCountChange}
                 />
               </div>
             </div>
