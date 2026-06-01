@@ -16,6 +16,10 @@ import {
   DocumentSplitsDemo,
   DocumentSplitsSource,
 } from "@/components/document-splitter-docs"
+import {
+  DocumentViewerSidebarDemo,
+  DocumentViewerSidebarSource,
+} from "@/components/document-viewer-sidebar-docs"
 import { DocxEditorDemo, DocxEditorSource } from "@/components/docx-editor-docs"
 import { DocxViewerDemo, DocxViewerSource } from "@/components/docx-viewer-docs"
 import { ESignatureDemo, ESignatureSource } from "@/components/e-signature-docs"
@@ -374,6 +378,8 @@ export const mdxComponents = {
   ComponentsList: ComponentsListWrapper,
   CsvViewerDemo,
   CsvViewerSource,
+  DocumentViewerSidebarDemo,
+  DocumentViewerSidebarSource,
   DocumentSplitsDemo,
   DocumentSplitsSource,
   DocxEditorDemo,

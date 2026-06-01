@@ -527,7 +527,11 @@
         "@hugeicons/react@^1.1.6",
         "border-beam@^1.0.1"
       ],
-      "registryDependencies": ["card", "file-thumbnail", "utils"],
+      "registryDependencies": [
+        "card",
+        "https://ui.extend.ai/r/file-thumbnail.json",
+        "utils"
+      ],
       "categories": ["documents"],
       "files": [
         {
@@ -573,8 +577,8 @@
       ],
       "registryDependencies": [
         "button",
-        "document-viewer-sidebar",
-        "file-thumbnail",
+        "https://ui.extend.ai/r/document-viewer-sidebar.json",
+        "https://ui.extend.ai/r/file-thumbnail.json",
         "input",
         "popover",
         "scroll-area",
@@ -604,8 +608,8 @@
       ],
       "registryDependencies": [
         "button",
-        "document-viewer-sidebar",
-        "file-thumbnail",
+        "https://ui.extend.ai/r/document-viewer-sidebar.json",
+        "https://ui.extend.ai/r/file-thumbnail.json",
         "scroll-area",
         "select",
         "separator",
@@ -634,9 +638,9 @@
       ],
       "registryDependencies": [
         "button",
-        "document-viewer-sidebar",
+        "https://ui.extend.ai/r/document-viewer-sidebar.json",
         "dropdown-menu",
-        "file-thumbnail",
+        "https://ui.extend.ai/r/file-thumbnail.json",
         "input",
         "scroll-area",
         "select",
@@ -696,7 +700,7 @@
       ],
       "registryDependencies": [
         "button",
-        "group",
+        "https://ui.extend.ai/r/group.json",
         "input",
         "scroll-area",
         "select",
@@ -704,7 +708,7 @@
         "spinner",
         "tooltip",
         "utils",
-        "xlsx-viewer"
+        "https://ui.extend.ai/r/xlsx-viewer.json"
       ],
       "categories": ["documents"],
       "files": [
@@ -750,7 +754,10 @@
       "title": "PDF Dropzone",
       "description": "A PDF-only upload dropzone that opens the dropped file in the shared PDF viewer.",
       "dependencies": ["@hugeicons/core-free-icons@^4.1.1"],
-      "registryDependencies": ["file-upload", "pdf-viewer"],
+      "registryDependencies": [
+        "https://ui.extend.ai/r/file-upload.json",
+        "https://ui.extend.ai/r/pdf-viewer.json"
+      ],
       "categories": ["documents", "blocks"],
       "files": [
         {
@@ -771,8 +778,8 @@
         "react-markdown@^10.1.0"
       ],
       "registryDependencies": [
-        "pdf-block-resizable-shell",
-        "pdf-viewer",
+        "https://ui.extend.ai/r/pdf-block-resizable-shell.json",
+        "https://ui.extend.ai/r/pdf-viewer.json",
         "scroll-area",
         "utils"
       ],
@@ -799,8 +806,8 @@
       "registryDependencies": [
         "button",
         "dialog",
-        "pdf-block-resizable-shell",
-        "pdf-viewer",
+        "https://ui.extend.ai/r/pdf-block-resizable-shell.json",
+        "https://ui.extend.ai/r/pdf-viewer.json",
         "scroll-area",
         "utils"
       ],
@@ -827,8 +834,8 @@
       "registryDependencies": [
         "button",
         "input",
-        "pdf-block-resizable-shell",
-        "pdf-viewer",
+        "https://ui.extend.ai/r/pdf-block-resizable-shell.json",
+        "https://ui.extend.ai/r/pdf-viewer.json",
         "scroll-area",
         "tabs",
         "tooltip",
@@ -857,9 +864,9 @@
       ],
       "registryDependencies": [
         "button",
-        "file-thumbnail",
-        "pdf-block-resizable-shell",
-        "pdf-viewer",
+        "https://ui.extend.ai/r/file-thumbnail.json",
+        "https://ui.extend.ai/r/pdf-block-resizable-shell.json",
+        "https://ui.extend.ai/r/pdf-viewer.json",
         "scroll-area",
         "utils"
       ],
@@ -878,11 +885,11 @@
       "title": "Excel Document Splits",
       "description": "A workbook review block with sheet groups and the shared XLSX viewer.",
       "registryDependencies": [
-        "file-thumbnail",
-        "pdf-block-resizable-shell",
+        "https://ui.extend.ai/r/file-thumbnail.json",
+        "https://ui.extend.ai/r/pdf-block-resizable-shell.json",
         "scroll-area",
         "utils",
-        "xlsx-viewer"
+        "https://ui.extend.ai/r/xlsx-viewer.json"
       ],
       "categories": ["documents", "blocks"],
       "files": [
@@ -898,7 +905,7 @@
       "type": "registry:block",
       "title": "DOCX Editor",
       "description": "A full DOCX editor block with a Word-style toolbar, page thumbnails, and export controls.",
-      "registryDependencies": ["docx-editor"],
+      "registryDependencies": ["https://ui.extend.ai/r/docx-editor.json"],
       "categories": ["documents", "blocks"],
       "files": [
         {
