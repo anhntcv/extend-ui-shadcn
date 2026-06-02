@@ -13,6 +13,7 @@ export function PdfViewerPreviewClient({
     <PDFViewer
       file={SAMPLE_PDF_URL}
       className="h-[560px]"
+      defaultZoom={0.5}
       defaultThumbnailSidebarOpen={false}
       showRotateControls={showRotateControls}
     />

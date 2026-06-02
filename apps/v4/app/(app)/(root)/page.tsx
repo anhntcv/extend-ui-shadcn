@@ -14,7 +14,7 @@ import {
 } from "@/components/root-components-collage"
 import { RootLiquidLogo } from "@/components/root-liquid-logo"
 
-const title = "Document components for modern apps"
+const title = "UI Components for document agents"
 const description =
   "Open source PDF, DOCX, and XLSX viewers, uploads, CSV previews, OCR blocks, and e-signing primitives for document processing products."
 
@@ -70,9 +70,9 @@ export default function IndexPage() {
           </Button>
         </PageActions>
       </PageHeader>
-      <div className="flex-1 overflow-hidden px-4 pb-6 md:px-6 lg:px-8">
-        <div className="w-full overflow-hidden">
-          <section className="w-full overflow-hidden rounded-lg md:hidden">
+      <div className="container-wrapper flex-1 p-0">
+        <div className="container overflow-hidden px-0 md:px-6 lg:max-w-none lg:px-8">
+          <section className="-mx-2 w-[136vw] overflow-hidden md:hidden">
             <MobileRootPreview />
           </section>
           <section className="hidden md:block">

@@ -2,6 +2,7 @@
 
 import type * as React from "react"
 import dynamic from "next/dynamic"
+import Image from "next/image"
 
 import { Spinner } from "@/components/ui/spinner"
 import { CsvViewerPreviewClient } from "@/components/csv-viewer-docs"
@@ -44,9 +45,27 @@ const XlsxViewerPreview = dynamic(
 
 export function MobileRootPreview() {
   return (
-    <ComponentCrop className="h-[560px] border bg-background">
-      <PdfViewerPreview showRotateControls={false} />
-    </ComponentCrop>
+    <div className="relative bg-background px-4">
+      <Image
+        src="/images/root-components-showcase-light-v2.png"
+        width={1566}
+        height={1114}
+        alt="Document component previews"
+        className="block h-auto w-[160vw] max-w-none dark:hidden"
+        priority
+        sizes="150vw"
+      />
+      <Image
+        src="/images/root-components-showcase-dark-v2.png"
+       width={1566}
+        height={1114}
+        alt="Document component previews"
+        className="hidden w-[160vw] max-w-none dark:block"
+        priority
+        sizes="150vw"
+      />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-background from-15% via-background/85 via-45% to-transparent" />
+    </div>
   )
 }
 
