@@ -123,8 +123,7 @@ const BLOCK_STYLES: Record<
     overlay: string
     mutedOverlay: string
     ring: string
-    soft: string
-    text: string
+    badge: string
   }
 > = {
   heading: {
@@ -134,8 +133,8 @@ const BLOCK_STYLES: Record<
       "border-violet-500/70 bg-violet-500/10 shadow-[0_4px_16px_rgb(139_92_246_/_12%)]",
     mutedOverlay: "border-violet-500/35 bg-violet-500/5",
     ring: "border-violet-500/60 bg-violet-500/5",
-    soft: "bg-violet-500/10 text-violet-600 dark:text-violet-300",
-    text: "text-violet-600 dark:text-violet-300",
+    badge:
+      "bg-violet-50 text-violet-600 dark:bg-violet-300/10 dark:text-violet-300",
   },
   paragraph: {
     label: "Paragraph",
@@ -144,8 +143,7 @@ const BLOCK_STYLES: Record<
       "border-blue-500/70 bg-blue-500/10 shadow-[0_4px_16px_rgb(59_130_246_/_12%)]",
     mutedOverlay: "border-blue-500/35 bg-blue-500/5",
     ring: "border-blue-500/60 bg-blue-500/5",
-    soft: "bg-blue-500/10 text-blue-600 dark:text-blue-300",
-    text: "text-blue-600 dark:text-blue-300",
+    badge: "bg-blue-50 text-blue-600 dark:bg-blue-300/10 dark:text-blue-300",
   },
   list: {
     label: "List",
@@ -154,8 +152,8 @@ const BLOCK_STYLES: Record<
       "border-emerald-500/70 bg-emerald-500/10 shadow-[0_4px_16px_rgb(16_185_129_/_12%)]",
     mutedOverlay: "border-emerald-500/35 bg-emerald-500/5",
     ring: "border-emerald-500/60 bg-emerald-500/5",
-    soft: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-300",
-    text: "text-emerald-600 dark:text-emerald-300",
+    badge:
+      "bg-emerald-50 text-emerald-600 dark:bg-emerald-300/10 dark:text-emerald-300",
   },
   table: {
     label: "Table",
@@ -164,8 +162,8 @@ const BLOCK_STYLES: Record<
       "border-amber-500/70 bg-amber-500/10 shadow-[0_4px_16px_rgb(245_158_11_/_12%)]",
     mutedOverlay: "border-amber-500/35 bg-amber-500/5",
     ring: "border-amber-500/60 bg-amber-500/5",
-    soft: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
-    text: "text-amber-700 dark:text-amber-300",
+    badge:
+      "bg-amber-50 text-amber-600 dark:bg-amber-300/10 dark:text-amber-300",
   },
   figure: {
     label: "Figure",
@@ -174,8 +172,7 @@ const BLOCK_STYLES: Record<
       "border-rose-500/70 bg-rose-500/10 shadow-[0_4px_16px_rgb(244_63_94_/_12%)]",
     mutedOverlay: "border-rose-500/35 bg-rose-500/5",
     ring: "border-rose-500/60 bg-rose-500/5",
-    soft: "bg-rose-500/10 text-rose-600 dark:text-rose-300",
-    text: "text-rose-600 dark:text-rose-300",
+    badge: "bg-rose-50 text-rose-600 dark:bg-rose-300/10 dark:text-rose-300",
   },
   header: {
     label: "Header",
@@ -184,8 +181,7 @@ const BLOCK_STYLES: Record<
       "border-cyan-500/70 bg-cyan-500/10 shadow-[0_4px_16px_rgb(6_182_212_/_12%)]",
     mutedOverlay: "border-cyan-500/35 bg-cyan-500/5",
     ring: "border-cyan-500/60 bg-cyan-500/5",
-    soft: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-300",
-    text: "text-cyan-700 dark:text-cyan-300",
+    badge: "bg-cyan-50 text-cyan-600 dark:bg-cyan-300/10 dark:text-cyan-300",
   },
   footer: {
     label: "Footer",
@@ -194,8 +190,8 @@ const BLOCK_STYLES: Record<
       "border-slate-500/70 bg-slate-500/10 shadow-[0_4px_16px_rgb(100_116_139_/_12%)]",
     mutedOverlay: "border-slate-500/35 bg-slate-500/5",
     ring: "border-slate-500/60 bg-slate-500/5",
-    soft: "bg-slate-500/10 text-slate-700 dark:text-slate-300",
-    text: "text-slate-700 dark:text-slate-300",
+    badge:
+      "bg-slate-50 text-slate-600 dark:bg-slate-300/10 dark:text-slate-300",
   },
   page_number: {
     label: "Page number",
@@ -204,8 +200,7 @@ const BLOCK_STYLES: Record<
       "border-zinc-500/70 bg-zinc-500/10 shadow-[0_4px_16px_rgb(113_113_122_/_12%)]",
     mutedOverlay: "border-zinc-500/35 bg-zinc-500/5",
     ring: "border-zinc-500/60 bg-zinc-500/5",
-    soft: "bg-zinc-500/10 text-zinc-700 dark:text-zinc-300",
-    text: "text-zinc-700 dark:text-zinc-300",
+    badge: "bg-zinc-50 text-zinc-600 dark:bg-zinc-300/10 dark:text-zinc-300",
   },
 }
 
@@ -8340,27 +8335,28 @@ function OcrBlockButton({
         isActive && cn("shadow-[0_0_0_1px_rgb(0_0_0_/_4%)]", style.ring)
       )}
     >
-      <div className="flex items-start gap-3">
-        <div
-          className={cn(
-            "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md",
-            style.soft
-          )}
-        >
-          <HugeiconsIcon icon={style.icon} className="size-4" />
+      <div className="min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <div
+              className={cn(
+                "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                style.badge
+              )}
+            >
+              <HugeiconsIcon icon={style.icon} className="size-3.5" />
+              {style.label}
+            </div>
+            <div className="truncate text-xs text-muted-foreground">
+              {Math.round(block.confidence * 100)}%
+            </div>
+          </div>
+          <div className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+            p. {block.page}
+          </div>
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <div className={cn("text-xs font-medium", style.text)}>
-              {style.label} · {Math.round(block.confidence * 100)}%
-            </div>
-            <div className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-              p. {block.page}
-            </div>
-          </div>
-          <div className="mt-2 text-sm text-foreground/90">
-            <OcrBlockMarkdown text={block.text} />
-          </div>
+        <div className="mt-2 text-sm text-foreground/90">
+          <OcrBlockMarkdown text={block.text} />
         </div>
       </div>
     </button>
@@ -8441,18 +8437,18 @@ export function OcrBlocksBlock({
 function OcrExampleCard({
   active,
   activeClassName,
+  badgeClassName,
   confidence,
   icon,
-  iconClassName,
   kind,
   pageLabel,
   text,
 }: {
   active?: boolean
   activeClassName?: string
+  badgeClassName: string
   confidence: number
   icon: typeof Heading01Icon
-  iconClassName: string
   kind: string
   pageLabel: string
   text: string
@@ -8467,27 +8463,28 @@ function OcrExampleCard({
             "border-blue-500/60 bg-blue-500/5 shadow-[0_0_0_1px_rgb(0_0_0_/_4%)]")
       )}
     >
-      <div className="flex items-start gap-3">
-        <div
-          className={cn(
-            "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md",
-            iconClassName
-          )}
-        >
-          <HugeiconsIcon icon={icon} className="size-4" />
+      <div className="min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <div
+              className={cn(
+                "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                badgeClassName
+              )}
+            >
+              <HugeiconsIcon icon={icon} className="size-3.5" />
+              {kind}
+            </div>
+            <div className="truncate text-xs text-muted-foreground">
+              {Math.round(confidence * 100)}%
+            </div>
+          </div>
+          <div className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+            {pageLabel}
+          </div>
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <div className="text-xs font-medium text-muted-foreground">
-              {kind} · {Math.round(confidence * 100)}%
-            </div>
-            <div className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-              {pageLabel}
-            </div>
-          </div>
-          <div className="mt-2 text-sm text-foreground/90">
-            <OcrBlockMarkdown text={text} />
-          </div>
+        <div className="mt-2 text-sm text-foreground/90">
+          <OcrBlockMarkdown text={text} />
         </div>
       </div>
     </button>
@@ -8504,7 +8501,7 @@ function OcrBlocksExample() {
         pageLabel="p. 1"
         confidence={0.99}
         text="# Attention Is All You Need"
-        iconClassName="bg-violet-500/10 text-violet-600 dark:text-violet-300"
+        badgeClassName="bg-violet-50 text-violet-600 dark:bg-violet-300/10 dark:text-violet-300"
         activeClassName="border-violet-500/60 bg-violet-500/5"
       />
       <OcrExampleCard
@@ -8513,7 +8510,7 @@ function OcrBlocksExample() {
         pageLabel="p. 1"
         confidence={0.94}
         text="The model relies **only on attention**, avoiding recurrence and convolutions."
-        iconClassName="bg-blue-500/10 text-blue-600 dark:text-blue-300"
+        badgeClassName="bg-blue-50 text-blue-600 dark:bg-blue-300/10 dark:text-blue-300"
       />
       <OcrExampleCard
         icon={Table01Icon}
@@ -8521,7 +8518,7 @@ function OcrBlocksExample() {
         pageLabel="p. 6"
         confidence={0.91}
         text={"- **Layer type**\n- Path length\n- Sequential operations"}
-        iconClassName="bg-amber-500/10 text-amber-700 dark:text-amber-300"
+        badgeClassName="bg-amber-50 text-amber-600 dark:bg-amber-300/10 dark:text-amber-300"
       />
     </div>
   )
@@ -8596,7 +8593,7 @@ export function OcrBlocksExample() {
         pageLabel="p. 1"
         confidence={0.99}
         text="# Attention Is All You Need"
-        iconClassName="bg-violet-500/10 text-violet-600 dark:text-violet-300"
+        badgeClassName="bg-violet-50 text-violet-600 dark:bg-violet-300/10 dark:text-violet-300"
         activeClassName="border-violet-500/60 bg-violet-500/5"
       />
       <OcrBlockCard
@@ -8612,7 +8609,7 @@ export function OcrBlocksExample() {
         pageLabel="p. 6"
         confidence={0.91}
         text={"- **Layer type**\\n- Path length\\n- Sequential operations"}
-        iconClassName="bg-amber-500/10 text-amber-700 dark:text-amber-300"
+        badgeClassName="bg-amber-50 text-amber-600 dark:bg-amber-300/10 dark:text-amber-300"
       />
     </div>
   );

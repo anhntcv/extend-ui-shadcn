@@ -7916,7 +7916,7 @@ const BLOCK_STYLES: Record<
     overlay: string
     mutedOverlay: string
     ring: string
-    text: string
+    badge: string
   }
 > = {
   heading: {
@@ -7925,7 +7925,8 @@ const BLOCK_STYLES: Record<
     overlay: "border-violet-500/70 bg-violet-500/10",
     mutedOverlay: "border-violet-500/35 bg-violet-500/5",
     ring: "border-violet-500/60 bg-violet-500/5 text-violet-600",
-    text: "text-violet-600 dark:text-violet-300",
+    badge:
+      "bg-violet-50 text-violet-600 dark:bg-violet-300/10 dark:text-violet-300",
   },
   paragraph: {
     label: "Paragraph",
@@ -7933,7 +7934,7 @@ const BLOCK_STYLES: Record<
     overlay: "border-blue-500/70 bg-blue-500/10",
     mutedOverlay: "border-blue-500/35 bg-blue-500/5",
     ring: "border-blue-500/60 bg-blue-500/5 text-blue-600",
-    text: "text-blue-600 dark:text-blue-300",
+    badge: "bg-blue-50 text-blue-600 dark:bg-blue-300/10 dark:text-blue-300",
   },
   list: {
     label: "List",
@@ -7941,7 +7942,8 @@ const BLOCK_STYLES: Record<
     overlay: "border-emerald-500/70 bg-emerald-500/10",
     mutedOverlay: "border-emerald-500/35 bg-emerald-500/5",
     ring: "border-emerald-500/60 bg-emerald-500/5 text-emerald-600",
-    text: "text-emerald-600 dark:text-emerald-300",
+    badge:
+      "bg-emerald-50 text-emerald-600 dark:bg-emerald-300/10 dark:text-emerald-300",
   },
   table: {
     label: "Table",
@@ -7949,7 +7951,8 @@ const BLOCK_STYLES: Record<
     overlay: "border-amber-500/70 bg-amber-500/10",
     mutedOverlay: "border-amber-500/35 bg-amber-500/5",
     ring: "border-amber-500/60 bg-amber-500/5 text-amber-700",
-    text: "text-amber-700 dark:text-amber-300",
+    badge:
+      "bg-amber-50 text-amber-600 dark:bg-amber-300/10 dark:text-amber-300",
   },
   figure: {
     label: "Figure",
@@ -7957,7 +7960,7 @@ const BLOCK_STYLES: Record<
     overlay: "border-rose-500/70 bg-rose-500/10",
     mutedOverlay: "border-rose-500/35 bg-rose-500/5",
     ring: "border-rose-500/60 bg-rose-500/5 text-rose-600",
-    text: "text-rose-600 dark:text-rose-300",
+    badge: "bg-rose-50 text-rose-600 dark:bg-rose-300/10 dark:text-rose-300",
   },
   header: {
     label: "Header",
@@ -7965,7 +7968,7 @@ const BLOCK_STYLES: Record<
     overlay: "border-cyan-500/70 bg-cyan-500/10",
     mutedOverlay: "border-cyan-500/35 bg-cyan-500/5",
     ring: "border-cyan-500/60 bg-cyan-500/5 text-cyan-700",
-    text: "text-cyan-700 dark:text-cyan-300",
+    badge: "bg-cyan-50 text-cyan-600 dark:bg-cyan-300/10 dark:text-cyan-300",
   },
   footer: {
     label: "Footer",
@@ -7973,7 +7976,8 @@ const BLOCK_STYLES: Record<
     overlay: "border-slate-500/70 bg-slate-500/10",
     mutedOverlay: "border-slate-500/35 bg-slate-500/5",
     ring: "border-slate-500/60 bg-slate-500/5 text-slate-700",
-    text: "text-slate-700 dark:text-slate-300",
+    badge:
+      "bg-slate-50 text-slate-600 dark:bg-slate-300/10 dark:text-slate-300",
   },
   page_number: {
     label: "Page number",
@@ -7981,7 +7985,7 @@ const BLOCK_STYLES: Record<
     overlay: "border-zinc-500/70 bg-zinc-500/10",
     mutedOverlay: "border-zinc-500/35 bg-zinc-500/5",
     ring: "border-zinc-500/60 bg-zinc-500/5 text-zinc-700",
-    text: "text-zinc-700 dark:text-zinc-300",
+    badge: "bg-zinc-50 text-zinc-600 dark:bg-zinc-300/10 dark:text-zinc-300",
   },
 }
 
@@ -8155,22 +8159,28 @@ function OcrBlockButton({
         isActive && style.ring
       )}
     >
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-md bg-muted">
-          <HugeiconsIcon icon={style.icon} className="size-4" />
+      <div className="min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <div
+              className={cn(
+                "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                style.badge
+              )}
+            >
+              <HugeiconsIcon icon={style.icon} className="size-3.5" />
+              {style.label}
+            </div>
+            <div className="truncate text-xs text-muted-foreground">
+              {Math.round(block.confidence * 100)}%
+            </div>
+          </div>
+          <div className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+            p. {block.page}
+          </div>
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center justify-between gap-2">
-            <div className={cn("text-xs font-medium", style.text)}>
-              {style.label} - {Math.round(block.confidence * 100)}%
-            </div>
-            <div className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-              p. {block.page}
-            </div>
-          </div>
-          <div className="mt-2 text-sm text-foreground/90">
-            <OcrBlockMarkdown text={block.text} />
-          </div>
+        <div className="mt-2 text-sm text-foreground/90">
+          <OcrBlockMarkdown text={block.text} />
         </div>
       </div>
     </button>

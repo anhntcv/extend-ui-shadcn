@@ -61,15 +61,15 @@ npm install react-markdown
 
 The OcrBlockCard component renders a selectable OCR result with type, markdown text, confidence, and page context.
 
-| Prop              | Type                                                 | Default                                             | Required |
-| ----------------- | ---------------------------------------------------- | --------------------------------------------------- | -------- |
-| `kind`            | `string`                                             | `-`                                                 | Yes      |
-| `text`            | `string`                                             | `-`                                                 | Yes      |
-| `confidence`      | `number`                                             | `-`                                                 | No       |
-| `pageLabel`       | `string`                                             | `-`                                                 | No       |
-| `icon`            | `React.ComponentProps<typeof HugeiconsIcon>["icon"]` | `ParagraphIcon`                                     | No       |
-| `active`          | `boolean`                                            | `false`                                             | No       |
-| `iconClassName`   | `string`                                             | `"bg-blue-500/10 text-blue-600 dark:text-blue-300"` | No       |
-| `activeClassName` | `string`                                             | `"border-blue-500/60 bg-blue-500/5"`                | No       |
-| `className`       | `string`                                             | `-`                                                 | No       |
-| `...props`        | `React.ButtonHTMLAttributes<HTMLButtonElement>`      | `-`                                                 | No       |
+| Prop              | Type                                                 | Default                                                             | Required |
+| ----------------- | ---------------------------------------------------- | ------------------------------------------------------------------- | -------- |
+| `kind`            | `string`                                             | `-`                                                                 | Yes      |
+| `text`            | `string`                                             | `-`                                                                 | Yes      |
+| `confidence`      | `number`                                             | `-`                                                                 | No       |
+| `pageLabel`       | `string`                                             | `-`                                                                 | No       |
+| `icon`            | `React.ComponentProps<typeof HugeiconsIcon>["icon"]` | `ParagraphIcon`                                                     | No       |
+| `active`          | `boolean`                                            | `false`                                                             | No       |
+| `badgeClassName`  | `string`                                             | `"bg-blue-50 text-blue-600 dark:bg-blue-300/10 dark:text-blue-300"` | No       |
+| `activeClassName` | `string`                                             | `"border-blue-500/60 bg-blue-500/5"`                                | No       |
+| `className`       | `string`                                             | `-`                                                                 | No       |
+| `...props`        | `React.ButtonHTMLAttributes<HTMLButtonElement>`      | `-`                                                                 | No       |
