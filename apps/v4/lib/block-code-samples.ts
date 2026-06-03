@@ -1,8 +1,6 @@
 import { promises as fs } from "node:fs"
 import path from "node:path"
 
-import { highlightCode } from "@/lib/highlight-code"
-
 type RegistryFile = {
   path: string
   target?: string
@@ -22,7 +20,6 @@ export type BlockCodeFile = {
 
 export type LoadedBlockCodeFile = BlockCodeFile & {
   content: string
-  highlightedContent: string | null
   lineCount: number
 }
 
@@ -35,8 +32,6 @@ export const blockIds = [
   "excel-document-splits",
   "docx-editor-block",
 ]
-
-const LARGE_CODE_HIGHLIGHT_LIMIT = 80_000
 
 const blockCodeDependencies: Record<string, string[]> = {
   "pdf-dropzone": ["file-upload", "pdf-viewer", "file-thumbnail"],
@@ -76,33 +71,35 @@ export async function getBlockCodeFileManifest(): Promise<
   )
 }
 
-export async function getLoadedBlockCodeFile({
-  blockId,
-  targetPath,
-}: {
-  blockId: string
-  targetPath: string
-}): Promise<LoadedBlockCodeFile | null> {
+export async function getLoadedBlockCodeFileManifest(): Promise<
+  Record<string, LoadedBlockCodeFile[]>
+> {
   const itemsByName = await getRegistryItemsByName()
-  const file = collectRegistryFiles(blockId, itemsByName).find(
-    (candidate) => normalizeRegistryTarget(candidate) === targetPath
+
+  const entries = await Promise.all(
+    blockIds.map(async (id) => {
+      const files = await Promise.all(
+        collectRegistryFiles(id, itemsByName).map(loadBlockCodeFile)
+      )
+
+      return [id, files] satisfies [string, LoadedBlockCodeFile[]]
+    })
   )
 
-  if (!file) return null
+  return Object.fromEntries(entries)
+}
 
+async function loadBlockCodeFile(
+  file: RegistryFile
+): Promise<LoadedBlockCodeFile> {
   const language = getCodeLanguage(file.path)
   const content = await fs.readFile(resolveSourceFilePath(file.path), "utf8")
-  const highlightedContent =
-    content.length <= LARGE_CODE_HIGHLIGHT_LIMIT
-      ? await highlightCode(content, language)
-      : null
 
   return {
     sourcePath: file.path,
-    targetPath,
+    targetPath: normalizeRegistryTarget(file),
     language,
     content,
-    highlightedContent,
     lineCount: content.split("\n").length,
   }
 }

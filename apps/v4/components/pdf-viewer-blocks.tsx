@@ -14,9 +14,12 @@ import {
   Tick02Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import {
+  File as PierreCodeFile,
+  Virtualizer as PierreVirtualizer,
+} from "@pierre/diffs/react"
 import { prepareFileTreeInput } from "@pierre/trees"
 import { FileTree as PierreFileTree, useFileTree } from "@pierre/trees/react"
-import { useVirtualizer } from "@tanstack/react-virtual"
 import type { PanelImperativeHandle } from "react-resizable-panels"
 
 import {
@@ -47,11 +50,7 @@ type BlockCodeSample = {
   sourcePath: string
   targetPath: string
   language: string
-}
-
-type LoadedBlockCodeSample = BlockCodeSample & {
   content: string
-  highlightedContent: string | null
   lineCount: number
 }
 
@@ -74,6 +73,19 @@ const blockViewportSizes: Array<{
 ]
 
 const BLOCK_VIEWPORT_HEIGHT_CLASS = "h-[680px]"
+
+const BLOCK_CODE_FILE_THEME = {
+  "--diffs-light-bg": "var(--color-code)",
+  "--diffs-dark-bg": "var(--color-code)",
+  "--diffs-light": "var(--color-code-foreground)",
+  "--diffs-dark": "var(--color-code-foreground)",
+  "--diffs-bg-context-override": "var(--color-code)",
+  "--diffs-bg-context-gutter-override": "var(--color-code)",
+  "--diffs-bg-buffer-override": "var(--color-code)",
+  "--diffs-fg-number-override": "var(--color-muted-foreground)",
+  "--diffs-font-size": "0.8rem",
+  "--diffs-line-height": "1.625",
+} as React.CSSProperties
 
 const OcrBlocksBlock = dynamic(
   () =>
@@ -333,7 +345,6 @@ function PdfViewerBlockPreview({
         {hasOpenedCode ? (
           <div className={view === "code" ? "block" : "hidden"}>
             <BlockCodePanel
-              blockId={block.id}
               codeSamples={codeSamples}
               activeFile={activeFile}
               onActiveFileChange={setActiveFile}
@@ -422,72 +433,17 @@ function BlockCodePanelShell() {
 }
 
 function BlockCodePanel({
-  blockId,
   codeSamples,
   activeFile,
   onActiveFileChange,
 }: {
-  blockId: string
   codeSamples: BlockCodeSample[]
   activeFile: string | null
   onActiveFileChange: (file: string) => void
 }) {
-  const [loadedCodeByPath, setLoadedCodeByPath] = React.useState<
-    Record<string, LoadedBlockCodeSample>
-  >({})
-  const [loadingPath, setLoadingPath] = React.useState<string | null>(null)
-  const [failedPath, setFailedPath] = React.useState<string | null>(null)
   const activeCodeSample =
     codeSamples.find((sample) => sample.targetPath === activeFile) ??
     codeSamples[0]
-  const activeLoadedCode = activeCodeSample
-    ? loadedCodeByPath[activeCodeSample.targetPath]
-    : undefined
-
-  React.useEffect(() => {
-    if (!activeCodeSample || activeLoadedCode) return
-
-    const controller = new AbortController()
-    const targetPath = activeCodeSample.targetPath
-
-    setLoadingPath(targetPath)
-    setFailedPath(null)
-
-    async function loadCode() {
-      try {
-        const response = await fetch(
-          `/api/block-code?block=${encodeURIComponent(
-            blockId
-          )}&file=${encodeURIComponent(targetPath)}`,
-          { signal: controller.signal }
-        )
-
-        if (!response.ok) {
-          throw new Error(`Failed to load ${targetPath}`)
-        }
-
-        const loadedCode = (await response.json()) as LoadedBlockCodeSample
-
-        setLoadedCodeByPath((current) => ({
-          ...current,
-          [targetPath]: loadedCode,
-        }))
-      } catch (error) {
-        if (controller.signal.aborted) return
-
-        console.error(error)
-        setFailedPath(targetPath)
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoadingPath((current) => (current === targetPath ? null : current))
-        }
-      }
-    }
-
-    void loadCode()
-
-    return () => controller.abort()
-  }, [activeCodeSample, activeLoadedCode, blockId])
 
   if (!activeCodeSample) {
     return (
@@ -518,107 +474,63 @@ function BlockCodePanel({
           <HugeiconsIcon icon={CodeIcon} className="size-4 opacity-70" />
           <span className="truncate">{activeCodeSample.targetPath}</span>
           <CopyButton
-            value={activeLoadedCode?.content ?? ""}
+            value={activeCodeSample.content}
             className="static ml-auto size-7 bg-transparent"
-            disabled={!activeLoadedCode}
             event="copy_block_code"
           />
         </div>
-        <BlockCodeContent
-          code={activeLoadedCode}
-          failed={failedPath === activeCodeSample.targetPath}
-          loading={
-            loadingPath === activeCodeSample.targetPath && !activeLoadedCode
-          }
-        />
+        <BlockCodeContent code={activeCodeSample} />
       </div>
     </div>
   )
 }
 
-function BlockCodeContent({
-  code,
-  failed,
-  loading,
-}: {
-  code?: LoadedBlockCodeSample
-  failed: boolean
-  loading: boolean
-}) {
-  if (loading) {
-    return (
-      <div className="grid min-h-0 flex-1 place-items-center text-sm text-code-foreground/72">
-        Loading source...
-      </div>
-    )
+function BlockCodeContent({ code }: { code: BlockCodeSample }) {
+  return <BlockDiffsCodeBlock code={code} />
+}
+
+function getBlockCodeCacheKey(code: BlockCodeSample) {
+  let hash = 0
+
+  for (let index = 0; index < code.content.length; index += 1) {
+    hash = (hash * 31 + code.content.charCodeAt(index)) | 0
   }
 
-  if (failed) {
-    return (
-      <div className="grid min-h-0 flex-1 place-items-center p-6 text-center text-sm text-code-foreground/72">
-        Unable to load this source file.
-      </div>
-    )
-  }
+  return `${code.targetPath}:${code.content.length}:${hash >>> 0}`
+}
 
-  if (!code) {
-    return <div className="min-h-0 flex-1" />
-  }
-
-  if (!code.highlightedContent) {
-    return <VirtualizedCodeBlock code={code.content} />
-  }
+function BlockDiffsCodeBlock({ code }: { code: BlockCodeSample }) {
+  const file = React.useMemo(
+    () => ({
+      name: code.targetPath,
+      contents: code.content,
+      cacheKey: getBlockCodeCacheKey(code),
+    }),
+    [code]
+  )
 
   return (
-    <figure
+    <PierreVirtualizer
       data-rehype-pretty-code-figure
-      className="m-0! min-h-0 flex-1 overflow-hidden"
+      className="no-scrollbar min-h-0 flex-1 overflow-x-auto overflow-y-auto overscroll-x-contain overscroll-y-auto bg-code text-code-foreground outline-none"
+      contentClassName="min-w-full"
     >
-      <div
+      <PierreCodeFile
         key={code.targetPath}
-        className="h-full [&_pre]:h-full [&_pre]:max-h-none"
-        dangerouslySetInnerHTML={{
-          __html: code.highlightedContent,
+        file={file}
+        className="block min-w-full"
+        style={BLOCK_CODE_FILE_THEME}
+        options={{
+          disableFileHeader: true,
+          overflow: "scroll",
+          theme: {
+            light: "pierre-light",
+            dark: "pierre-dark",
+          },
+          themeType: "system",
         }}
       />
-    </figure>
-  )
-}
-
-function VirtualizedCodeBlock({ code }: { code: string }) {
-  const parentRef = React.useRef<HTMLDivElement | null>(null)
-  const lines = React.useMemo(() => code.split("\n"), [code])
-  const lineVirtualizer = useVirtualizer({
-    count: lines.length,
-    estimateSize: () => 20,
-    getScrollElement: () => parentRef.current,
-    overscan: 32,
-  })
-
-  return (
-    <div
-      ref={parentRef}
-      data-rehype-pretty-code-figure
-      className="no-scrollbar min-h-0 flex-1 overflow-auto overscroll-contain bg-code text-[0.8rem] leading-5 text-code-foreground outline-none"
-    >
-      <div
-        className="relative min-w-max py-3.5 font-mono"
-        style={{ height: lineVirtualizer.getTotalSize() + 28 }}
-      >
-        {lineVirtualizer.getVirtualItems().map((virtualLine) => (
-          <div
-            key={virtualLine.key}
-            className="absolute top-0 left-0 flex min-w-full whitespace-pre"
-            style={{ transform: `translateY(${virtualLine.start + 14}px)` }}
-          >
-            <span className="w-12 shrink-0 pr-4 text-right text-code-foreground/45 select-none">
-              {virtualLine.index + 1}
-            </span>
-            <code className="pr-8">{lines[virtualLine.index] || " "}</code>
-          </div>
-        ))}
-      </div>
-    </div>
+    </PierreVirtualizer>
   )
 }
 

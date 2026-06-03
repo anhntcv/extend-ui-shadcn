@@ -1251,6 +1251,7 @@ export const PDFViewer = React.forwardRef<PDFViewerHandle, PDFViewerProps>(
               onLoadStart={handleLoadStart}
               onLoadSuccess={handleLoadSuccess}
               onLoadError={handleLoadError}
+              onItemClick={({ pageNumber }) => scrollToPage(pageNumber)}
             >
               <div className="flex h-full max-h-full min-h-0 w-full flex-1 overflow-hidden">
                 <DocumentViewerThumbnailSidebar
