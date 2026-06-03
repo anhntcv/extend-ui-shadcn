@@ -1,10 +1,10 @@
 ---
-title: CSV Viewer
-description: Spreadsheet-like previews for delimited files with sorting, filtering, typing, and large-file virtualization.
+title: React CSV Viewer
+description: A React CSV viewer component for spreadsheet-like previews of CSV and TSV files with upload, parsing, zoom, and large-table virtualization.
 component: true
 ---
 
-The CSV Viewer covers exports, imports, tabular logs, and datasets that do not need full spreadsheet rendering.
+The React CSV Viewer covers exports, imports, tabular logs, and datasets that need fast CSV or TSV previews without full spreadsheet rendering.
 
 <CsvViewerDemo />
 
@@ -28,8 +28,8 @@ Viewer through `next/dynamic` with `ssr: false`.
 import dynamic from "next/dynamic"
 
 const CsvViewer = dynamic(
-  () => import("@/components/ui/csv-viewer").then((mod) => mod.CsvViewer),
-  { ssr: false }
+() => import("@/components/ui/csv-viewer").then((mod) => mod.CsvViewer),
+{ ssr: false }
 )`}
 />
 
