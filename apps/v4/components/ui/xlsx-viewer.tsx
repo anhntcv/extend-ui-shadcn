@@ -8,6 +8,7 @@ import {
   useXlsxViewerZoom,
   XlsxViewer,
   XlsxViewerProvider,
+  type XlsxScrollerRenderProps,
   type XlsxTableHeaderMenuRenderProps,
 } from "@extend-ai/react-xlsx"
 import {
@@ -203,6 +204,20 @@ function ViewerLoadingSurface({
     <div className="grid h-full min-h-52 w-full min-w-full place-items-center bg-transparent">
       {showSpinner ? <Spinner className="size-4" /> : null}
     </div>
+  )
+}
+
+export function renderXlsxScroller({
+  children,
+  viewportProps,
+}: XlsxScrollerRenderProps) {
+  return (
+    <ScrollArea
+      className="h-full min-h-0 w-full min-w-0 flex-1"
+      viewportProps={viewportProps}
+    >
+      {children}
+    </ScrollArea>
   )
 }
 
@@ -718,6 +733,7 @@ export function XlsxWorkbookSurface({
               </div>
             }
             loadingState={<ViewerLoadingSurface />}
+            renderScroller={renderXlsxScroller}
             errorState={
               <div className="grid h-full w-full min-w-full place-items-center p-6 text-sm text-destructive">
                 {error?.message ?? "Unable to display workbook."}

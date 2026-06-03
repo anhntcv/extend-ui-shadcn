@@ -13,6 +13,7 @@ export function ScrollArea({
   scrollbarGutter = false,
   scrollbarOverflowOnly = false,
   viewportClassName,
+  viewportProps,
   viewportRef,
   ...props
 }: ScrollAreaPrimitive.Root.Props & {
@@ -21,8 +22,16 @@ export function ScrollArea({
   scrollbarGutter?: boolean
   scrollbarOverflowOnly?: boolean
   viewportClassName?: string
+  viewportProps?: ScrollAreaPrimitive.Viewport.Props
   viewportRef?: React.Ref<HTMLDivElement>
 }): React.ReactElement {
+  const {
+    className: viewportPropsClassName,
+    key: viewportKey,
+    ref: viewportPropsRef,
+    ...resolvedViewportProps
+  } = viewportProps ?? {}
+
   return (
     <ScrollAreaPrimitive.Root
       className={cn(
@@ -33,13 +42,16 @@ export function ScrollArea({
       {...props}
     >
       <ScrollAreaPrimitive.Viewport
-        ref={viewportRef}
+        key={viewportKey}
+        {...resolvedViewportProps}
+        ref={composeRefs(viewportPropsRef, viewportRef)}
         className={cn(
           "transition-shadows h-full rounded-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background data-has-overflow-x:overscroll-x-contain data-has-overflow-y:overscroll-y-contain",
           scrollFade &&
             "mask-t-from-[calc(100%-min(var(--fade-size),var(--scroll-area-overflow-y-start)))] mask-r-from-[calc(100%-min(var(--fade-size),var(--scroll-area-overflow-x-end)))] mask-b-from-[calc(100%-min(var(--fade-size),var(--scroll-area-overflow-y-end)))] mask-l-from-[calc(100%-min(var(--fade-size),var(--scroll-area-overflow-x-start)))] [--fade-size:1.5rem]",
           scrollbarGutter &&
             "data-has-overflow-x:pb-2.5 data-has-overflow-y:pe-2.5",
+          viewportPropsClassName,
           viewportClassName
         )}
         data-slot="scroll-area-viewport"
@@ -57,6 +69,21 @@ export function ScrollArea({
       ) : null}
     </ScrollAreaPrimitive.Root>
   )
+}
+
+function composeRefs<T>(
+  ...refs: Array<React.Ref<T> | undefined>
+): React.RefCallback<T> {
+  return (node) => {
+    refs.forEach((ref) => {
+      if (!ref) return
+      if (typeof ref === "function") {
+        ref(node)
+        return
+      }
+      ref.current = node
+    })
+  }
 }
 
 export function ScrollBar({

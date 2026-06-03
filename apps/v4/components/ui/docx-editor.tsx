@@ -73,6 +73,7 @@ import {
 } from "@/components/ui/document-viewer-sidebar"
 import { FileThumbnail } from "@/components/ui/file-thumbnail"
 import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Select,
   SelectContent,
@@ -892,7 +893,7 @@ function DocxEditorToolbar({
   )
 
   return (
-    <div className="border-b bg-background">
+    <div className="bg-background">
       <TooltipProvider>
         <div className="flex min-h-11 items-center gap-2 overflow-x-auto overflow-y-hidden border-b px-3">
           <ToolbarIconButton
@@ -1909,11 +1910,10 @@ function DocxEditorContent({
           inline={sidebarInline}
           open={thumbnailSidebarOpen}
         >
-          <div
-            className={cn(
-              "h-full overscroll-contain",
-              thumbnailSidebarOpen ? "overflow-auto" : "overflow-hidden"
-            )}
+          <ScrollArea
+            className="h-full"
+            scrollFade
+            viewportClassName="overscroll-contain"
           >
             <div className="p-4">
               {isLoadingDocument ? (
@@ -1962,15 +1962,13 @@ function DocxEditorContent({
                 </div>
               )}
             </div>
-          </div>
+          </ScrollArea>
         </DocumentViewerThumbnailSidebar>
-        <div
-          ref={viewportRef}
-          className={cn(
-            "min-h-0 flex-1 overflow-auto overscroll-contain p-4",
-            rounded && "rounded-b-lg"
-          )}
+        <ScrollArea
+          className={cn("min-h-0 flex-1", rounded && "rounded-b-lg")}
           style={{ backgroundColor: viewerBackgroundColor }}
+          viewportClassName="overscroll-contain p-4"
+          viewportRef={viewportRef}
         >
           {!url && !uploadedDocxFile ? (
             <div className="grid h-full min-h-96 place-items-center p-6 text-center">
@@ -2026,7 +2024,7 @@ function DocxEditorContent({
               </div>
             </div>
           )}
-        </div>
+        </ScrollArea>
       </div>
     </div>
   )

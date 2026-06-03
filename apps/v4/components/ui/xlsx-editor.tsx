@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
 import {
+  renderXlsxScroller,
   useControllableDarkMode,
   WorkbookSheetTabs,
   WorkbookTableHeaderMenu,
@@ -506,6 +507,7 @@ export function XlsxEditorSurface({
               </div>
             }
             loadingState={<EditorLoadingSurface />}
+            renderScroller={renderXlsxScroller}
             errorState={
               <div className="grid h-full w-full min-w-full place-items-center p-6 text-sm text-destructive">
                 {error?.message ?? "Unable to edit workbook."}

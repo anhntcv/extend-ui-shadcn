@@ -26,6 +26,7 @@ import {
   useInlineThumbnailSidebar,
 } from "@/components/ui/document-viewer-sidebar"
 import { FileThumbnail } from "@/components/ui/file-thumbnail"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Select,
   SelectContent,
@@ -775,7 +776,7 @@ function DocxViewerContent({
           inline={sidebarInline}
           open={Boolean(sidebarOpen && (pageCount || isLoadingDocument))}
         >
-          <div className="h-full overflow-auto">
+          <ScrollArea className="h-full" scrollFade>
             <div className="p-4">
               {isLoadingDocument ? (
                 <>
@@ -823,15 +824,13 @@ function DocxViewerContent({
                 </div>
               )}
             </div>
-          </div>
+          </ScrollArea>
         </DocumentViewerThumbnailSidebar>
-        <div
-          ref={viewportRef}
-          className={cn(
-            "min-h-0 flex-1 overflow-auto p-4",
-            rounded && "rounded-b-lg"
-          )}
+        <ScrollArea
+          className={cn("min-h-0 flex-1", rounded && "rounded-b-lg")}
           style={{ backgroundColor: viewerBackgroundColor }}
+          viewportClassName="p-4"
+          viewportRef={viewportRef}
         >
           {!url && !uploadedDocxFile ? (
             <div className="grid h-full min-h-96 place-items-center p-6 text-center">
@@ -884,7 +883,7 @@ function DocxViewerContent({
               </div>
             </div>
           )}
-        </div>
+        </ScrollArea>
       </div>
     </div>
   )
