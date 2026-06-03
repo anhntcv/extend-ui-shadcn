@@ -1,6 +1,9 @@
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
+export const EXTEND_DEPLOY_CTA_HREF =
+  "https://www.extend.ai?utm_source=extend-ui"
+
 export function ExtendDeployCta({ className }: React.ComponentProps<"div">) {
   return (
     <div
@@ -23,7 +26,7 @@ export function ExtendDeployCta({ className }: React.ComponentProps<"div">) {
         Deploy now
       </Button>
       <a
-        href="https://www.extend.ai?utm_source=extend-ui"
+        href={EXTEND_DEPLOY_CTA_HREF}
         target="_blank"
         rel="noreferrer"
         className="absolute inset-0"

@@ -5,6 +5,7 @@ import { siteConfig } from "@/lib/config"
 import { source } from "@/lib/source"
 import { Button } from "@/components/ui/button"
 import { CommandMenu } from "@/components/command-menu"
+import { EXTEND_DEPLOY_CTA_HREF } from "@/components/extend-deploy-cta"
 import { GitHubLink } from "@/components/github-link"
 import { Icons } from "@/components/icons"
 import { MainNav } from "@/components/main-nav"
@@ -37,6 +38,26 @@ export function SiteHeader() {
           </Button>
           <MainNav items={siteConfig.navItems} className="hidden lg:flex" />
           <div className="ml-auto flex items-center gap-2 md:flex-1 md:justify-end">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="hidden h-8 shadow-none md:flex"
+              render={
+                <Link
+                  href={EXTEND_DEPLOY_CTA_HREF}
+                  target="_blank"
+                  rel="noreferrer"
+                />
+              }
+            >
+              <span className="whitespace-nowrap text-xs text-muted-foreground">
+                Built by Extend AI
+              </span>
+            </Button>
+            <Separator
+              orientation="vertical"
+              className="mr-2 hidden h-4 self-center md:block"
+            />
             <div className="hidden w-full flex-1 md:flex md:w-auto md:flex-none">
               <CommandMenu
                 tree={pageTree}

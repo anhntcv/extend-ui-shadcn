@@ -178,9 +178,6 @@ export default async function Page(props: {
             <DocsTableOfContents toc={doc.toc} />
           </div>
         ) : null}
-        <div className="hidden flex-1 flex-col gap-6 px-6 xl:flex">
-          <ExtendDeployCta />
-        </div>
       </div>
     </div>
   )

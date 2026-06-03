@@ -178,7 +178,7 @@ export function DocsCopyPage({ page, url }: { page: string; url: string }) {
 
   return (
     <>
-      <Group className="hidden rounded-lg bg-secondary sm:flex">
+      <Group className="hidden rounded-lg sm:flex">
         <Button
           variant="secondary"
           size="sm"
@@ -205,7 +205,7 @@ export function DocsCopyPage({ page, url }: { page: string; url: string }) {
       </Group>
 
       <Popover>
-        <Group className="flex rounded-lg bg-secondary sm:hidden">
+        <Group className="flex rounded-lg sm:hidden">
           <Button
             variant="secondary"
             size="sm"
