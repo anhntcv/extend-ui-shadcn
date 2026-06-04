@@ -11,8 +11,8 @@ import { CodeCollapsibleWrapper } from "@/components/code-collapsible-wrapper"
 import { CodeTabs } from "@/components/code-tabs"
 import { ComponentsList } from "@/components/components-list"
 import { CopyButton } from "@/components/copy-button"
-import { DocsMdxCodeBlock } from "@/components/docs-code-block"
 import { CsvViewerDemo, CsvViewerSource } from "@/components/csv-viewer-docs"
+import { DocsMdxCodeBlock } from "@/components/docs-code-block"
 import {
   DocumentSplitsDemo,
   DocumentSplitsSource,
@@ -36,6 +36,10 @@ import {
 import { getIconForLanguageExtension } from "@/components/icons"
 import { OcrBlocksDemo, OcrBlocksSource } from "@/components/ocr-blocks-docs"
 import { PdfViewerDemo, PdfViewerSource } from "@/components/pdf-viewer-docs"
+import {
+  SchemaBuilderDemo,
+  SchemaBuilderSource,
+} from "@/components/schema-builder-docs"
 import { XlsxEditorDemo, XlsxEditorSource } from "@/components/xlsx-editor-docs"
 import { XlsxViewerDemo, XlsxViewerSource } from "@/components/xlsx-viewer-docs"
 import {
@@ -396,6 +400,8 @@ export const mdxComponents = {
   FileUploadSource,
   HumanReviewDemo,
   HumanReviewSource,
+  SchemaBuilderDemo,
+  SchemaBuilderSource,
   OcrBlocksDemo,
   OcrBlocksSource,
   PdfViewerDemo,

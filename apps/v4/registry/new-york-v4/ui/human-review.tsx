@@ -107,36 +107,6 @@ export type ReviewMetadataEntry = {
 const DEFAULT_ZOOM = 0.75
 const REVIEW_HIGHLIGHT_STYLE =
   "border-blue-500/70 bg-blue-500/12 shadow-[0_4px_16px_rgb(59_130_246_/_10%)]"
-const DIFF_VIEWER_THEME = {
-  "--diffs-light-bg": "oklch(0.985 0.002 247)",
-  "--diffs-dark-bg": "oklch(0.18 0.003 247)",
-  "--diffs-light": "oklch(0.22 0.01 247)",
-  "--diffs-dark": "oklch(0.92 0.006 247)",
-  "--diffs-bg-context-override":
-    "light-dark(oklch(0.967 0.003 247), oklch(0.235 0.004 247))",
-  "--diffs-bg-context-gutter-override":
-    "light-dark(oklch(0.948 0.004 247), oklch(0.205 0.004 247))",
-  "--diffs-bg-separator-override":
-    "light-dark(oklch(0.94 0.004 247), oklch(0.255 0.005 247))",
-  "--diffs-bg-buffer-override":
-    "light-dark(oklch(0.955 0.004 247), oklch(0.225 0.004 247))",
-  "--diffs-light-addition-color": "oklch(0.54 0.13 158)",
-  "--diffs-dark-addition-color": "oklch(0.72 0.13 158)",
-  "--diffs-light-deletion-color": "oklch(0.55 0.16 28)",
-  "--diffs-dark-deletion-color": "oklch(0.72 0.14 28)",
-  "--diffs-bg-addition-override":
-    "light-dark(oklch(0.957 0.032 158), oklch(0.255 0.052 158))",
-  "--diffs-bg-addition-emphasis-override":
-    "light-dark(oklch(0.88 0.06 158), oklch(0.36 0.08 158))",
-  "--diffs-bg-deletion-override":
-    "light-dark(oklch(0.958 0.03 28), oklch(0.255 0.047 28))",
-  "--diffs-bg-deletion-emphasis-override":
-    "light-dark(oklch(0.9 0.052 28), oklch(0.36 0.075 28))",
-  "--diffs-fg-number-override":
-    "light-dark(oklch(0.56 0.018 247), oklch(0.66 0.012 247))",
-  "--diffs-font-size": "12px",
-  "--diffs-line-height": "20px",
-} as React.CSSProperties
 
 function readIsDarkTheme() {
   return (
@@ -2053,13 +2023,12 @@ export function JsonDiffView({
 
   return (
     <Virtualizer
-      className="h-full overflow-auto rounded-b-xl bg-surface/60"
+      className="h-full overflow-auto bg-surface/60"
       contentClassName="min-w-full"
     >
       <div className="human-review-diff h-full text-xs">
         <MultiFileDiff
           className="block min-w-full"
-          style={DIFF_VIEWER_THEME}
           oldFile={oldFile}
           newFile={newFile}
           options={{

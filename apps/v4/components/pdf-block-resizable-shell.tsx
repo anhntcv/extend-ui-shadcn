@@ -110,34 +110,6 @@ export function PdfBlockResizableShell({
   rightMaxSize = 52,
   rightMinSize = 24,
 }: PdfBlockResizableShellProps) {
-  const [isMounted, setIsMounted] = React.useState(false)
-
-  React.useEffect(() => {
-    setIsMounted(true)
-  }, [])
-
-  if (!isMounted) {
-    return (
-      <PdfBlockResizableShellLayout
-        className={className}
-        heightClassName={heightClassName}
-        left={left}
-        leftDefaultSize={
-          leftDefaultSize ??
-          (initialOrientation === "horizontal" ? 100 - rightDefaultSize : 62)
-        }
-        leftMinSize={leftMinSize}
-        orientation={initialOrientation}
-        right={right}
-        rightDefaultSize={
-          initialOrientation === "horizontal" ? rightDefaultSize : 38
-        }
-        rightMaxSize={initialOrientation === "horizontal" ? rightMaxSize : 66}
-        rightMinSize={initialOrientation === "horizontal" ? rightMinSize : 24}
-      />
-    )
-  }
-
   return (
     <PdfBlockResizableShellWithSavedLayout
       autoSaveId={autoSaveId}

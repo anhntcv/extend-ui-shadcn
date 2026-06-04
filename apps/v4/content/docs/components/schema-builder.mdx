@@ -1,0 +1,85 @@
+---
+title: Schema Builder
+description: Build extraction schemas with a table editor and synchronized JSON view.
+component: true
+---
+
+Schema Builder provides a field table for defining extraction schema keys, JSON
+types, descriptions, enums, nested objects, and arrays.
+
+<SchemaBuilderDemo />
+
+## Installation
+
+<CodeTabs>
+
+<TabsList>
+  <TabsTrigger value="cli">Command</TabsTrigger>
+  <TabsTrigger value="manual">Manual</TabsTrigger>
+</TabsList>
+<TabsContent value="cli">
+
+```bash
+npx shadcn@latest add https://ui.extend.ai/r/schema-builder.json
+```
+
+</TabsContent>
+
+<TabsContent value="manual">
+
+<Steps className="mb-0 pt-2">
+
+<Step>Install the following dependencies:</Step>
+
+```bash
+npm install @dnd-kit/core@^6.3.1 @dnd-kit/sortable@^10.0.0 @dnd-kit/utilities@^3.2.2 @hugeicons/core-free-icons@^4.2.0 @hugeicons/react@^1.1.6 @pierre/diffs@^1.2.7 next-themes@0.4.6
+```
+
+<Step>Copy and paste the following code into your project.</Step>
+
+<SchemaBuilderSource />
+
+<Step>Update the import paths to match your project setup.</Step>
+
+</Steps>
+
+</TabsContent>
+
+</CodeTabs>
+
+## Useful behaviors
+
+- Form and JSON tabs share the same schema state.
+- Type selector includes scalar JSON types, enum, object, and array options.
+- Property keys can be reordered or dragged into and out of object and array object schemas.
+- Enum values can be reordered.
+- Enum rows support editable values and descriptions.
+- Object rows render a nested schema table below the parent row.
+- Array rows support object, enum, or scalar item types; object arrays render a nested item schema table and enum arrays render an enum table.
+- JSON view matches the app code block surface and follows the current light or dark theme.
+
+## API Reference
+
+### SchemaBuilderPanel
+
+The SchemaBuilderPanel component renders the editable schema table and a JSON view for the serialized schema.
+
+| Prop             | Type                                    | Default       | Required |
+| ---------------- | --------------------------------------- | ------------- | -------- |
+| `className`      | `string`                                | `-`           | No       |
+| `defaultSchema`  | `SchemaBuilderSchema`                   | sample schema | No       |
+| `schema`         | `SchemaBuilderSchema`                   | `-`           | No       |
+| `onSchemaChange` | `(schema: SchemaBuilderSchema) => void` | `-`           | No       |
+| `theme`          | `"light" \| "dark"`                     | app theme     | No       |
+
+### SchemaBuilderProperty
+
+| Prop          | Type                                 | Default | Required |
+| ------------- | ------------------------------------ | ------- | -------- |
+| `id`          | `string`                             | `-`     | Yes      |
+| `key`         | `string`                             | `-`     | Yes      |
+| `type`        | `SchemaBuilderFieldType`             | `-`     | Yes      |
+| `description` | `string`                             | `-`     | Yes      |
+| `enumValues`  | `SchemaBuilderEnumValue[]`           | `-`     | No       |
+| `properties`  | `SchemaBuilderProperty[]`            | `-`     | No       |
+| `items`       | `{ type; properties?; enumValues? }` | `-`     | No       |

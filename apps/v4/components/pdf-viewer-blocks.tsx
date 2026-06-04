@@ -73,6 +73,7 @@ const blockViewportSizes: Array<{
 ]
 
 const BLOCK_VIEWPORT_HEIGHT_CLASS = "h-[680px]"
+const BLOCK_PREVIEW_LAZY_ROOT_MARGIN = "900px 0px"
 
 const OcrBlocksBlock = dynamic(
   () =>
@@ -125,36 +126,25 @@ function PdfViewerBlockPreview({
   const [previewKey, setPreviewKey] = React.useState(0)
   const [view, setView] = React.useState<BlockView>("preview")
   const [hasOpenedCode, setHasOpenedCode] = React.useState(false)
+  const [codeScrollResetKey, setCodeScrollResetKey] = React.useState(0)
   const [activeViewport, setActiveViewport] =
     React.useState<BlockViewportSize>("desktop")
   const [isCommandCopied, setIsCommandCopied] = React.useState(false)
   const [activeFile, setActiveFile] = React.useState<string | null>(
     codeSamples[0]?.targetPath ?? null
   )
+  const [articleRef, shouldMountPreview] = useLazyBlockPreview()
   const isMounted = useMounted()
   const previewPanelRef = React.useRef<PanelImperativeHandle>(null)
-  const codePanelMountFrameRef = React.useRef<number | null>(null)
   const Preview = block.component
   const isDesktopViewport = useMediaQuery("(min-width: 768px)")
   const previewHeightClassName =
     block.previewHeightClassName ?? BLOCK_VIEWPORT_HEIGHT_CLASS
 
-  const scheduleCodePanelMount = React.useCallback(() => {
-    if (hasOpenedCode || codePanelMountFrameRef.current !== null) return
-
-    codePanelMountFrameRef.current = window.requestAnimationFrame(() => {
-      codePanelMountFrameRef.current = window.requestAnimationFrame(() => {
-        codePanelMountFrameRef.current = null
-        setHasOpenedCode(true)
-      })
-    })
-  }, [hasOpenedCode])
-
   function setBlockView(nextView: BlockView) {
-    if (nextView === "code" && !hasOpenedCode) {
-      setView(nextView)
-      scheduleCodePanelMount()
-      return
+    if (nextView === "code") {
+      setHasOpenedCode(true)
+      setCodeScrollResetKey((key) => key + 1)
     }
 
     setView(nextView)
@@ -165,14 +155,6 @@ function PdfViewerBlockPreview({
     setActiveViewport(viewport.id)
     previewPanelRef.current?.resize(`${viewport.panelSize}%`)
   }
-
-  React.useEffect(() => {
-    return () => {
-      if (codePanelMountFrameRef.current !== null) {
-        window.cancelAnimationFrame(codePanelMountFrameRef.current)
-      }
-    }
-  }, [])
 
   React.useEffect(() => {
     if (!isCommandCopied) return
@@ -210,7 +192,7 @@ function PdfViewerBlockPreview({
   }
 
   return (
-    <article id={block.id} className="scroll-mt-24 space-y-2">
+    <article ref={articleRef} id={block.id} className="scroll-mt-24 space-y-2">
       <div
         data-view={view}
         className="group/block-preview overflow-hidden rounded-xl"
@@ -313,7 +295,7 @@ function PdfViewerBlockPreview({
                   Preview={Preview}
                   isMounted={isMounted}
                   previewKey={previewKey}
-                  shouldRenderPreview={isDesktopViewport}
+                  shouldRenderPreview={isDesktopViewport && shouldMountPreview}
                 />
               </ResizablePanel>
               <ResizableHandle className="relative w-3 bg-transparent p-0 after:absolute after:top-1/2 after:right-0 after:h-8 after:w-1.5 after:-translate-y-1/2 after:rounded-full after:bg-background after:shadow-sm after:ring-1 after:ring-border after:transition-all after:hover:h-10" />
@@ -325,23 +307,54 @@ function PdfViewerBlockPreview({
               Preview={Preview}
               isMounted={isMounted}
               previewKey={previewKey}
-              shouldRenderPreview={!isDesktopViewport}
+              shouldRenderPreview={!isDesktopViewport && shouldMountPreview}
             />
           </div>
         </div>
-        {view === "code" && !hasOpenedCode ? <BlockCodePanelShell /> : null}
         {hasOpenedCode ? (
           <div className={view === "code" ? "block" : "hidden"}>
             <BlockCodePanel
               codeSamples={codeSamples}
               activeFile={activeFile}
               onActiveFileChange={setActiveFile}
+              scrollResetKey={codeScrollResetKey}
             />
           </div>
         ) : null}
       </div>
     </article>
   )
+}
+
+function useLazyBlockPreview() {
+  const [node, setNode] = React.useState<HTMLElement | null>(null)
+  const [shouldMountPreview, setShouldMountPreview] = React.useState(false)
+
+  React.useEffect(() => {
+    if (shouldMountPreview) return
+    if (!node) return
+
+    if (!("IntersectionObserver" in window)) {
+      setShouldMountPreview(true)
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return
+
+        setShouldMountPreview(true)
+        observer.disconnect()
+      },
+      { rootMargin: BLOCK_PREVIEW_LAZY_ROOT_MARGIN }
+    )
+
+    observer.observe(node)
+
+    return () => observer.disconnect()
+  }, [node, shouldMountPreview])
+
+  return [setNode, shouldMountPreview] as const
 }
 
 function BlockPreviewPlaceholder() {
@@ -403,31 +416,16 @@ const BlockPreviewSurface = React.memo(function BlockPreviewSurface({
   return <Preview key={previewKey} />
 })
 
-function BlockCodePanelShell() {
-  return (
-    <div
-      className={`flex ${BLOCK_VIEWPORT_HEIGHT_CLASS} overflow-hidden rounded-xl border bg-code text-code-foreground`}
-    >
-      <div className="hidden w-72 shrink-0 border-r bg-code md:block">
-        <div className="flex h-12 items-center border-b px-4 text-sm font-medium">
-          Files
-        </div>
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="h-12 border-b" />
-      </div>
-    </div>
-  )
-}
-
 function BlockCodePanel({
   codeSamples,
   activeFile,
   onActiveFileChange,
+  scrollResetKey,
 }: {
   codeSamples: BlockCodeSample[]
   activeFile: string | null
   onActiveFileChange: (file: string) => void
+  scrollResetKey: React.Key
 }) {
   const activeCodeSample =
     codeSamples.find((sample) => sample.targetPath === activeFile) ??
@@ -467,19 +465,30 @@ function BlockCodePanel({
             event="copy_block_code"
           />
         </div>
-        <BlockCodeContent code={activeCodeSample} />
+        <BlockCodeContent
+          code={activeCodeSample}
+          scrollResetKey={scrollResetKey}
+        />
       </div>
     </div>
   )
 }
 
-function BlockCodeContent({ code }: { code: BlockCodeSample }) {
+function BlockCodeContent({
+  code,
+  scrollResetKey,
+}: {
+  code: BlockCodeSample
+  scrollResetKey: React.Key
+}) {
   return (
     <HighlightedCodeBlock
-      key={code.targetPath}
       code={code.content}
       fileName={code.targetPath}
       language={code.language}
+      lazy={false}
+      renderFallbackCode
+      scrollResetKey={scrollResetKey}
       showCopy={false}
       className="min-h-0 flex-1 rounded-none border-0"
       maxHeightClassName="h-full max-h-none"

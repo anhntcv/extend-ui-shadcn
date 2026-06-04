@@ -1,0 +1,20 @@
+import { readFileSync } from "node:fs"
+import { join } from "node:path"
+
+import { DocsSourceCodeBlock } from "@/components/docs-code-block"
+
+export { SchemaBuilderDemo } from "@/components/schema-builder-demo"
+
+export function SchemaBuilderSource() {
+  const code = readFileSync(
+    join(process.cwd(), "registry/new-york-v4/ui/schema-builder.tsx"),
+    "utf8"
+  )
+
+  return (
+    <DocsSourceCodeBlock
+      code={code}
+      fileName="components/ui/schema-builder.tsx"
+    />
+  )
+}

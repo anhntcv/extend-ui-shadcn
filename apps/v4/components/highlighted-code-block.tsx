@@ -227,6 +227,12 @@ function handleCodeBlockWheel(event: WheelEvent, container: HTMLElement) {
   })
 }
 
+function resetCodeBlockScroll(container: HTMLElement | null) {
+  container
+    ?.querySelector<HTMLElement>(".no-scrollbar")
+    ?.scrollTo({ top: 0, left: 0, behavior: "auto" })
+}
+
 export function HighlightedCodeBlock({
   code,
   className,
@@ -238,6 +244,7 @@ export function HighlightedCodeBlock({
   previewLines,
   renderFallbackCode = false,
   showCopy = true,
+  scrollResetKey,
 }: {
   code: string
   className?: string
@@ -249,6 +256,7 @@ export function HighlightedCodeBlock({
   previewLines?: number
   renderFallbackCode?: boolean
   showCopy?: boolean
+  scrollResetKey?: React.Key
 }) {
   const [isVisible, setIsVisible] = React.useState(!lazy)
   const [renderedCodeKey, setRenderedCodeKey] = React.useState<string | null>(
@@ -256,6 +264,7 @@ export function HighlightedCodeBlock({
   )
   const codeThemeType = useCodeThemeType()
   const containerRef = React.useRef<HTMLDivElement | null>(null)
+  const pendingScrollResetKeyRef = React.useRef<string | null>(null)
   const visibleCode = React.useMemo(() => {
     return getPreviewCode(code, previewLines)
   }, [code, previewLines])
@@ -272,9 +281,40 @@ export function HighlightedCodeBlock({
     [fileName, language, visibleCode]
   )
   const codeRenderKey = `${file.cacheKey}:${codeThemeType}`
+  const virtualizerKey =
+    scrollResetKey === undefined
+      ? codeRenderKey
+      : `${codeRenderKey}:${String(scrollResetKey)}`
   const hasRenderedCode = renderedCodeKey === codeRenderKey
   const shouldShowFallback =
     renderFallbackCode && isVisible && !hasRenderedCode
+
+  React.useLayoutEffect(() => {
+    setRenderedCodeKey(null)
+    pendingScrollResetKeyRef.current = codeRenderKey
+
+    const container = containerRef.current
+
+    resetCodeBlockScroll(container)
+    const frameId = window.requestAnimationFrame(() => {
+      resetCodeBlockScroll(container)
+    })
+
+    return () => window.cancelAnimationFrame(frameId)
+  }, [codeRenderKey])
+
+  React.useLayoutEffect(() => {
+    if (scrollResetKey === undefined) return
+
+    const container = containerRef.current
+
+    resetCodeBlockScroll(container)
+    const frameId = window.requestAnimationFrame(() => {
+      resetCodeBlockScroll(container)
+    })
+
+    return () => window.cancelAnimationFrame(frameId)
+  }, [scrollResetKey])
 
   const fileOptions = React.useMemo(
     () => ({
@@ -287,6 +327,13 @@ export function HighlightedCodeBlock({
       themeType: codeThemeType,
       onPostRender: (fileContainer: HTMLElement) => {
         syncVirtualizerBuffers(fileContainer, lastRenderableLineIndex)
+        if (pendingScrollResetKeyRef.current === codeRenderKey) {
+          resetCodeBlockScroll(containerRef.current)
+          window.requestAnimationFrame(() => {
+            resetCodeBlockScroll(containerRef.current)
+          })
+          pendingScrollResetKeyRef.current = null
+        }
         setRenderedCodeKey(codeRenderKey)
       },
       unsafeCSS: CODE_FILE_UNSAFE_CSS,
@@ -375,6 +422,7 @@ export function HighlightedCodeBlock({
             highlighterOptions={CODE_HIGHLIGHTER_OPTIONS}
           >
             <Virtualizer
+              key={virtualizerKey}
               className={cn(
                 "no-scrollbar min-w-0 overflow-x-auto overflow-y-auto overscroll-contain outline-none",
                 maxHeightClassName
@@ -382,6 +430,7 @@ export function HighlightedCodeBlock({
               contentClassName="min-w-full"
             >
               <File
+                key={codeRenderKey}
                 file={file}
                 metrics={CODE_VIRTUAL_FILE_METRICS}
                 style={CODE_FILE_THEME}
