@@ -2430,7 +2430,10 @@ export function SchemaBuilderPanel({
         <ScrollArea className="h-full" scrollFade>
           <DndContext
             id={`schema-builder-${dndContextId}`}
-            autoScroll={false}
+            autoScroll={{
+              threshold: { x: 0.05, y: 0.14 },
+              acceleration: 8,
+            }}
             sensors={sensors}
             collisionDetection={schemaCollisionDetection}
             measuring={SCHEMA_DND_MEASURING}
