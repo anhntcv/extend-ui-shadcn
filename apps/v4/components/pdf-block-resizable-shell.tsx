@@ -8,6 +8,7 @@ import {
 } from "react-resizable-panels"
 
 import { cn } from "@/lib/utils"
+import { useMounted } from "@/hooks/use-mounted"
 import {
   ResizableHandle,
   ResizablePanel,
@@ -76,25 +77,40 @@ function useElementWidth<T extends HTMLElement>() {
   return [setNode, width] as const
 }
 
-const layoutStorage: LayoutStorage = {
-  getItem(key) {
-    if (typeof window === "undefined") return null
+function getSavedLayout(key: string) {
+  if (typeof window === "undefined") return null
 
-    try {
-      return window.localStorage.getItem(key)
-    } catch {
-      return null
-    }
-  },
-  setItem(key, value) {
-    if (typeof window === "undefined") return
+  try {
+    return window.localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
 
-    try {
-      window.localStorage.setItem(key, value)
-    } catch {
-      // Ignore storage failures so previews still render in restricted contexts.
-    }
-  },
+function setSavedLayout(key: string, value: string) {
+  if (typeof window === "undefined") return
+
+  try {
+    window.localStorage.setItem(key, value)
+  } catch {
+    // Ignore storage failures so previews still render in restricted contexts.
+  }
+}
+
+function useHydrationSafeLayoutStorage() {
+  const mounted = useMounted()
+
+  return React.useMemo<LayoutStorage>(
+    () => ({
+      getItem(key) {
+        return mounted ? getSavedLayout(key) : null
+      },
+      setItem(key, value) {
+        if (mounted) setSavedLayout(key, value)
+      },
+    }),
+    [mounted]
+  )
 }
 
 export function PdfBlockResizableShell({
@@ -142,6 +158,7 @@ function PdfBlockResizableShellWithSavedLayout({
 }: Required<Pick<PdfBlockResizableShellProps, "autoSaveId">> &
   Omit<PdfBlockResizableShellProps, "autoSaveId">) {
   const [containerRef, containerWidth] = useElementWidth<HTMLDivElement>()
+  const layoutStorage = useHydrationSafeLayoutStorage()
   const isHorizontal =
     containerWidth === undefined
       ? initialOrientation === "horizontal"
