@@ -11,7 +11,6 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { useDocsSearch } from "fumadocs-core/search/client"
 
 import { type ColorPalette } from "@/lib/colors"
-import { siteConfig } from "@/lib/config"
 import { trackEvent } from "@/lib/events"
 import { showMcpDocs } from "@/lib/flags"
 import { getCurrentBase, getPagesFromFolder } from "@/lib/page-tree"
@@ -20,7 +19,6 @@ import { cn } from "@/lib/utils"
 import { useConfig } from "@/hooks/use-config"
 import { useMutationObserver } from "@/hooks/use-mutation-observer"
 import { Button } from "@/components/ui/button"
-import { copyToClipboardWithMeta } from "@/components/copy-button"
 import {
   Command,
   CommandEmpty,
@@ -39,21 +37,23 @@ import {
 } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
+import { copyToClipboardWithMeta } from "@/components/copy-button"
 
-function getRegistryItemUrl(name: string) {
-  return `${siteConfig.url}/r/${name}.json`
+function getRegistryItemSpecifier(name: string) {
+  return `@extend/${name}`
 }
 
 function getShadcnAddCommand(
   packageManager: "npm" | "yarn" | "pnpm" | "bun",
   itemName: string
 ) {
-  const itemUrl = getRegistryItemUrl(itemName)
+  const itemSpecifier = getRegistryItemSpecifier(itemName)
 
-  if (packageManager === "npm") return `npx shadcn@latest add ${itemUrl}`
-  if (packageManager === "bun") return `bunx --bun shadcn@latest add ${itemUrl}`
+  if (packageManager === "npm") return `npx shadcn@latest add ${itemSpecifier}`
+  if (packageManager === "bun")
+    return `bunx --bun shadcn@latest add ${itemSpecifier}`
 
-  return `${packageManager} dlx shadcn@latest add ${itemUrl}`
+  return `${packageManager} dlx shadcn@latest add ${itemSpecifier}`
 }
 
 export function CommandMenu({

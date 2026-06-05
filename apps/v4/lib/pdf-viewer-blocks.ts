@@ -1,5 +1,3 @@
-import { siteConfig } from "@/lib/config"
-
 type PdfViewerBlockConfig = {
   id: string
   title: string
@@ -13,7 +11,7 @@ type PdfViewerBlockConfig = {
 }
 
 function getRegistryAddCommand(name: string) {
-  return `npx shadcn@latest add ${siteConfig.url}/r/${name}.json`
+  return `pnpm dlx shadcn@latest add @extend/${name}`
 }
 
 export const PDF_VIEWER_BLOCKS = [

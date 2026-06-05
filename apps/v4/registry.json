@@ -522,11 +522,7 @@
         "@hugeicons/react@^1.1.6",
         "border-beam@^1.0.1"
       ],
-      "registryDependencies": [
-        "card",
-        "https://ui.extend.ai/r/file-thumbnail.json",
-        "utils"
-      ],
+      "registryDependencies": ["card", "@extend/file-thumbnail", "utils"],
       "categories": ["documents"],
       "files": [
         {
@@ -565,8 +561,8 @@
       ],
       "registryDependencies": [
         "button",
-        "https://ui.extend.ai/r/document-viewer-sidebar.json",
-        "https://ui.extend.ai/r/file-thumbnail.json",
+        "@extend/document-viewer-sidebar",
+        "@extend/file-thumbnail",
         "input",
         "popover",
         "scroll-area",
@@ -596,8 +592,8 @@
       ],
       "registryDependencies": [
         "button",
-        "https://ui.extend.ai/r/document-viewer-sidebar.json",
-        "https://ui.extend.ai/r/file-thumbnail.json",
+        "@extend/document-viewer-sidebar",
+        "@extend/file-thumbnail",
         "scroll-area",
         "select",
         "separator",
@@ -627,9 +623,9 @@
       ],
       "registryDependencies": [
         "button",
-        "https://ui.extend.ai/r/document-viewer-sidebar.json",
+        "@extend/document-viewer-sidebar",
         "dropdown-menu",
-        "https://ui.extend.ai/r/file-thumbnail.json",
+        "@extend/file-thumbnail",
         "input",
         "scroll-area",
         "select",
@@ -689,7 +685,7 @@
       ],
       "registryDependencies": [
         "button",
-        "https://ui.extend.ai/r/group.json",
+        "@extend/group",
         "input",
         "scroll-area",
         "select",
@@ -697,7 +693,7 @@
         "spinner",
         "tooltip",
         "utils",
-        "https://ui.extend.ai/r/xlsx-viewer.json"
+        "@extend/xlsx-viewer"
       ],
       "categories": ["documents"],
       "files": [
@@ -743,10 +739,7 @@
       "title": "PDF Dropzone",
       "description": "A PDF-only upload dropzone that opens the dropped file in the shared PDF viewer.",
       "dependencies": ["@hugeicons/core-free-icons@^4.2.0"],
-      "registryDependencies": [
-        "https://ui.extend.ai/r/file-upload.json",
-        "https://ui.extend.ai/r/pdf-viewer.json"
-      ],
+      "registryDependencies": ["@extend/file-upload", "@extend/pdf-viewer"],
       "categories": ["documents", "blocks"],
       "files": [
         {
@@ -786,9 +779,9 @@
       "title": "OCR Blocks",
       "description": "A structured OCR review block with confidence cards and PDF region overlays.",
       "registryDependencies": [
-        "https://ui.extend.ai/r/ocr-blocks.json",
-        "https://ui.extend.ai/r/pdf-block-resizable-shell.json",
-        "https://ui.extend.ai/r/pdf-viewer.json"
+        "@extend/ocr-blocks",
+        "@extend/pdf-block-resizable-shell",
+        "@extend/pdf-viewer"
       ],
       "categories": ["documents", "blocks"],
       "files": [
@@ -813,8 +806,8 @@
       "registryDependencies": [
         "button",
         "dialog",
-        "https://ui.extend.ai/r/pdf-block-resizable-shell.json",
-        "https://ui.extend.ai/r/pdf-viewer.json",
+        "@extend/pdf-block-resizable-shell",
+        "@extend/pdf-viewer",
         "scroll-area",
         "utils"
       ],
@@ -892,9 +885,9 @@
       "title": "Human Review",
       "description": "A human-in-the-loop extraction review block linked to source PDF evidence.",
       "registryDependencies": [
-        "https://ui.extend.ai/r/human-review.json",
-        "https://ui.extend.ai/r/pdf-block-resizable-shell.json",
-        "https://ui.extend.ai/r/pdf-viewer.json"
+        "@extend/human-review",
+        "@extend/pdf-block-resizable-shell",
+        "@extend/pdf-viewer"
       ],
       "categories": ["documents", "blocks"],
       "files": [
@@ -919,7 +912,7 @@
       ],
       "registryDependencies": [
         "button",
-        "https://ui.extend.ai/r/file-thumbnail.json",
+        "@extend/file-thumbnail",
         "scroll-area",
         "utils"
       ],
@@ -938,9 +931,9 @@
       "title": "Document Splits",
       "description": "A split-group review block for organizing PDF pages into output documents.",
       "registryDependencies": [
-        "https://ui.extend.ai/r/document-splits.json",
-        "https://ui.extend.ai/r/pdf-block-resizable-shell.json",
-        "https://ui.extend.ai/r/pdf-viewer.json"
+        "@extend/document-splits",
+        "@extend/pdf-block-resizable-shell",
+        "@extend/pdf-viewer"
       ],
       "categories": ["documents", "blocks"],
       "files": [
@@ -957,11 +950,11 @@
       "title": "Excel Document Splits",
       "description": "A workbook review block with sheet groups and the shared XLSX viewer.",
       "registryDependencies": [
-        "https://ui.extend.ai/r/file-thumbnail.json",
-        "https://ui.extend.ai/r/pdf-block-resizable-shell.json",
+        "@extend/file-thumbnail",
+        "@extend/pdf-block-resizable-shell",
         "scroll-area",
         "utils",
-        "https://ui.extend.ai/r/xlsx-viewer.json"
+        "@extend/xlsx-viewer"
       ],
       "categories": ["documents", "blocks"],
       "files": [
@@ -977,7 +970,7 @@
       "type": "registry:block",
       "title": "DOCX Editor",
       "description": "A full DOCX editor block with a Word-style toolbar, page thumbnails, and export controls.",
-      "registryDependencies": ["https://ui.extend.ai/r/docx-editor.json"],
+      "registryDependencies": ["@extend/docx-editor"],
       "categories": ["documents", "blocks"],
       "files": [
         {
