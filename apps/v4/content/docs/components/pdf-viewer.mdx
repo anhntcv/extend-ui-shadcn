@@ -20,7 +20,7 @@ The React PDF Viewer is the core page-based document surface for document-heavy 
 <TabsContent value="cli">
 
 ```bash
-pnpm dlx shadcn@latest add @extend/pdf-viewer
+npx shadcn@latest add @extend/pdf-viewer
 ```
 
 </TabsContent>
@@ -39,16 +39,15 @@ npm install @hugeicons/core-free-icons@^4.2.0 @hugeicons/react@^1.1.6 @tanstack/
 
 <PdfViewerSource />
 
-<Step>Add the React PDF text layer styles.</Step>
+<Step>Update the import paths to match your project setup.</Step>
 
-<DocsMdxCodeBlock
-  language="tsx"
-  copyButtonClassName="top-0.5"
-  code={`import "react-pdf/dist/Page/TextLayer.css"`}
-/>
+</Steps>
 
-<Step>Self-host PDF.js assets if your app cannot fetch from unpkg.</Step>
+</TabsContent>
 
+</CodeTabs>
+
+<Callout variant="info" title="Self-host PDF.js assets">
 The viewer uses version-matched PDF.js CMaps and standard fonts from unpkg by
 default so PDFs with CID fonts can render without extra setup. To avoid external
 asset requests, copy `pdfjs-dist/cmaps` and `pdfjs-dist/standard_fonts` into
@@ -67,13 +66,7 @@ your public assets and pass `documentOptions`.
 />`}
 />
 
-<Step>Update the import paths to match your project setup.</Step>
-
-</Steps>
-
-</TabsContent>
-
-</CodeTabs>
+</Callout>
 
 ## Useful behaviors
 

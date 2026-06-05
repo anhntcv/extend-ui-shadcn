@@ -724,7 +724,6 @@
         "tooltip"
       ],
       "categories": ["documents"],
-      "docs": "The component includes the critical Glide Data Grid layout CSS. For full editor/search overlay styling, also import @glideapps/glide-data-grid/dist/index.css from your app's global stylesheet or root layout.",
       "files": [
         {
           "path": "components/ui/csv-viewer.tsx",

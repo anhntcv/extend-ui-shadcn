@@ -22,6 +22,21 @@ export const transformers = [
           node.properties["__yarn__"] = raw.replace("npm install", "yarn add")
           node.properties["__pnpm__"] = raw.replace("npm install", "pnpm add")
           node.properties["__bun__"] = raw.replace("npm install", "bun add")
+        } else if (raw.startsWith("pnpm dlx")) {
+          node.properties["__npm__"] = raw.replace("pnpm dlx", "npx")
+          node.properties["__yarn__"] = raw.replace("pnpm dlx", "yarn dlx")
+          node.properties["__pnpm__"] = raw
+          node.properties["__bun__"] = raw.replace("pnpm dlx", "bunx --bun")
+        } else if (raw.startsWith("yarn dlx")) {
+          node.properties["__npm__"] = raw.replace("yarn dlx", "npx")
+          node.properties["__yarn__"] = raw
+          node.properties["__pnpm__"] = raw.replace("yarn dlx", "pnpm dlx")
+          node.properties["__bun__"] = raw.replace("yarn dlx", "bunx --bun")
+        } else if (raw.startsWith("bunx --bun")) {
+          node.properties["__npm__"] = raw.replace("bunx --bun", "npx")
+          node.properties["__yarn__"] = raw.replace("bunx --bun", "yarn dlx")
+          node.properties["__pnpm__"] = raw.replace("bunx --bun", "pnpm dlx")
+          node.properties["__bun__"] = raw
         } else if (raw.startsWith("npx create-")) {
           node.properties["__npm__"] = raw
           node.properties["__yarn__"] = raw.replace(

@@ -15,6 +15,8 @@ import { useVirtualizer } from "@tanstack/react-virtual"
 import type { PDFDocumentProxy } from "pdfjs-dist"
 import type * as ReactPdf from "react-pdf"
 
+import "react-pdf/dist/Page/TextLayer.css"
+
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -846,7 +848,9 @@ export const PDFViewer = React.forwardRef<PDFViewerHandle, PDFViewerProps>(
       () =>
         new Set(
           virtualPageNumbersKey
-            ? virtualPageNumbersKey.split(",").map((pageNumber) => Number(pageNumber))
+            ? virtualPageNumbersKey
+                .split(",")
+                .map((pageNumber) => Number(pageNumber))
             : []
         ),
       [virtualPageNumbersKey]

@@ -9,6 +9,9 @@ import type {
   Item,
   Theme,
 } from "@glideapps/glide-data-grid"
+
+import "@glideapps/glide-data-grid/dist/index.css"
+
 import {
   MinusSignCircleIcon,
   PlusSignCircleIcon,
@@ -26,8 +29,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Spinner } from "@/components/ui/spinner"
 import { Separator } from "@/components/ui/separator"
+import { Spinner } from "@/components/ui/spinner"
 import {
   Tooltip,
   TooltipContent,

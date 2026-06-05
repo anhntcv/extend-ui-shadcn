@@ -1,7 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "../node_modules/@glideapps/glide-data-grid/dist/index.css";
-@import "react-pdf/dist/Page/TextLayer.css";
 @import "./shadcn-tailwind.css";
 @import "./legacy-themes.css";
 
