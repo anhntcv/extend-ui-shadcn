@@ -8,7 +8,11 @@ import {
   PageHeaderDescription,
   PageHeaderHeading,
 } from "@/components/page-header"
-import { RootComponentsCollage } from "@/components/root-components-collage"
+import {
+  MobileRootPreview,
+  RootBlocksShowcase,
+  RootComponentsCollage,
+} from "@/components/root-components-collage"
 import { RootLiquidLogo } from "@/components/root-liquid-logo"
 
 const title = "UI components for document agents"
@@ -61,29 +65,30 @@ export default function IndexPage() {
           <Button
             size="sm"
             className="h-[31px] rounded-lg"
-            render={<Link href="/docs/components" />}
+            render={<Link href="/blocks" />}
           >
-            Browse Components
+            View full examples
           </Button>
           <Button
             size="sm"
             variant="ghost"
             className="rounded-lg"
-            render={<Link href="/blocks" />}
+            render={<Link href="/docs/components" />}
           >
-            View full examples
+            View components
           </Button>
         </PageActions>
       </PageHeader>
       <div className="container-wrapper flex-1 p-0">
         <div className="container overflow-hidden px-4 md:px-6 lg:max-w-none lg:px-8">
-          {/*
           <section className="-mx-2 w-[136vw] overflow-hidden md:hidden">
             <MobileRootPreview />
           </section>
-          */}
           <section>
             <RootComponentsCollage />
+          </section>
+          <section className="mt-12">
+            <RootBlocksShowcase />
           </section>
         </div>
       </div>
