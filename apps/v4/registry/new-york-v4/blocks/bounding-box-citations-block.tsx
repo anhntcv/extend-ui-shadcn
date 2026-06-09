@@ -19,7 +19,7 @@ import {
 import { PDFViewer, type PDFViewerHandle } from "@/components/ui/pdf-viewer"
 import { PdfBlockResizableShell } from "@/components/pdf-block-resizable-shell"
 
-const DEFAULT_ZOOM = 0.75
+const DEFAULT_ZOOM = 1
 
 export function HumanReviewBlock({
   file,

@@ -92,7 +92,7 @@ const SHEET_THUMBNAIL_WIDTH = 112
 const SHEET_THUMBNAIL_HEIGHT = 76
 const SHEET_THUMBNAIL_PREVIEW_CLASS_NAME =
   "size-full !aspect-auto bg-white [&>img]:!h-auto [&>img]:!w-full [&>img]:object-left-top"
-const DEFAULT_ZOOM = 0.75
+const DEFAULT_ZOOM = 1
 const DEFAULT_PREVIEW_PAGE_COUNT = 15
 const DEFAULT_PREVIEW_SHEET_COUNT = 8
 const DRAG_OVERLAY_DROP_ANIMATION = null

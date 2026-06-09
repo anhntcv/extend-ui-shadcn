@@ -41,7 +41,7 @@ type SignatureField = {
 
 const PAGE_WIDTH = 612
 const PAGE_HEIGHT = 792
-const DEFAULT_ZOOM = 0.75
+const DEFAULT_ZOOM = 1
 const SIGNATURE_PAD_PADDING = 8
 const SIGNATURE_PAD_BACKGROUND_COLOR = "#ffffff"
 const SIGNATURE_PAD_PEN_COLOR = "#000000"

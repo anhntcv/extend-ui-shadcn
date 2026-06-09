@@ -94,7 +94,7 @@ type HighlightArea = {
 }
 
 const PDF_URL = "/samples/attention-rotated.pdf"
-const DEFAULT_ZOOM = 0.75
+const DEFAULT_ZOOM = 1
 const ROOT_OCR_PREVIEW_PAGE = 1
 const OCR_BLOCK_ROW_MIN_ESTIMATE = 92
 const OCR_BLOCK_ROW_VERTICAL_CHROME = 62

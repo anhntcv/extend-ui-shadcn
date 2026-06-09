@@ -508,7 +508,7 @@ function DocxViewerContent({
     thumbnailEditor,
     thumbnailOptions
   )
-  const [zoomScale, setZoomScale] = React.useState(50)
+  const [zoomScale, setZoomScale] = React.useState(100)
   const [loadError, setLoadError] = React.useState<string>()
   const [isLoadingDocument, setIsLoadingDocument] = React.useState(true)
   const shouldShowDocumentSpinner = useDelayedLoadingIndicator(
@@ -532,7 +532,7 @@ function DocxViewerContent({
   useSuppressDocxPaddingWarning(!isLoadingDocument && !loadError)
 
   React.useEffect(() => {
-    setZoomScale(50)
+    setZoomScale(100)
     setActivePage(1)
     viewportRef.current?.scrollTo({ top: 0, left: 0 })
   }, [url])
@@ -679,7 +679,7 @@ function DocxViewerContent({
 
     if (!file) return
 
-    setZoomScale(50)
+    setZoomScale(100)
     setActivePage(1)
     setReportedPageCount(0)
     setUploadedDocxFile({

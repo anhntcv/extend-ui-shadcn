@@ -7,7 +7,7 @@ import { PDFViewer } from "@/components/ui/pdf-viewer"
 import { FileUpload } from "@/components/file-upload-docs"
 
 const PDF_ACCEPT = "application/pdf,.pdf"
-const DEFAULT_ZOOM = 0.75
+const DEFAULT_ZOOM = 1
 const PDF_UPLOAD_DROPZONE_SELECTOR = "[data-pdf-upload-dropzone]"
 
 function isPdfFile(file: File) {

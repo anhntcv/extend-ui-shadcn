@@ -101,7 +101,7 @@ const DOCX_MIME_TYPE =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 const DOCX_LOADING_INDICATOR_DELAY_MS = 300
 const DOCX_THUMBNAIL_WIDTH = 92
-const DOCX_EDITOR_DEFAULT_ZOOM_SCALE = 75
+const DOCX_EDITOR_DEFAULT_ZOOM_SCALE = 100
 const ZOOM_OPTIONS = [50, 75, 90, 100, 110, 125, 150, 175, 200] as const
 const FONT_FAMILIES = [
   "Calibri",

@@ -71,7 +71,7 @@ export function DocumentSplitsBlock({
         <PDFViewer
           ref={viewerRef}
           file={pdfFile}
-          defaultZoom={0.75}
+          defaultZoom={1}
           onDocumentLoadSuccess={handleDocumentLoadSuccess}
           onPdfUpload={handlePdfUpload}
         />

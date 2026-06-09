@@ -136,7 +136,7 @@ export type PDFViewerProps = {
 
 const DEFAULT_PAGE_WIDTH = 612
 const DEFAULT_PAGE_HEIGHT = 792
-const DEFAULT_ZOOM = 0.75
+const DEFAULT_ZOOM = 1
 const ZOOM_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5, 2]
 const MAX_DEVICE_PIXEL_RATIO = 2
 const DEFAULT_PAGE_RENDER_BUFFER = 4

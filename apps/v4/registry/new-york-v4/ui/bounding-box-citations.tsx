@@ -178,7 +178,7 @@ function ScrollAreaVirtualizer({
   )
 }
 
-const DEFAULT_ZOOM = 0.75
+const DEFAULT_ZOOM = 1
 const REVIEW_HIGHLIGHT_STYLE =
   "border-blue-500/70 bg-blue-500/12 shadow-[0_4px_16px_rgb(59_130_246_/_10%)]"
 

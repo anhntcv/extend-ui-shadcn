@@ -66,7 +66,7 @@ export function OcrBlocksBlock({
         <PDFViewer
           ref={viewerRef}
           file={file}
-          defaultZoom={0.75}
+          defaultZoom={1}
           renderPageOverlay={({ pageNumber }) =>
             blocks
               .filter((block) => block.page === pageNumber)

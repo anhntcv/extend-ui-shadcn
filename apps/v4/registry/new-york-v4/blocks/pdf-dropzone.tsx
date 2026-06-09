@@ -84,7 +84,7 @@ export function PdfDropzoneBlock() {
       <PDFViewer
         key={pdfFile.url}
         file={pdfFile.url}
-        defaultZoom={0.75}
+        defaultZoom={1}
         downloadFileName={pdfFile.name}
         onPdfUpload={(file) => loadPdf([file])}
         toolbarActions={
