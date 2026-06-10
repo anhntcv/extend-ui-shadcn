@@ -59,6 +59,88 @@ new components are generated closer to your app structure.
 
 ## Examples
 
+### Layout Blocks
+
+Inspect OCR and layout output with selectable blocks, confidence, markdown text,
+and PDF overlays that stay connected to the rendered page.
+
+![Layout Blocks component](apps/v4/public/readme/layout-blocks.png)
+
+```bash
+npx shadcn@latest add @extend/layout-blocks-block
+```
+
+```tsx
+import type { ParsedOcrOutput } from "@/components/ui/layout-blocks"
+import { OcrBlocksBlock } from "@/components/blocks/layout-blocks-block"
+
+const output: ParsedOcrOutput = {
+  chunks: [
+    {
+      blocks: [
+        {
+          id: "title",
+          type: "heading",
+          content: "Statement of Work",
+          metadata: {
+            page: { number: 1, width: 612, height: 792 },
+            avgOcrConfidence: 0.99,
+          },
+          boundingBox: { left: 72, top: 96, right: 360, bottom: 124 },
+        },
+      ],
+    },
+  ],
+}
+
+export default function Page() {
+  return <OcrBlocksBlock file="/documents/statement.pdf" output={output} />
+}
+```
+
+### Bounding Box Citations
+
+Review extracted values against the source PDF with field-level citations,
+editable form controls, JSON diffing, and page overlays.
+
+![Bounding Box Citations component](apps/v4/public/readme/bounding-box-citations.png)
+
+```bash
+npx shadcn@latest add @extend/bounding-box-citations-block
+```
+
+```tsx
+import type { ReviewField } from "@/components/ui/bounding-box-citations"
+import { HumanReviewBlock } from "@/components/blocks/bounding-box-citations-block"
+
+const fields: ReviewField[] = [
+  {
+    key: "invoice_total",
+    schema: {
+      type: "number",
+      title: "Invoice total",
+      description: "Total amount due on the invoice.",
+    },
+    actual: 1280.5,
+    expected: 1280.5,
+    location: {
+      page: 1,
+      area: { left: 62, top: 82, width: 22, height: 4 },
+    },
+  },
+]
+
+export default function Page() {
+  return (
+    <HumanReviewBlock
+      file="/documents/invoice.pdf"
+      fields={fields}
+      className="h-[720px]"
+    />
+  )
+}
+```
+
 ### File System
 
 A Finder-style file browser for object-store manifests. It supports icon, list,
@@ -77,6 +159,11 @@ import { FileSystemBlock } from "@/components/blocks/file-system-block"
 
 const items: FileSystemItem[] = [
   {
+    kind: "folder",
+    path: "reports/",
+    hasChildren: true,
+  },
+  {
     kind: "file",
     path: "bank-statement.pdf",
     contentType: "application/pdf",
@@ -86,45 +173,23 @@ const items: FileSystemItem[] = [
 ]
 
 export default function Page() {
-  return <FileSystemBlock items={items} className="h-[720px]" />
-}
-```
-
-### Bounding Box Citations
-
-Review extracted values against the source PDF with field-level citations,
-editable form controls, JSON diffing, and page overlays.
-
-![Bounding Box Citations component](apps/v4/public/readme/bounding-box-citations.png)
-
-```bash
-npx shadcn@latest add @extend/bounding-box-citations-block
-```
-
-```tsx
-import { HumanReviewBlock } from "@/components/blocks/bounding-box-citations-block"
-
-export default function Page() {
-  return <HumanReviewBlock className="h-[720px]" />
-}
-```
-
-### Layout Blocks
-
-Inspect OCR and layout output with selectable blocks, confidence, markdown text,
-and PDF overlays that stay connected to the rendered page.
-
-![Layout Blocks component](apps/v4/public/readme/layout-blocks.png)
-
-```bash
-npx shadcn@latest add @extend/layout-blocks-block
-```
-
-```tsx
-import { OcrBlocksBlock } from "@/components/blocks/layout-blocks-block"
-
-export default function Page() {
-  return <OcrBlocksBlock />
+  return (
+    <FileSystemBlock
+      items={items}
+      title="Documents"
+      defaultView="icons"
+      className="h-[720px]"
+      getFileUrl={(file) =>
+        `/api/files/sign?path=${encodeURIComponent(file.path)}`
+      }
+      loadChildren={async ({ path }) => {
+        const response = await fetch(
+          `/api/files?prefix=${encodeURIComponent(path)}`
+        )
+        return response.json()
+      }}
+    />
+  )
 }
 ```
 
