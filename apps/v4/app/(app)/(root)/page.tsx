@@ -17,7 +17,7 @@ import { RootLiquidLogo } from "@/components/root-liquid-logo"
 
 const title = "Open source UI kit for modern document apps"
 const description =
-  "Open source viewers for PDF, DOCX, XLSX, and CSV, with bounding box citations, file upload, e-signing, and more."
+  "File viewers for PDF, DOCX, XLSX, and CSV, with bounding box citations, file upload, e-signing, and more."
 const tagline =
   "Ready to drop into user-facing flows, agents, or internal tools."
 
