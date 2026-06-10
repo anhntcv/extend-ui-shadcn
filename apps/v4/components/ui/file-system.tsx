@@ -34,6 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Spinner } from "@/components/ui/spinner"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { XlsxViewerPreview } from "@/components/ui/xlsx-viewer"
 
@@ -500,6 +501,7 @@ function FileVisual({
         <button
           type="button"
           aria-label="Previous page"
+          tabIndex={-1}
           disabled={clampedPageIndex === 0}
           onClick={(event) => {
             event.stopPropagation()
@@ -516,6 +518,7 @@ function FileVisual({
         <button
           type="button"
           aria-label="Next page"
+          tabIndex={-1}
           disabled={clampedPageIndex >= totalPages - 1}
           onClick={(event) => {
             event.stopPropagation()
@@ -599,9 +602,13 @@ export function FileSystem({
     [onSelectionChange]
   )
 
-  // Below this width the tabs view switcher no longer fits in the toolbar.
+  // Below 480px the tabs view switcher no longer fits in the toolbar and
+  // collapses into a select; below 360px the select label and the folder
+  // name are dropped too, leaving icons only.
   const rootRef = React.useRef<HTMLDivElement | null>(null)
-  const [isCompact, setIsCompact] = React.useState(false)
+  const [headerLayout, setHeaderLayout] = React.useState<
+    "full" | "compact" | "minimal"
+  >("full")
 
   React.useEffect(() => {
     const root = rootRef.current
@@ -611,7 +618,11 @@ export function FileSystem({
     const observer = new ResizeObserver((observerEntries) => {
       const width = observerEntries[0]?.contentRect.width
 
-      if (width !== undefined) setIsCompact(width < 480)
+      if (width === undefined) return
+
+      setHeaderLayout(
+        width < 360 ? "minimal" : width < 480 ? "compact" : "full"
+      )
     })
 
     observer.observe(root)
@@ -834,16 +845,22 @@ export function FileSystem({
           >
             <HugeiconsIcon icon={ArrowRight01Icon} className="size-4.5" />
           </button>
-          <span className="ml-1.5 truncate text-sm font-semibold">
-            {currentFolderName}
-          </span>
+          {headerLayout !== "minimal" ? (
+            <span className="ml-1.5 truncate text-sm font-semibold">
+              {currentFolderName}
+            </span>
+          ) : null}
         </div>
-        {isCompact ? (
+        {headerLayout !== "full" ? (
           <Select
             value={view}
             onValueChange={(value) => setView(value as FileSystemView)}
           >
-            <SelectTrigger size="sm" aria-label="View" className="min-w-32">
+            <SelectTrigger
+              size="sm"
+              aria-label="View"
+              className={cn(headerLayout !== "minimal" && "min-w-32")}
+            >
               <SelectValue>
                 {activeViewOption ? (
                   <span className="flex items-center gap-2">
@@ -851,7 +868,7 @@ export function FileSystem({
                       icon={activeViewOption.icon}
                       className="size-4"
                     />
-                    {activeViewOption.label}
+                    {headerLayout !== "minimal" ? activeViewOption.label : null}
                   </span>
                 ) : null}
               </SelectValue>
@@ -994,9 +1011,10 @@ function useResolvedFileUrl(
   file: FileEntry | null,
   getFileUrl?: (file: FileSystemFileItem) => string | Promise<string>
 ) {
-  const [resolvedUrl, setResolvedUrl] = React.useState<string | null>(
-    file?.url ?? null
-  )
+  const [state, setState] = React.useState<{
+    isResolving: boolean
+    url: string | null
+  }>({ isResolving: false, url: file?.url ?? null })
   const fileRef = React.useRef(file)
 
   React.useEffect(() => {
@@ -1009,30 +1027,45 @@ function useResolvedFileUrl(
   React.useEffect(() => {
     const currentFile = fileRef.current
 
-    if (!currentFile || fileUrl) {
-      setResolvedUrl(fileUrl)
-      return
-    }
-    if (!getFileUrl) {
-      setResolvedUrl(null)
+    if (!currentFile || fileUrl || !getFileUrl) {
+      setState({ isResolving: false, url: fileUrl })
       return
     }
 
     let isCurrent = true
 
-    setResolvedUrl(null)
+    setState({ isResolving: true, url: null })
     void Promise.resolve(getFileUrl(currentFile))
       .then((url) => {
-        if (isCurrent) setResolvedUrl(url)
+        if (isCurrent) setState({ isResolving: false, url })
       })
-      .catch(() => {})
+      .catch(() => {
+        if (isCurrent) setState({ isResolving: false, url: null })
+      })
 
     return () => {
       isCurrent = false
     }
   }, [filePath, fileUrl, getFileUrl])
 
-  return resolvedUrl
+  return state
+}
+
+// Returns `value` once it has stopped changing for `delay` ms. Gallery
+// navigation scrubs past files quickly; heavy previews (document viewers,
+// presigned URL resolution) only kick in for the file the user lands on.
+function useSettledValue<T>(value: T, delay: number): T {
+  const [settled, setSettled] = React.useState(value)
+
+  React.useEffect(() => {
+    if (Object.is(settled, value)) return
+
+    const timeout = window.setTimeout(() => setSettled(value), delay)
+
+    return () => window.clearTimeout(timeout)
+  }, [delay, settled, value])
+
+  return settled
 }
 
 function FileSystemEmptyState({
@@ -1126,6 +1159,11 @@ function FileSystemIconsView({
   selectedPath,
 }: FileSystemViewProps) {
   const itemRefs = React.useRef(new Map<string, HTMLButtonElement>())
+  // Roving tabindex: the grid is a single tab stop (the selected tile, or the
+  // first one), so Shift+Tab returns to the toolbar like in the list view.
+  const tabStopPath = entries.some((entry) => entry.path === selectedPath)
+    ? selectedPath
+    : (entries[0]?.path ?? null)
 
   return (
     <ScrollArea
@@ -1165,6 +1203,7 @@ function FileSystemIconsView({
               type="button"
               role="option"
               aria-selected={isSelected}
+              tabIndex={entry.path === tabStopPath ? 0 : -1}
               ref={(element) => {
                 if (element) {
                   itemRefs.current.set(entry.path, element)
@@ -1431,6 +1470,32 @@ function FileSystemPierreTree({
     model.setIcons(icons)
   }, [icons, model])
 
+  // The tree's arrow keys move focus and only select on click/Enter; mirror
+  // focus into the (single) selection so arrowing selects like Finder. Shift
+  // ranges keep the focused row selected, so they pass through untouched.
+  React.useEffect(() => {
+    let lastFocusedPath = model.getFocusedPath()
+
+    return model.subscribe(() => {
+      const focusedPath = model.getFocusedPath()
+
+      if (focusedPath === lastFocusedPath) return
+
+      lastFocusedPath = focusedPath
+
+      if (!focusedPath) return
+
+      const item = model.getItem(focusedPath)
+
+      if (!item || item.isSelected()) return
+
+      for (const path of model.getSelectedPaths()) {
+        model.getItem(path)?.deselect()
+      }
+      item.select()
+    })
+  }, [model])
+
   return (
     <PierreFileTree
       model={model}
@@ -1454,7 +1519,12 @@ function FileSystemPierreTree({
           "--trees-bg-override": "transparent",
           "--trees-border-color-override": "var(--color-border)",
           "--trees-fg-override": "var(--color-foreground)",
+          // Match the focus-visible ring used by the tabs and the other
+          // views (`ring-2 ring-ring`) instead of the tree's accent blue.
+          "--trees-focus-ring-color-override": "var(--color-ring)",
+          "--trees-focus-ring-width-override": "2px",
           "--trees-selected-bg-override": "var(--color-primary)",
+          "--trees-selected-focused-border-color-override": "var(--color-ring)",
         } as React.CSSProperties
       }
     />
@@ -1475,6 +1545,13 @@ function FileSystemColumnsView(props: FileSystemViewProps) {
   } = props
   const scrollContainerRef = React.useRef<HTMLDivElement | null>(null)
   const rowRefs = React.useRef(new Map<string, HTMLButtonElement>())
+
+  // The selection highlight tracks every keypress; mounting the trailing
+  // child column and the preview pane is deferred so holding an arrow key
+  // doesn't pay that DOM churn per step.
+  const deferredSelectedEntry = React.useDeferredValue(selectedEntry)
+  const deferredSelectedPath = React.useDeferredValue(selectedPath)
+  const pendingFocusPathRef = React.useRef<string | null>(null)
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (!ARROW_KEYS.has(event.key)) return
@@ -1501,19 +1578,42 @@ function FileSystemColumnsView(props: FileSystemViewProps) {
     if (!nextEntry) return
 
     onSelect(nextEntry)
-    rowRefs.current.get(nextEntry.path)?.focus()
+
+    const row = rowRefs.current.get(nextEntry.path)
+
+    if (row) {
+      pendingFocusPathRef.current = null
+      row.focus()
+    } else {
+      // The target row lives in a deferred column that hasn't mounted yet;
+      // focus it from the effect below once it exists.
+      pendingFocusPathRef.current = nextEntry.path
+    }
     event.preventDefault()
   }
+
+  React.useEffect(() => {
+    const path = pendingFocusPathRef.current
+
+    if (!path) return
+
+    const row = rowRefs.current.get(path)
+
+    if (row) {
+      pendingFocusPathRef.current = null
+      row.focus()
+    }
+  })
 
   const columnPaths = React.useMemo(() => {
     const paths = [currentPath]
 
-    if (!selectedPath?.startsWith(currentPath)) return paths
+    if (!deferredSelectedPath?.startsWith(currentPath)) return paths
 
     const targetFolder =
-      selectedEntry?.kind === "folder"
-        ? selectedEntry.path
-        : (selectedEntry?.parentPath ?? currentPath)
+      deferredSelectedEntry?.kind === "folder"
+        ? deferredSelectedEntry.path
+        : (deferredSelectedEntry?.parentPath ?? currentPath)
     const relativePath = targetFolder.slice(currentPath.length)
     let walkedPath = currentPath
 
@@ -1523,10 +1623,29 @@ function FileSystemColumnsView(props: FileSystemViewProps) {
       paths.push(walkedPath)
     }
     return paths
-  }, [currentPath, selectedEntry, selectedPath])
+  }, [currentPath, deferredSelectedEntry, deferredSelectedPath])
   const columnPathSet = React.useMemo(() => new Set(columnPaths), [columnPaths])
+  // Roving tabindex: all columns together form a single tab stop (the
+  // selected row when its column is mounted, else the first row), so
+  // Shift+Tab returns to the toolbar like in the list view.
+  const tabStopPath = React.useMemo(() => {
+    if (selectedPath) {
+      for (const columnPath of columnPaths) {
+        if (
+          index.children
+            .get(columnPath)
+            ?.some((entry) => entry.path === selectedPath)
+        ) {
+          return selectedPath
+        }
+      }
+    }
+    return index.children.get(columnPaths[0] ?? "")?.[0]?.path ?? null
+  }, [columnPaths, index, selectedPath])
   const selectedFile =
-    selectedEntry?.kind === "file" ? (selectedEntry as FileEntry) : null
+    deferredSelectedEntry?.kind === "file"
+      ? (deferredSelectedEntry as FileEntry)
+      : null
   const selectedFileSize = selectedFile
     ? formatByteSize(selectedFile.size)
     : null
@@ -1535,7 +1654,7 @@ function FileSystemColumnsView(props: FileSystemViewProps) {
     const container = scrollContainerRef.current
 
     if (container) container.scrollLeft = container.scrollWidth
-  }, [columnPaths.length, selectedPath])
+  }, [columnPaths.length, deferredSelectedPath])
 
   return (
     <ScrollArea
@@ -1572,6 +1691,7 @@ function FileSystemColumnsView(props: FileSystemViewProps) {
                     type="button"
                     role="option"
                     aria-selected={isSelected}
+                    tabIndex={entry.path === tabStopPath ? 0 : -1}
                     ref={(element) => {
                       if (element) {
                         rowRefs.current.set(entry.path, element)
@@ -1738,7 +1858,18 @@ function FileSystemGalleryView(props: FileSystemViewProps) {
       : (entries[0] ?? null)
   const activeFile = activeEntry?.kind === "file" ? activeEntry : null
   const activeViewerKind = activeFile ? viewerKindForFile(activeFile) : null
-  const activeFileUrl = useResolvedFileUrl(activeFile, getFileUrl)
+  // While arrow keys are scrubbing the strip, the center pane shows a
+  // spinner; the full-size viewer (and its URL resolution) mounts once the
+  // selection settles so each keystroke stays cheap.
+  const settledPath = useSettledValue(activeEntry?.path ?? null, 200)
+  const isSettled = settledPath === (activeEntry?.path ?? null)
+  const { isResolving, url: activeFileUrl } = useResolvedFileUrl(
+    isSettled ? activeFile : null,
+    getFileUrl
+  )
+  const isStageLoading =
+    activeFile !== null &&
+    (!isSettled || (activeViewerKind !== null && isResolving))
   const activeFileSize = activeFile ? formatByteSize(activeFile.size) : null
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -1764,11 +1895,68 @@ function FileSystemGalleryView(props: FileSystemViewProps) {
 
   return (
     <div className="flex size-full flex-col" onKeyDown={handleKeyDown}>
+      {/* The strip comes first in DOM order (rendered below via order-last)
+          so the filmstrip is the view's single tab stop: Shift+Tab exits to
+          the toolbar instead of landing inside the embedded viewers. */}
+      <ScrollArea
+        orientation="horizontal"
+        className="order-last h-auto w-full shrink-0 border-t"
+      >
+        <div
+          role="listbox"
+          aria-label="Files"
+          className="flex w-max min-w-full items-center gap-1.5 p-2"
+        >
+          {entries.map((entry) => {
+            const isActive = entry.path === (activeEntry?.path ?? selectedPath)
+
+            return (
+              <button
+                key={entry.path}
+                type="button"
+                role="option"
+                aria-selected={isActive}
+                tabIndex={isActive ? 0 : -1}
+                ref={(element) => {
+                  if (element) {
+                    stripRefs.current.set(entry.path, element)
+                  } else {
+                    stripRefs.current.delete(entry.path)
+                  }
+                }}
+                onClick={() => onSelect(entry)}
+                onDoubleClick={() => onOpen(entry)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") onOpen(entry)
+                }}
+                title={entry.name}
+                className={cn(
+                  "flex size-14 shrink-0 items-center justify-center rounded-md border border-transparent p-1 outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  isActive && "border-ring/40 bg-accent"
+                )}
+              >
+                {entry.kind === "folder" ? (
+                  <FileSystemFolderGlyph className="h-9 w-auto" />
+                ) : (
+                  <FileVisual
+                    file={entry}
+                    className="w-9 rounded-sm"
+                    previewAspectRatio={0.78}
+                    renderFilePreview={renderFilePreview}
+                  />
+                )}
+              </button>
+            )
+          })}
+        </div>
+      </ScrollArea>
       <div className="flex min-h-0 flex-1">
         <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center p-3">
           {activeEntry ? (
             activeEntry.kind === "folder" ? (
               <FileSystemFolderGlyph className="h-40 max-h-full w-auto drop-shadow-md" />
+            ) : isStageLoading ? (
+              <Spinner className="size-6 text-muted-foreground" />
             ) : activeViewerKind === "image" && activeFileUrl ? (
               <img
                 src={activeFileUrl}
@@ -1852,57 +2040,6 @@ function FileSystemGalleryView(props: FileSystemViewProps) {
           </ScrollArea>
         ) : null}
       </div>
-      <ScrollArea
-        orientation="horizontal"
-        className="h-auto w-full shrink-0 border-t"
-      >
-        <div
-          role="listbox"
-          aria-label="Files"
-          className="flex w-max min-w-full items-center gap-1.5 p-2"
-        >
-          {entries.map((entry) => {
-            const isActive = entry.path === (activeEntry?.path ?? selectedPath)
-
-            return (
-              <button
-                key={entry.path}
-                type="button"
-                role="option"
-                aria-selected={isActive}
-                ref={(element) => {
-                  if (element) {
-                    stripRefs.current.set(entry.path, element)
-                  } else {
-                    stripRefs.current.delete(entry.path)
-                  }
-                }}
-                onClick={() => onSelect(entry)}
-                onDoubleClick={() => onOpen(entry)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") onOpen(entry)
-                }}
-                title={entry.name}
-                className={cn(
-                  "flex size-14 shrink-0 items-center justify-center rounded-md border border-transparent p-1 outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  isActive && "border-ring/40 bg-accent"
-                )}
-              >
-                {entry.kind === "folder" ? (
-                  <FileSystemFolderGlyph className="h-9 w-auto" />
-                ) : (
-                  <FileVisual
-                    file={entry}
-                    className="w-9 rounded-sm"
-                    previewAspectRatio={0.78}
-                    renderFilePreview={renderFilePreview}
-                  />
-                )}
-              </button>
-            )
-          })}
-        </div>
-      </ScrollArea>
     </div>
   )
 }

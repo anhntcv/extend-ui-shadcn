@@ -127,15 +127,17 @@ The list view tree is derived from file paths, so lazy folders (`hasChildren` wi
 ### Keyboard Navigation
 
 - **Grid** — arrow keys move the selection in all four directions, following the rendered grid; Enter opens.
-- **List** — full keyboard support from `@pierre/trees` (arrows, type-ahead, expand/collapse).
+- **List** — full keyboard support from `@pierre/trees` (arrows, type-ahead, expand/collapse); arrow keys move the selection like Finder, and Shift-arrows extend it.
 - **Columns** — up/down move within a column, left selects the parent folder, right steps into the selected folder; Enter opens.
 - **Gallery** — left/right move through the filmstrip; Enter opens.
+
+Every view is a single tab stop — <kbd>Tab</kbd> lands on the selected item and <kbd>Shift+Tab</kbd> returns to the view switcher, matching the list tree's behavior.
 
 Finder-style shortcuts work everywhere in the component: <kbd>⌘↑</kbd> goes to the enclosing folder, <kbd>⌘↓</kbd> opens the selection, and <kbd>⌘[</kbd> / <kbd>⌘]</kbd> navigate back and forward through history (Ctrl works in place of ⌘).
 
 When the component is narrower than 480px, the toolbar swaps the tabs view switcher for a compact select.
 
-The gallery view embeds the full viewers — PDF, DOCX, and XLSX files render in their toolbar-less viewer (the XLSX sheet switcher stays), and images scale to fill the stage.
+The gallery view embeds the full viewers — PDF, DOCX, and XLSX files render in their toolbar-less viewer (the XLSX sheet switcher stays), and images scale to fill the stage. While arrow keys are scrubbing the filmstrip the stage shows a spinner; the full viewer mounts once the selection settles, so holding an arrow key stays smooth.
 
 ### Multi-Page Thumbnails
 
