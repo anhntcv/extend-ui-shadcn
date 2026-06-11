@@ -122,6 +122,95 @@ const DEMO_SOURCES: DemoSource[] = [
   },
 ]
 
+// Synthetic "aurora" project folder so the docs demo covers the complete
+// file-type icon set plus search, sort, and the file-type filter — without
+// bloating the manifest. Everything derives from the path hash, so it is
+// stable across server and client renders.
+const AURORA_PROJECT_FILES = [
+  ".gitignore",
+  ".prettierrc",
+  "biome.json",
+  "bun.lockb",
+  "CLAUDE.md",
+  "Dockerfile",
+  "docker-compose.yml",
+  "eslint.config.js",
+  "next.config.ts",
+  "package.json",
+  "README.md",
+  "tailwind.config.ts",
+  "tsconfig.json",
+  "vite.config.ts",
+]
+
+const AURORA_AREAS: Array<{
+  extensions: string[]
+  folder: string
+}> = [
+  { extensions: ["tsx", "ts", "css"], folder: "src/components" },
+  { extensions: ["ts"], folder: "src/lib" },
+  { extensions: ["md", "mdx"], folder: "docs" },
+  { extensions: ["csv", "json", "xlsx"], folder: "data" },
+  { extensions: ["png", "svg", "webp"], folder: "assets" },
+  { extensions: ["sh", "py"], folder: "scripts" },
+  { extensions: ["go", "rs", "sql"], folder: "backend" },
+]
+
+const AURORA_WORDS = [
+  "billing",
+  "catalog",
+  "checkout",
+  "dashboard",
+  "gateway",
+  "inventory",
+]
+
+// djb2, unsigned — deterministic sizes and dates per path.
+function auroraHash(value: string) {
+  let hash = 5381
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash = ((hash << 5) + hash + value.charCodeAt(index)) | 0
+  }
+  return hash >>> 0
+}
+
+function generateAuroraItems(): FileSystemItem[] {
+  const items: FileSystemItem[] = []
+  const pushFile = (path: string) => {
+    const hash = auroraHash(path)
+    const createdAt = Date.UTC(2025, 5, 1) + (hash % 320) * 86_400_000
+    const updatedAt = createdAt + (hash % 90) * 86_400_000
+
+    items.push({
+      createdAt: new Date(createdAt).toISOString(),
+      kind: "file",
+      path,
+      size: 850 + (hash % 3_800_000),
+      updatedAt: new Date(updatedAt).toISOString(),
+    })
+  }
+
+  for (const fileName of AURORA_PROJECT_FILES) {
+    pushFile(`aurora/${fileName}`)
+  }
+  for (const area of AURORA_AREAS) {
+    // Two files per extension — enough to show off every file type.
+    const fileCount = area.extensions.length * 2
+
+    for (let index = 0; index < fileCount; index += 1) {
+      const word = AURORA_WORDS[index % AURORA_WORDS.length]
+      const extension = area.extensions[index % area.extensions.length]
+      const fileName = `${word}-${String(index + 1).padStart(3, "0")}.${extension}`
+
+      pushFile(`aurora/${area.folder}/${fileName}`)
+    }
+  }
+  return items
+}
+
+const AURORA_ITEMS = generateAuroraItems()
+
 function getPdfWorkerUrl(pdfjsVersion: string) {
   return `//unpkg.com/pdfjs-dist@${pdfjsVersion}/legacy/build/pdf.worker.min.mjs`
 }
@@ -538,28 +627,32 @@ export function useFileSystemDemoItems() {
   )
 
   const items = React.useMemo<FileSystemItem[]>(
-    () =>
-      DEMO_SOURCES.map<FileSystemItem>((source) => ({
-        contentType: source.contentType,
-        createdAt: source.createdAt,
-        key: source.path,
-        kind: "file",
-        path: source.path,
-        previewAspectRatio: source.previewAspectRatio,
-        previewImageUrls:
-          source.thumbnail === "url"
-            ? [source.url]
-            : (thumbnails[source.path]?.urls ?? null),
-        previewPageCount: thumbnails[source.path]?.pageCount,
-        size: source.size,
-        updatedAt: source.updatedAt,
-        url: source.url,
-      })),
+    () => [
+      ...DEMO_SOURCES.map<FileSystemItem>((source) => {
+        return {
+          contentType: source.contentType,
+          createdAt: source.createdAt,
+          key: source.path,
+          kind: "file",
+          path: source.path,
+          previewAspectRatio: source.previewAspectRatio,
+          previewImageUrls:
+            source.thumbnail === "url"
+              ? [source.url]
+              : (thumbnails[source.path]?.urls ?? null),
+          previewPageCount: thumbnails[source.path]?.pageCount,
+          size: source.size,
+          updatedAt: source.updatedAt,
+          url: source.url,
+        }
+      }),
+      ...AURORA_ITEMS,
+    ],
     [thumbnails]
   )
 
-  // Remaining PDF pages render on demand; data URLs are memoized per page so
-  // revisiting a page is instant.
+  // PDF previews render on demand; data URLs are memoized per page so
+  // revisiting a page is instant without shipping generated thumbnail assets.
   const lazyPageCacheRef = React.useRef(
     new Map<string, Promise<string | null>>()
   )
@@ -689,8 +782,7 @@ const items: FileSystemItem[] = [
     size: 2215244,
     createdAt: "2026-02-12T18:21:00Z",
     updatedAt: "2026-03-24T21:43:00Z",
-    // Generated externally, e.g. with react-pdf, react-docx, or react-xlsx.
-    previewImageUrl: "/thumbnails/reports/attention.png",
+    url: "/samples/attention.pdf",
   },
   // ...
 ]

@@ -10,7 +10,6 @@ import {
 } from "@/components/page-header"
 import {
   MobileRootPreview,
-  RootBlocksShowcase,
   RootComponentsCollage,
 } from "@/components/root-components-collage"
 import { RootLiquidLogo } from "@/components/root-liquid-logo"
@@ -52,7 +51,7 @@ export default function IndexPage() {
   return (
     <div className="flex flex-1 flex-col">
       <PageHeader className="relative overflow-hidden">
-        <RootLiquidLogo />
+        {/* <RootLiquidLogo /> */}
         <PageHeaderHeading className="relative z-10 mt-2 max-w-4xl sm:mt-3">
           {title}
         </PageHeaderHeading>
@@ -87,9 +86,6 @@ export default function IndexPage() {
           </section>
           <section>
             <RootComponentsCollage />
-          </section>
-          <section className="mt-12">
-            <RootBlocksShowcase />
           </section>
         </div>
       </div>

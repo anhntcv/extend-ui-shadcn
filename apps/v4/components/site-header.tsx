@@ -11,7 +11,6 @@ import { Icons } from "@/components/icons"
 import { MainNav } from "@/components/main-nav"
 import { MobileNav } from "@/components/mobile-nav"
 import { ModeSwitcher } from "@/components/mode-switcher"
-import { SiteConfig } from "@/components/site-config"
 import { Separator } from "@/components/ui/separator"
 
 export function SiteHeader() {
@@ -70,11 +69,6 @@ export function SiteHeader() {
               className="ml-2 hidden h-4 self-center lg:block"
             />
             <GitHubLink />
-            <Separator
-              orientation="vertical"
-              className="hidden h-4 self-center group-has-data-[slot=designer]/layout:hidden 3xl:flex"
-            />
-            <SiteConfig className="hidden 3xl:flex 3xl:group-has-data-[slot=designer]/layout:hidden" />
             <Separator orientation="vertical" className="h-4 self-center" />
             <ModeSwitcher />
           </div>

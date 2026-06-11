@@ -73,6 +73,7 @@
     "@types/papaparse": "^5.5.2",
     "@types/react": "19.2.2",
     "@types/react-dom": "19.2.2",
+    "babel-plugin-react-compiler": "^1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "prettier": "^3.4.2",

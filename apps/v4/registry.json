@@ -558,12 +558,17 @@
       ],
       "registryDependencies": [
         "button",
+        "command",
         "dialog",
         "@extend/docx-viewer",
+        "dropdown-menu",
         "@extend/file-thumbnail",
+        "input",
         "@extend/pdf-viewer",
+        "popover",
         "scroll-area",
         "select",
+        "spinner",
         "tabs",
         "utils",
         "@extend/xlsx-viewer"

@@ -9,6 +9,7 @@ const nextConfig = {
   basePath,
   assetPrefix,
   devIndicators: false,
+  reactCompiler: true,
   typescript: {
     ignoreBuildErrors: true,
   },

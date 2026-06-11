@@ -8106,7 +8106,11 @@ export function blockToArea(block: OcrBlock): React.CSSProperties {
   }
 }
 
-function OcrBlockMarkdown({ text }: { text: string }) {
+const OcrBlockMarkdown = React.memo(function OcrBlockMarkdown({
+  text,
+}: {
+  text: string
+}) {
   const markdown = text.replace(OCR_MARKDOWN_FIGURE_CAPTION_PATTERN, (tag) =>
     tag.startsWith("</") ? "</figcaption>" : "<figcaption>"
   )
@@ -8164,9 +8168,9 @@ function OcrBlockMarkdown({ text }: { text: string }) {
       </ReactMarkdown>
     </div>
   )
-}
+})
 
-function OcrBlockButton({
+const OcrBlockButton = React.memo(function OcrBlockButton({
   block,
   isActive,
   onFocusBlock,
@@ -8213,9 +8217,9 @@ function OcrBlockButton({
       </div>
     </button>
   )
-}
+})
 
-export function OcrBlockOverlay({
+export const OcrBlockOverlay = React.memo(function OcrBlockOverlay({
   block,
   isActive,
 }: {
@@ -8233,7 +8237,7 @@ export function OcrBlockOverlay({
       style={blockToArea(block)}
     />
   )
-}
+})
 
 export function OcrBlocksPanel({
   activeBlockId,
@@ -8254,6 +8258,12 @@ export function OcrBlocksPanel({
   const focusedBlockId = activeBlockId ?? localActiveBlockId
   const activeBlock =
     blocks.find((block) => block.id === focusedBlockId) ?? firstBlock
+  const focusedBlockIdRef = React.useRef(focusedBlockId)
+
+  React.useEffect(() => {
+    focusedBlockIdRef.current = focusedBlockId
+  }, [focusedBlockId])
+
   const estimateBlockSize = React.useCallback(
     (index: number) => {
       const block = blocks[index]
@@ -8268,17 +8278,18 @@ export function OcrBlocksPanel({
     estimateSize: estimateBlockSize,
     getItemKey: (index) => blocks[index]?.id ?? index,
     getScrollElement: () => scrollViewportRef.current,
-    overscan: 12,
+    overscan: 6,
   })
 
   const focusBlock = React.useCallback(
     (block: OcrBlock) => {
-      if (block.id === focusedBlockId) return
+      if (block.id === focusedBlockIdRef.current) return
 
+      focusedBlockIdRef.current = block.id
       setLocalActiveBlockId(block.id)
       onBlockFocus?.(block)
     },
-    [focusedBlockId, onBlockFocus]
+    [onBlockFocus]
   )
 
   React.useEffect(() => {

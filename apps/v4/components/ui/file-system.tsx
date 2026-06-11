@@ -2,30 +2,67 @@
 
 import * as React from "react"
 import {
+  ArrowDown01Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
+  ArrowUp01Icon,
+  ArrowUpDownIcon,
+  Calendar03Icon,
   Cancel01Icon,
   File01Icon,
+  FilterIcon,
   GalleryThumbnailsIcon,
   GridViewIcon,
   LayoutThreeColumnIcon,
   LeftToRightListBulletIcon,
+  Search01Icon,
+  Tick02Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { prepareFileTreeInput } from "@pierre/trees"
+import {
+  createFileTreeIconResolver,
+  getBuiltInSpriteSheet,
+  prepareFileTreeInput,
+  type FileTreeSortComparator,
+  type FileTreeSortEntry,
+} from "@pierre/trees"
 import { FileTree as PierreFileTree, useFileTree } from "@pierre/trees/react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
   Dialog,
   DialogClose,
   DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogPanel,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { DocxViewerPreview } from "@/components/ui/docx-viewer"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { FileThumbnail } from "@/components/ui/file-thumbnail"
-import { PDFViewer } from "@/components/ui/pdf-viewer"
+import { Input } from "@/components/ui/input"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Select,
@@ -36,7 +73,22 @@ import {
 } from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { XlsxViewerPreview } from "@/components/ui/xlsx-viewer"
+
+const LazyPDFViewer = React.lazy(() =>
+  import("@/components/ui/pdf-viewer").then((mod) => ({
+    default: mod.PDFViewer,
+  }))
+)
+const LazyDocxViewerPreview = React.lazy(() =>
+  import("@/components/ui/docx-viewer").then((mod) => ({
+    default: mod.DocxViewerPreview,
+  }))
+)
+const LazyXlsxViewerPreview = React.lazy(() =>
+  import("@/components/ui/xlsx-viewer").then((mod) => ({
+    default: mod.XlsxViewerPreview,
+  }))
+)
 
 export type FileSystemView = "icons" | "list" | "columns" | "gallery"
 
@@ -203,6 +255,89 @@ function fileKindLabel(file: FileEntry) {
   return file.contentType ?? "Document"
 }
 
+// MIME types inferred from the extension when a file carries no
+// `contentType`, so the file-type filter can classify every manifest entry.
+const EXTENSION_MIME_TYPES: Record<string, string> = {
+  css: "text/css",
+  csv: "text/csv",
+  doc: "application/msword",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  gif: "image/gif",
+  go: "text/x-go",
+  jpeg: "image/jpeg",
+  jpg: "image/jpeg",
+  js: "text/javascript",
+  json: "application/json",
+  jsx: "text/jsx",
+  md: "text/markdown",
+  mdx: "text/mdx",
+  pdf: "application/pdf",
+  png: "image/png",
+  ppt: "application/vnd.ms-powerpoint",
+  pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  py: "text/x-python",
+  rs: "text/x-rust",
+  sh: "application/x-sh",
+  sql: "application/sql",
+  svg: "image/svg+xml",
+  ts: "text/x-typescript",
+  tsv: "text/tab-separated-values",
+  tsx: "text/x-typescript",
+  txt: "text/plain",
+  webp: "image/webp",
+  xls: "application/vnd.ms-excel",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  yaml: "text/yaml",
+  yml: "text/yaml",
+  zip: "application/zip",
+}
+
+const FALLBACK_MIME_TYPE = "application/octet-stream"
+
+const MIME_TYPE_LABELS: Record<string, string> = {
+  [FALLBACK_MIME_TYPE]: "Binary",
+  "application/json": "JSON",
+  "application/msword": "Word document (legacy)",
+  "application/pdf": "PDF",
+  "application/sql": "SQL",
+  "application/vnd.ms-excel": "Excel workbook (legacy)",
+  "application/vnd.ms-powerpoint": "PowerPoint (legacy)",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+    "PowerPoint",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+    "Excel workbook",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+    "Word document",
+  "application/x-sh": "Shell script",
+  "application/zip": "ZIP archive",
+  "image/gif": "GIF image",
+  "image/jpeg": "JPEG image",
+  "image/png": "PNG image",
+  "image/svg+xml": "SVG image",
+  "image/webp": "WebP image",
+  "text/css": "CSS",
+  "text/csv": "CSV",
+  "text/javascript": "JavaScript",
+  "text/jsx": "JSX",
+  "text/markdown": "Markdown",
+  "text/mdx": "MDX",
+  "text/plain": "Plain text",
+  "text/tab-separated-values": "TSV",
+  "text/x-go": "Go",
+  "text/x-python": "Python",
+  "text/x-rust": "Rust",
+  "text/x-typescript": "TypeScript",
+  "text/yaml": "YAML",
+}
+
+function mimeTypeForFile(file: FileEntry) {
+  return (
+    file.contentType ??
+    EXTENSION_MIME_TYPES[fileExtension(file.name)] ??
+    FALLBACK_MIME_TYPE
+  )
+}
+
 export type FileSystemViewerKind = "docx" | "image" | "pdf" | "xlsx"
 
 function viewerKindForFile(
@@ -228,6 +363,14 @@ const VIEWER_DIALOG_CLASSNAMES: Record<FileSystemViewerKind, string> = {
   image: "max-h-[88vh] w-fit max-w-[min(96vw,64rem)]",
   pdf: "h-[88vh] w-[min(96vw,68rem)] max-w-none",
   xlsx: "h-[85vh] w-[min(96vw,100rem)] max-w-none",
+}
+
+function FileSystemViewerLoading() {
+  return (
+    <div className="grid h-full min-h-48 flex-1 place-items-center bg-background">
+      <Spinner className="size-4 text-muted-foreground" />
+    </div>
+  )
 }
 
 function formatByteSize(size: number | undefined) {
@@ -265,6 +408,243 @@ function formatTimestamp(value: string | undefined) {
   })
 
   return `${day} at ${time}`
+}
+
+// Every directory prefix appearing in the given relative file paths.
+function directoryPathsOf(paths: readonly string[]) {
+  const directoryPaths = new Set<string>()
+
+  for (const relativePath of paths) {
+    let slashIndex = relativePath.indexOf("/")
+
+    while (slashIndex !== -1) {
+      directoryPaths.add(relativePath.slice(0, slashIndex))
+      slashIndex = relativePath.indexOf("/", slashIndex + 1)
+    }
+  }
+  return directoryPaths
+}
+
+function compareEntryNames(left: { name: string }, right: { name: string }) {
+  return left.name.localeCompare(right.name, undefined, {
+    numeric: true,
+    sensitivity: "base",
+  })
+}
+
+export type FileSystemSortKey = "createdAt" | "name" | "size" | "updatedAt"
+
+type FileSystemSortState = {
+  direction: "asc" | "desc"
+  key: FileSystemSortKey
+}
+
+const SORT_OPTIONS: Array<{
+  defaultDirection: "asc" | "desc"
+  key: FileSystemSortKey
+  label: string
+  /** Shorter label so the toolbar trigger stays narrow. */
+  triggerLabel: string
+}> = [
+  { defaultDirection: "asc", key: "name", label: "Name", triggerLabel: "Name" },
+  {
+    defaultDirection: "desc",
+    key: "createdAt",
+    label: "Date created",
+    triggerLabel: "Created",
+  },
+  {
+    defaultDirection: "desc",
+    key: "updatedAt",
+    label: "Date modified",
+    triggerLabel: "Modified",
+  },
+  {
+    defaultDirection: "desc",
+    key: "size",
+    label: "Size",
+    triggerLabel: "Size",
+  },
+]
+
+const DEFAULT_SORT: FileSystemSortState = { direction: "asc", key: "name" }
+
+function defaultSortDirection(key: FileSystemSortKey) {
+  return (
+    SORT_OPTIONS.find((option) => option.key === key)?.defaultDirection ?? "asc"
+  )
+}
+
+function entrySortTimestamp(
+  entry: FileSystemEntry,
+  key: "createdAt" | "updatedAt"
+) {
+  const value = entry[key]
+  const time = value ? Date.parse(value) : Number.NaN
+
+  return Number.isNaN(time) ? 0 : time
+}
+
+// Primary key per the active sort; ties (and missing metadata) fall back to
+// the name order so results stay stable. The name tiebreak ignores the
+// direction, like Finder.
+function compareEntriesBySort(
+  left: FileSystemEntry,
+  right: FileSystemEntry,
+  sort: FileSystemSortState
+) {
+  let result = 0
+
+  if (sort.key === "name") {
+    result = compareEntryNames(left, right)
+  } else if (sort.key === "size") {
+    // Folders have no byte size; group them at the small end.
+    const leftSize = left.kind === "file" ? (left.size ?? 0) : -1
+    const rightSize = right.kind === "file" ? (right.size ?? 0) : -1
+
+    result = leftSize - rightSize
+  } else {
+    result =
+      entrySortTimestamp(left, sort.key) - entrySortTimestamp(right, sort.key)
+  }
+
+  if (result === 0) return compareEntryNames(left, right)
+  return sort.direction === "asc" ? (result < 0 ? -1 : 1) : result < 0 ? 1 : -1
+}
+
+export type FileSystemFilterType = "dateCreated" | "dateModified" | "fileType"
+
+type FileSystemDateFilterType = Exclude<FileSystemFilterType, "fileType">
+
+type FileSystemFilterOperator =
+  | "after"
+  | "before"
+  | "in-range"
+  | "is"
+  | "is-any-of"
+  | "is-not"
+  | "not-in-range"
+
+type FileSystemFilter = {
+  id: string
+  operator: FileSystemFilterOperator
+  type: FileSystemFilterType
+  value: string[]
+}
+
+type FileTypeFilterOption = {
+  /** Sample file name so the option icon reuses the file-type sprite. */
+  iconFileName: string
+  label: string
+  mime: string
+}
+
+const FILTER_TYPE_LABELS: Record<FileSystemFilterType, string> = {
+  dateCreated: "Date created",
+  dateModified: "Date modified",
+  fileType: "File type",
+}
+
+const FILTER_OPERATOR_LABELS: Record<FileSystemFilterOperator, string> = {
+  after: "after",
+  before: "before",
+  "in-range": "in range",
+  is: "is",
+  "is-any-of": "is any of",
+  "is-not": "is not",
+  "not-in-range": "not in range",
+}
+
+// Relative cutoffs for the date filters, mirroring Extend's table filters.
+const DATE_FILTER_PRESETS = [
+  "1 day ago",
+  "3 days ago",
+  "1 week ago",
+  "1 month ago",
+  "3 months ago",
+  "6 months ago",
+  "1 year ago",
+]
+
+function dateFilterPresetCutoff(preset: string) {
+  const date = new Date()
+
+  switch (preset) {
+    case "1 day ago":
+      date.setDate(date.getDate() - 1)
+      break
+    case "3 days ago":
+      date.setDate(date.getDate() - 3)
+      break
+    case "1 week ago":
+      date.setDate(date.getDate() - 7)
+      break
+    case "1 month ago":
+      date.setMonth(date.getMonth() - 1)
+      break
+    case "3 months ago":
+      date.setMonth(date.getMonth() - 3)
+      break
+    case "6 months ago":
+      date.setMonth(date.getMonth() - 6)
+      break
+    case "1 year ago":
+      date.setFullYear(date.getFullYear() - 1)
+      break
+    default: {
+      const parsed = Date.parse(preset)
+
+      if (!Number.isNaN(parsed)) return new Date(parsed)
+    }
+  }
+  return date
+}
+
+// Custom ranges store two ISO timestamps instead of a relative preset.
+function isCustomDateRangeValue(value: string[]) {
+  return (
+    value.length === 2 &&
+    value.every(
+      (entry) =>
+        !DATE_FILTER_PRESETS.includes(entry) && !Number.isNaN(Date.parse(entry))
+    )
+  )
+}
+
+function filterOperatorChoices(
+  filter: FileSystemFilter
+): FileSystemFilterOperator[] {
+  if (filter.type === "fileType") {
+    return filter.value.length > 1 ? ["is-any-of", "is-not"] : ["is", "is-not"]
+  }
+  if (isCustomDateRangeValue(filter.value)) return ["in-range", "not-in-range"]
+  return ["before", "after"]
+}
+
+function fileMatchesFilter(file: FileEntry, filter: FileSystemFilter) {
+  if (filter.value.length === 0) return true
+  if (filter.type === "fileType") {
+    const matches = filter.value.includes(mimeTypeForFile(file))
+
+    return filter.operator === "is-not" ? !matches : matches
+  }
+
+  const timestamp =
+    filter.type === "dateCreated" ? file.createdAt : file.updatedAt
+  const time = timestamp ? Date.parse(timestamp) : Number.NaN
+
+  if (Number.isNaN(time)) return false
+  if (filter.operator === "in-range" || filter.operator === "not-in-range") {
+    const from = Date.parse(filter.value[0])
+    const to = Date.parse(filter.value[1] ?? filter.value[0])
+    const isInRange = time >= from && time <= to
+
+    return filter.operator === "not-in-range" ? !isInRange : isInRange
+  }
+
+  const cutoff = dateFilterPresetCutoff(filter.value[0]).getTime()
+
+  return filter.operator === "before" ? time <= cutoff : time >= cutoff
 }
 
 function buildFileSystemIndex(items: FileSystemItem[]): FileSystemIndex {
@@ -327,12 +707,7 @@ function buildFileSystemIndex(items: FileSystemItem[]): FileSystemIndex {
   for (const folder of folders.values()) pushChild(folder)
   for (const file of files.values()) pushChild(file)
   for (const siblings of children.values()) {
-    siblings.sort((left, right) =>
-      left.name.localeCompare(right.name, undefined, {
-        numeric: true,
-        sensitivity: "base",
-      })
-    )
+    siblings.sort(compareEntryNames)
   }
 
   return { children, files, folders }
@@ -371,12 +746,146 @@ function escapeXmlAttribute(value: string) {
     .replaceAll('"', "&quot;")
 }
 
+// The @pierre/trees "complete" set — the full, colored suite with brand and
+// framework glyphs — ships as an SVG sprite. The list view tree consumes it
+// natively inside its shadow DOM; the icon, column, and gallery views render
+// the same sprite from the light DOM so every view falls back to the same
+// file-type icon when a file has no thumbnail.
+const FILE_ICON_SPRITE_SHEET = getBuiltInSpriteSheet("complete")
+
+const { resolveIcon: resolveFileIcon } = createFileTreeIconResolver({
+  colored: true,
+  set: "complete",
+})
+
+// Per-token light/dark colors mirroring the palette the tree applies inside
+// its shadow DOM. Tokens without an entry (font, nextjs, stylelint) stay
+// muted-foreground there too.
+const FILE_ICON_COLORS: Record<string, [light: string, dark: string]> = {
+  astro: ["#a631be", "#d568ea"],
+  babel: ["#d5a910", "#ffd452"],
+  bash: ["#199f43", "#5ecc71"],
+  biome: ["#1a85d4", "#69b1ff"],
+  bootstrap: ["#693acf", "#9d6afb"],
+  browserslist: ["#d5a910", "#ffd452"],
+  bun: ["#594c5b", "#79697b"],
+  c: ["#1a85d4", "#69b1ff"],
+  claude: ["#d47628", "#ffa359"],
+  cpp: ["#1a85d4", "#69b1ff"],
+  css: ["#693acf", "#9d6afb"],
+  database: ["#a631be", "#d568ea"],
+  default: ["#84848a", "#adadb1"],
+  docker: ["#1a85d4", "#69b1ff"],
+  eslint: ["#693acf", "#9d6afb"],
+  git: ["#ff8c5b", "#d5512f"],
+  go: ["#1ca1c7", "#68cdf2"],
+  graphql: ["#d32a61", "#ff678d"],
+  html: ["#d47628", "#ffa359"],
+  image: ["#d32a61", "#ff678d"],
+  javascript: ["#d5a910", "#ffd452"],
+  json: ["#d47628", "#ffa359"],
+  markdown: ["#199f43", "#5ecc71"],
+  mcp: ["#17a5af", "#64d1db"],
+  npm: ["#d52c36", "#ff6762"],
+  oxc: ["#1ca1c7", "#68cdf2"],
+  postcss: ["#d52c36", "#ff6762"],
+  prettier: ["#17a5af", "#64d1db"],
+  python: ["#1a85d4", "#69b1ff"],
+  react: ["#1ca1c7", "#68cdf2"],
+  ruby: ["#d52c36", "#ff6762"],
+  rust: ["#d47628", "#ffa359"],
+  sass: ["#d32a61", "#ff678d"],
+  svelte: ["#d52c36", "#ff6762"],
+  svg: ["#d47628", "#ffa359"],
+  svgo: ["#199f43", "#5ecc71"],
+  swift: ["#d47628", "#ffa359"],
+  table: ["#17a5af", "#64d1db"],
+  tailwind: ["#1ca1c7", "#68cdf2"],
+  terraform: ["#693acf", "#9d6afb"],
+  text: ["#84848a", "#adadb1"],
+  typescript: ["#1a85d4", "#69b1ff"],
+  vite: ["#a631be", "#d568ea"],
+  vscode: ["#1a85d4", "#69b1ff"],
+  vue: ["#199f43", "#5ecc71"],
+  wasm: ["#693acf", "#9d6afb"],
+  webpack: ["#1a85d4", "#69b1ff"],
+  yml: ["#d52c36", "#ff6762"],
+  zig: ["#d47628", "#ffa359"],
+  zip: ["#d47628", "#ffa359"],
+}
+
+function fileIconColorVariables(mode: 0 | 1) {
+  return Object.entries(FILE_ICON_COLORS)
+    .map(([token, colors]) => `--fs-file-icon-${token}: ${colors[mode]};`)
+    .join(" ")
+}
+
+// The variables live on :root rather than the component root because the
+// filter menus and dialogs portal outside it; the --fs-file-icon-*
+// namespace keeps them collision-free. Thumbnail tiles keep a light
+// (paper) surface in dark mode, so icons inside them revert to the light
+// palette ([data-file-system-on-light]); selected rows sit on the primary
+// surface — the opposite of the mode's background — so icons there swap to
+// the opposite palette ([data-file-system-on-primary] in the light DOM,
+// --fs-selected-color-scheme for the tree's light-dark() colors inside its
+// shadow DOM).
+const FILE_ICON_COLOR_CSS = `
+:root { ${fileIconColorVariables(0)} --fs-selected-color-scheme: dark; }
+.dark { ${fileIconColorVariables(1)} --fs-selected-color-scheme: light; }
+.dark [data-file-system-on-light] { ${fileIconColorVariables(0)} }
+[data-file-system-on-primary] { ${fileIconColorVariables(1)} }
+.dark [data-file-system-on-primary] { ${fileIconColorVariables(0)} }
+`
+
+function FileSystemIconSpriteSheet() {
+  return (
+    <>
+      <span
+        aria-hidden="true"
+        className="hidden"
+        dangerouslySetInnerHTML={{ __html: FILE_ICON_SPRITE_SHEET }}
+      />
+      <style>{FILE_ICON_COLOR_CSS}</style>
+    </>
+  )
+}
+
+function FileTypeIcon({
+  fileName,
+  className,
+}: {
+  fileName: string
+  className?: string
+}) {
+  const icon = resolveFileIcon("file-tree-icon-file", fileName)
+
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox={icon.viewBox ?? "0 0 16 16"}
+      className={cn("shrink-0 text-muted-foreground", className)}
+      style={
+        icon.token
+          ? {
+              color: `var(--fs-file-icon-${icon.token}, var(--color-muted-foreground))`,
+            }
+          : undefined
+      }
+    >
+      <use href={`#${icon.name}`} />
+    </svg>
+  )
+}
+
 function FileGenericPreview({ file }: { file: FileEntry }) {
   const extension = fileExtension(file.name)
 
   return (
-    <div className="flex size-full flex-col items-center justify-center gap-1.5 bg-white text-neutral-400 dark:bg-neutral-100">
-      <HugeiconsIcon icon={File01Icon} className="size-1/3 min-h-4 min-w-4" />
+    <div
+      data-file-system-on-light=""
+      className="flex size-full flex-col items-center justify-center gap-1.5 bg-white text-neutral-400 dark:bg-neutral-100"
+    >
+      <FileTypeIcon fileName={file.name} className="size-1/3 min-h-4 min-w-4" />
       {extension ? (
         <span className="text-[min(0.625rem,18cqw)] font-semibold tracking-wide uppercase">
           {extension}
@@ -391,14 +900,128 @@ function filePreviewUrls(file: FileSystemFileItem) {
   return file.previewImageUrl ? [file.previewImageUrl] : []
 }
 
-// djb2 — cheap stable hash for remount keys derived from path lists.
-function hashString(value: string) {
-  let hash = 5381
+// Mirrors @pierre/trees' query normalization so the toolbar search filters
+// the icon, column, and gallery views exactly like the list view tree:
+// trimmed, backslashes to slashes, lowercased, substring match on the path.
+function normalizeSearchQuery(value: string) {
+  const trimmed = value.trim()
 
-  for (let index = 0; index < value.length; index += 1) {
-    hash = ((hash << 5) + hash + value.charCodeAt(index)) | 0
+  if (!trimmed) return ""
+  return trimmed.replaceAll("\\", "/").toLowerCase()
+}
+
+// Windowed rendering, the approach @pierre/trees uses for the list view:
+// with a fixed item stride only the items intersecting the viewport — plus
+// `overscan` on each side — are mounted, so views stay flat-cost at
+// thousands of entries. The window keeps a one-item margin before
+// recomputing (scrolling doesn't re-render per item) and that margin also
+// guarantees single-step keyboard moves land on a mounted neighbor.
+function useVirtualWindow({
+  count,
+  horizontal = false,
+  itemStride,
+  leadingPx = 0,
+  overscan = 8,
+  viewportRef,
+}: {
+  count: number
+  horizontal?: boolean
+  itemStride: number
+  leadingPx?: number
+  overscan?: number
+  viewportRef: React.RefObject<HTMLDivElement | null>
+}) {
+  const [window_, setWindow] = React.useState(() => ({
+    end: Math.min(count, overscan * 2),
+    start: 0,
+  }))
+
+  React.useLayoutEffect(() => {
+    const viewport = viewportRef.current
+
+    if (!viewport || itemStride <= 0) return
+
+    const update = () => {
+      const scrollStart =
+        (horizontal ? viewport.scrollLeft : viewport.scrollTop) - leadingPx
+      const viewportSize = horizontal
+        ? viewport.clientWidth
+        : viewport.clientHeight
+      const firstVisible = Math.max(0, Math.floor(scrollStart / itemStride))
+      const lastVisible = Math.min(
+        count,
+        Math.ceil((scrollStart + viewportSize) / itemStride)
+      )
+
+      setWindow((previous) => {
+        if (
+          previous.end <= count &&
+          previous.start <= Math.max(0, firstVisible - 1) &&
+          previous.end >= Math.min(count, lastVisible + 1)
+        ) {
+          return previous
+        }
+        return {
+          end: Math.min(count, lastVisible + overscan),
+          start: Math.max(0, firstVisible - overscan),
+        }
+      })
+    }
+
+    update()
+    viewport.addEventListener("scroll", update, { passive: true })
+
+    const observer =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update)
+
+    observer?.observe(viewport)
+    return () => {
+      viewport.removeEventListener("scroll", update)
+      observer?.disconnect()
+    }
+  }, [count, horizontal, itemStride, leadingPx, overscan, viewportRef])
+
+  return window_
+}
+
+// Scrolls the item at `index` into the viewport when it sits outside it —
+// virtualized views need this because off-window items have no DOM node to
+// call scrollIntoView on.
+function scrollIndexIntoView({
+  horizontal = false,
+  index,
+  itemSize,
+  itemStride,
+  leadingPx = 0,
+  viewport,
+}: {
+  horizontal?: boolean
+  index: number
+  itemSize: number
+  itemStride: number
+  leadingPx?: number
+  viewport: HTMLDivElement | null
+}) {
+  if (!viewport || index < 0) return
+
+  const start = leadingPx + index * itemStride
+  const end = start + itemSize
+  const scrollStart = horizontal ? viewport.scrollLeft : viewport.scrollTop
+  const viewportSize = horizontal ? viewport.clientWidth : viewport.clientHeight
+
+  let nextScrollStart: number | null = null
+
+  if (start < scrollStart) {
+    nextScrollStart = start
+  } else if (end > scrollStart + viewportSize) {
+    nextScrollStart = end - viewportSize
   }
-  return hash
+  if (nextScrollStart === null) return
+  if (horizontal) {
+    viewport.scrollLeft = nextScrollStart
+  } else {
+    viewport.scrollTop = nextScrollStart
+  }
 }
 
 function FileVisual({
@@ -594,17 +1217,270 @@ export function FileSystem({
     )
   }, [index, selectedPath])
 
+  const [searchInput, setSearchInput] = React.useState("")
+  const searchInputRef = React.useRef<HTMLInputElement | null>(null)
+  const [isSearchExpanded, setIsSearchExpanded] = React.useState(false)
+  const searchQuery = normalizeSearchQuery(searchInput)
+  const isSearching = searchQuery.length > 0
+
+  const [sort, setSort] = React.useState(DEFAULT_SORT)
+  const [filters, setFilters] = React.useState<FileSystemFilter[]>([])
+  const hasActiveFilters = filters.length > 0
+
+  // Files must pass every active filter; folders stay visible through
+  // matching descendants, so the predicate only ever sees files.
+  const fileFilter = React.useMemo(() => {
+    if (filters.length === 0) return null
+    return (file: FileEntry) =>
+      filters.every((filter) => fileMatchesFilter(file, filter))
+  }, [filters])
+
+  // Paths that stay visible while searching or filtering: every file whose
+  // currentPath-relative path contains the query — the list view tree's
+  // hide-non-matches semantics — and that passes the filters, plus the
+  // ancestor folders leading to it. Folder names participate in search
+  // matches only when no filters are active; with filters, a folder is only
+  // as visible as the files inside it.
+  const visiblePaths = React.useMemo(() => {
+    if (!isSearching && !fileFilter) return null
+
+    const visible = new Set<string>()
+    const markVisible = (path: string) => {
+      while (path && path !== currentPath && !visible.has(path)) {
+        visible.add(path)
+        path = pathParent(path)
+      }
+    }
+    const matchesQuery = (path: string) =>
+      !isSearching ||
+      path.slice(currentPath.length).toLowerCase().includes(searchQuery)
+
+    for (const [path, file] of index.files) {
+      if (path === currentPath) continue
+      if (currentPath && !path.startsWith(currentPath)) continue
+      if (!matchesQuery(path)) continue
+      if (fileFilter && !fileFilter(file)) continue
+      markVisible(path)
+    }
+    if (!fileFilter) {
+      for (const path of index.folders.keys()) {
+        if (path === currentPath) continue
+        if (currentPath && !path.startsWith(currentPath)) continue
+        if (matchesQuery(path)) markVisible(path)
+      }
+    }
+    return visible
+  }, [currentPath, fileFilter, index, isSearching, searchQuery])
+
+  const visibleIndex = React.useMemo(() => {
+    if (!visiblePaths) return index
+
+    const children = new Map<string, FileSystemEntry[]>()
+
+    for (const [parentPath, parentChildren] of index.children) {
+      const visibleChildren = parentChildren.filter((entry) =>
+        visiblePaths.has(entry.path)
+      )
+
+      if (visibleChildren.length) children.set(parentPath, visibleChildren)
+    }
+    return { ...index, children }
+  }, [index, visiblePaths])
+
+  // Children re-sorted per the active sort; the default (name ascending)
+  // reuses the index's pre-sorted arrays untouched.
+  const sortedIndex = React.useMemo(() => {
+    if (
+      sort.key === DEFAULT_SORT.key &&
+      sort.direction === DEFAULT_SORT.direction
+    ) {
+      return visibleIndex
+    }
+
+    const children = new Map<string, FileSystemEntry[]>()
+
+    for (const [parentPath, parentChildren] of visibleIndex.children) {
+      children.set(
+        parentPath,
+        [...parentChildren].sort((left, right) =>
+          compareEntriesBySort(left, right, sort)
+        )
+      )
+    }
+    return { ...visibleIndex, children }
+  }, [sort, visibleIndex])
+
+  // The ref mirrors the state so re-selecting the same entry (e.g. the
+  // pointerdown + click pair the columns view emits per press) stays a
+  // no-op without widening the callback's dependencies.
+  const selectedPathRef = React.useRef<string | null>(null)
   const selectEntry = React.useCallback(
     (entry: FileSystemEntry | null) => {
-      setSelectedPath(entry?.path ?? null)
+      const path = entry?.path ?? null
+
+      if (selectedPathRef.current === path) return
+      selectedPathRef.current = path
+      setSelectedPath(path)
       onSelectionChange?.(entry)
     },
     [onSelectionChange]
   )
 
-  // Below 480px the tabs view switcher no longer fits in the toolbar and
-  // collapses into a select; below 360px the select label and the folder
-  // name are dropped too, leaving icons only.
+  // A query or filter change can hide the selected entry out from under the
+  // views.
+  React.useEffect(() => {
+    if (!visiblePaths || !selectedPath) return
+    if (!visiblePaths.has(selectedPath)) selectEntry(null)
+  }, [selectEntry, selectedPath, visiblePaths])
+
+  const applySortKey = React.useCallback((key: FileSystemSortKey) => {
+    setSort((previous) =>
+      previous.key === key
+        ? previous
+        : { direction: defaultSortDirection(key), key }
+    )
+  }, [])
+
+  // Column headers toggle the direction when the column is already active,
+  // like Finder.
+  const toggleSortColumn = React.useCallback((key: FileSystemSortKey) => {
+    setSort((previous) =>
+      previous.key === key
+        ? { direction: previous.direction === "asc" ? "desc" : "asc", key }
+        : { direction: defaultSortDirection(key), key }
+    )
+  }, [])
+
+  // Distinct MIME types across the loaded manifest, labeled for the filter
+  // menu; the first file seen per type lends its name to the option icon.
+  const fileTypeOptions = React.useMemo(() => {
+    const byMime = new Map<string, FileTypeFilterOption>()
+
+    for (const file of index.files.values()) {
+      const mime = mimeTypeForFile(file)
+
+      if (!byMime.has(mime)) {
+        byMime.set(mime, {
+          iconFileName: file.name,
+          label: MIME_TYPE_LABELS[mime] ?? mime,
+          mime,
+        })
+      }
+    }
+    return [...byMime.values()].sort((left, right) =>
+      left.label.localeCompare(right.label)
+    )
+  }, [index])
+
+  const filterIdRef = React.useRef(0)
+  const [dateRangeDialog, setDateRangeDialog] = React.useState<{
+    initialRange?: { from: Date; to: Date }
+    type: FileSystemDateFilterType
+  } | null>(null)
+
+  const toggleFileTypeFilterValue = React.useCallback(
+    (mime: string, checked: boolean) => {
+      const id = `filter-${++filterIdRef.current}`
+
+      setFilters((previous) => {
+        const existing = previous.find((filter) => filter.type === "fileType")
+
+        if (!existing) {
+          if (!checked) return previous
+          return [
+            ...previous,
+            {
+              id,
+              operator: "is" as const,
+              type: "fileType" as const,
+              value: [mime],
+            },
+          ]
+        }
+
+        const value = checked
+          ? [...new Set([...existing.value, mime])]
+          : existing.value.filter((entry) => entry !== mime)
+
+        if (value.length === 0) {
+          return previous.filter((filter) => filter !== existing)
+        }
+
+        // "is" and "is any of" track the value count; "is not" is unaffected.
+        const operator =
+          existing.operator === "is" || existing.operator === "is-any-of"
+            ? value.length > 1
+              ? ("is-any-of" as const)
+              : ("is" as const)
+            : existing.operator
+
+        return previous.map((filter) =>
+          filter === existing ? { ...filter, operator, value } : filter
+        )
+      })
+    },
+    []
+  )
+
+  const setDatePresetFilter = React.useCallback(
+    (type: FileSystemDateFilterType, preset: string) => {
+      const id = `filter-${++filterIdRef.current}`
+
+      setFilters((previous) => [
+        ...previous.filter((filter) => filter.type !== type),
+        { id, operator: "after", type, value: [preset] },
+      ])
+    },
+    []
+  )
+
+  // Editing an existing custom range seeds the dialog with its bounds.
+  const openDateRangeDialog = React.useCallback(
+    (type: FileSystemDateFilterType) => {
+      const existing = filters.find((filter) => filter.type === type)
+
+      setDateRangeDialog({
+        initialRange:
+          existing && isCustomDateRangeValue(existing.value)
+            ? {
+                from: new Date(existing.value[0]),
+                to: new Date(existing.value[1]),
+              }
+            : undefined,
+        type,
+      })
+    },
+    [filters]
+  )
+
+  const applyCustomDateRange = React.useCallback(
+    (type: FileSystemDateFilterType, from: Date, to: Date) => {
+      const id = `filter-${++filterIdRef.current}`
+
+      setFilters((previous) => {
+        const existing = previous.find((filter) => filter.type === type)
+
+        return [
+          ...previous.filter((filter) => filter.type !== type),
+          {
+            id,
+            operator:
+              existing?.operator === "not-in-range"
+                ? ("not-in-range" as const)
+                : ("in-range" as const),
+            type,
+            value: [from.toISOString(), to.toISOString()],
+          },
+        ]
+      })
+    },
+    []
+  )
+
+  // Below 560px the tabs view switcher no longer fits in the toolbar and
+  // collapses into a select while the search input collapses into a popover;
+  // below 360px the select labels and the folder name are dropped too,
+  // leaving icons only.
   const rootRef = React.useRef<HTMLDivElement | null>(null)
   const [headerLayout, setHeaderLayout] = React.useState<
     "full" | "compact" | "minimal"
@@ -615,16 +1491,20 @@ export function FileSystem({
 
     if (!root || typeof ResizeObserver === "undefined") return
 
-    const observer = new ResizeObserver((observerEntries) => {
-      const width = observerEntries[0]?.contentRect.width
-
+    const applyWidth = (width: number | undefined) => {
       if (width === undefined) return
 
       setHeaderLayout(
-        width < 360 ? "minimal" : width < 480 ? "compact" : "full"
+        width < 360 ? "minimal" : width < 560 ? "compact" : "full"
       )
-    })
+    }
+    const observer = new ResizeObserver((observerEntries) =>
+      applyWidth(observerEntries[0]?.contentRect.width)
+    )
 
+    // Measure synchronously so the first painted layout is already correct;
+    // the observer then tracks resizes.
+    applyWidth(root.clientWidth)
     observer.observe(root)
     return () => observer.disconnect()
   }, [])
@@ -684,6 +1564,8 @@ export function FileSystem({
 
         return { index: stack.length - 1, stack }
       })
+      // Navigation exits search, like Finder.
+      setSearchInput("")
       selectEntry(null)
       ensureChildren(path)
     },
@@ -771,6 +1653,7 @@ export function FileSystem({
       ...previous,
       index: Math.max(0, previous.index - 1),
     }))
+    setSearchInput("")
     selectEntry(null)
   }, [selectEntry])
 
@@ -779,26 +1662,37 @@ export function FileSystem({
       ...previous,
       index: Math.min(previous.stack.length - 1, previous.index + 1),
     }))
+    setSearchInput("")
     selectEntry(null)
   }, [selectEntry])
 
-  const currentEntries = index.children.get(currentPath) ?? []
+  const currentEntries = sortedIndex.children.get(currentPath) ?? []
   const currentFolderName =
     currentPath === "" ? title : pathName(currentPath) || title
   const isLoadingCurrentFolder = loadingFolders.has(currentPath)
 
+  // The list view tree saves its expanded folders here when it unmounts
+  // (view switches, navigation) so returning to the list view — or to a
+  // previously visited folder — restores the same disclosure state.
+  const treeExpansionRef = React.useRef(new Map<string, readonly string[]>())
+
   const viewProps: FileSystemViewProps = {
     currentPath,
     entries: currentEntries,
+    fileFilter,
     getFileUrl,
-    index,
+    index: sortedIndex,
     loadPreviewImageUrl,
     loadingFolders,
     onOpen: openEntry,
     onSelect: selectAndPrefetchEntry,
+    onSortColumnClick: toggleSortColumn,
     renderFilePreview,
+    searchQuery,
     selectedEntry,
     selectedPath,
+    sort,
+    treeExpansionRef,
   }
 
   const openedFileName = openedFile
@@ -818,12 +1712,22 @@ export function FileSystem({
     <div
       ref={rootRef}
       tabIndex={-1}
+      data-slot="file-system"
+      onKeyDown={(event) => {
+        // ⌘F focuses the toolbar search while focus is inside the component.
+        if ((event.metaKey || event.ctrlKey) && event.key === "f") {
+          event.preventDefault()
+          setIsSearchExpanded(true)
+          searchInputRef.current?.focus()
+        }
+      }}
       className={cn(
         "flex h-[480px] min-h-0 flex-col overflow-hidden rounded-xl border bg-background text-foreground outline-none",
         className
       )}
     >
-      <div className="grid h-12 shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b bg-muted/40 px-2">
+      <FileSystemIconSpriteSheet />
+      <div className="relative grid h-12 shrink-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-b bg-muted/40 px-2">
         <div className="flex min-w-0 items-center gap-0.5">
           <button
             type="button"
@@ -859,17 +1763,16 @@ export function FileSystem({
             <SelectTrigger
               size="sm"
               aria-label="View"
-              className={cn(headerLayout !== "minimal" && "min-w-32")}
+              // Icon-only like the sort select: sheds the base min-width to
+              // hug icon + chevron at the filter button's 28px height.
+              className="h-7 min-h-7 w-auto min-w-0 [&_svg]:size-4"
             >
               <SelectValue>
                 {activeViewOption ? (
-                  <span className="flex items-center gap-2">
-                    <HugeiconsIcon
-                      icon={activeViewOption.icon}
-                      className="size-4"
-                    />
-                    {headerLayout !== "minimal" ? activeViewOption.label : null}
-                  </span>
+                  <HugeiconsIcon
+                    icon={activeViewOption.icon}
+                    className="size-4"
+                  />
                 ) : null}
               </SelectValue>
             </SelectTrigger>
@@ -905,13 +1808,101 @@ export function FileSystem({
             </TabsList>
           </Tabs>
         )}
-        <div />
+        <div className="flex min-w-0 items-center justify-end gap-1">
+          <FileSystemSortSelect
+            layout={headerLayout}
+            onKeyChange={applySortKey}
+            sort={sort}
+          />
+          <FileSystemFilterMenu
+            fileTypeOptions={fileTypeOptions}
+            filters={filters}
+            onOpenCustomRange={openDateRangeDialog}
+            onSelectDatePreset={setDatePresetFilter}
+            onToggleFileType={toggleFileTypeFilterValue}
+          />
+          <FileSystemSearchField
+            inputRef={searchInputRef}
+            isExpanded={isSearchExpanded}
+            layout={headerLayout}
+            onExpandedChange={setIsSearchExpanded}
+            onValueChange={setSearchInput}
+            value={searchInput}
+          />
+        </div>
       </div>
+      {hasActiveFilters ? (
+        <div className="flex shrink-0 flex-wrap items-center gap-1 border-b bg-muted/20 px-2 py-1.5 text-xs text-muted-foreground">
+          {filters.map((filter) => {
+            const dateFilterType =
+              filter.type === "fileType" ? null : filter.type
+
+            return (
+              <FileSystemFilterPill
+                key={filter.id}
+                fileTypeOptions={fileTypeOptions}
+                filter={filter}
+                onOpenCustomRange={
+                  dateFilterType
+                    ? () => openDateRangeDialog(dateFilterType)
+                    : undefined
+                }
+                onOperatorChange={(operator) =>
+                  setFilters((previous) =>
+                    previous.map((entry) =>
+                      entry.id === filter.id ? { ...entry, operator } : entry
+                    )
+                  )
+                }
+                onRemove={() =>
+                  setFilters((previous) =>
+                    previous.filter((entry) => entry.id !== filter.id)
+                  )
+                }
+                onSelectDatePreset={(preset) =>
+                  setFilters((previous) =>
+                    previous.map((entry) =>
+                      entry.id === filter.id
+                        ? {
+                            ...entry,
+                            operator:
+                              entry.operator === "before" ||
+                              entry.operator === "after"
+                                ? entry.operator
+                                : "after",
+                            value: [preset],
+                          }
+                        : entry
+                    )
+                  )
+                }
+                onToggleFileType={toggleFileTypeFilterValue}
+              />
+            )
+          })}
+          <button
+            type="button"
+            onClick={() => setFilters([])}
+            className="rounded-md px-1.5 py-0.5 transition-colors outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            Clear
+          </button>
+        </div>
+      ) : null}
       <div className="relative min-h-0 flex-1">
         {isLoadingCurrentFolder && currentEntries.length === 0 ? (
           <FileSystemEmptyState label="Loading…" isLoading />
-        ) : currentEntries.length === 0 && view !== "columns" ? (
-          <FileSystemEmptyState label="This folder is empty" />
+        ) : currentEntries.length === 0 &&
+          (view !== "columns" || isSearching || hasActiveFilters) ? (
+          <FileSystemEmptyState
+            label={
+              isSearching
+                ? `No results for “${searchInput.trim()}”`
+                : hasActiveFilters
+                  ? "No items match the active filters"
+                  : "This folder is empty"
+            }
+          />
         ) : view === "icons" ? (
           <FileSystemIconsView {...viewProps} />
         ) : view === "list" ? (
@@ -928,7 +1919,13 @@ export function FileSystem({
       >
         <span>
           {currentEntries.length}{" "}
-          {currentEntries.length === 1 ? "item" : "items"}
+          {isSearching
+            ? currentEntries.length === 1
+              ? "result"
+              : "results"
+            : currentEntries.length === 1
+              ? "item"
+              : "items"}
         </span>
         {selectedEntry ? <span>· “{selectedEntry.name}” selected</span> : null}
       </div>
@@ -948,31 +1945,37 @@ export function FileSystem({
           >
             <DialogTitle className="sr-only">{openedFileName}</DialogTitle>
             {openedFile.kind === "pdf" ? (
-              <PDFViewer
-                file={openedFile.url}
-                className="h-full min-h-0 flex-1 overflow-hidden rounded-2xl"
-                downloadFileName={openedFileName}
-                showUpload={false}
-                toolbarActions={viewerCloseToolbarAction}
-              />
+              <React.Suspense fallback={<FileSystemViewerLoading />}>
+                <LazyPDFViewer
+                  file={openedFile.url}
+                  className="h-full min-h-0 flex-1 overflow-hidden rounded-2xl"
+                  downloadFileName={openedFileName}
+                  showUpload={false}
+                  toolbarActions={viewerCloseToolbarAction}
+                />
+              </React.Suspense>
             ) : openedFile.kind === "docx" ? (
-              <DocxViewerPreview
-                src={openedFile.url}
-                fileName={openedFileName}
-                className="h-full min-h-0 flex-1"
-                rounded
-                showUpload={false}
-                toolbarActions={viewerCloseToolbarAction}
-              />
+              <React.Suspense fallback={<FileSystemViewerLoading />}>
+                <LazyDocxViewerPreview
+                  src={openedFile.url}
+                  fileName={openedFileName}
+                  className="h-full min-h-0 flex-1"
+                  rounded
+                  showUpload={false}
+                  toolbarActions={viewerCloseToolbarAction}
+                />
+              </React.Suspense>
             ) : openedFile.kind === "xlsx" ? (
-              <XlsxViewerPreview
-                src={openedFile.url}
-                fileName={openedFileName}
-                className="h-full min-h-0 flex-1"
-                rounded
-                showUpload={false}
-                toolbarActions={viewerCloseToolbarAction}
-              />
+              <React.Suspense fallback={<FileSystemViewerLoading />}>
+                <LazyXlsxViewerPreview
+                  src={openedFile.url}
+                  fileName={openedFileName}
+                  className="h-full min-h-0 flex-1"
+                  rounded
+                  showUpload={false}
+                  toolbarActions={viewerCloseToolbarAction}
+                />
+              </React.Suspense>
             ) : (
               <img
                 src={openedFile.url}
@@ -983,13 +1986,824 @@ export function FileSystem({
           </DialogContent>
         ) : null}
       </Dialog>
+      {dateRangeDialog ? (
+        <FileSystemDateRangeDialog
+          initialRange={dateRangeDialog.initialRange}
+          onApply={(from, to) => {
+            applyCustomDateRange(dateRangeDialog.type, from, to)
+            setDateRangeDialog(null)
+          }}
+          onClose={() => setDateRangeDialog(null)}
+        />
+      ) : null}
     </div>
+  )
+}
+
+// Shared style for the ghost icon buttons in the toolbar.
+const TOOLBAR_ICON_BUTTON_CLASSNAME =
+  "flex size-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+
+// macOS Finder-style toolbar search. At the full layout it sits inline in
+// the header's right column; at compact widths it collapses into a ghost
+// icon button that opens the input in a popover (a dot marks the button
+// while a query keeps filtering the views).
+function FileSystemSearchField({
+  inputRef,
+  isExpanded,
+  layout,
+  onExpandedChange,
+  onValueChange,
+  value,
+}: {
+  inputRef: React.RefObject<HTMLInputElement | null>
+  isExpanded: boolean
+  layout: "full" | "compact" | "minimal"
+  onExpandedChange: (isExpanded: boolean) => void
+  onValueChange: (value: string) => void
+  value: string
+}) {
+  const isInline = layout === "full"
+
+  React.useEffect(() => {
+    if (!isInline && isExpanded) inputRef.current?.focus()
+  }, [inputRef, isExpanded, isInline])
+
+  const input = (
+    <div
+      className={cn(
+        "relative flex h-7 min-w-0 flex-1 items-center rounded-lg border border-input bg-popover text-sm text-foreground shadow-xs/5 transition-shadow outline-none not-dark:bg-clip-padding before:pointer-events-none before:absolute before:inset-0 before:rounded-[calc(var(--radius-lg)-1px)] not-focus-within:before:shadow-[0_1px_--theme(--color-black/4%)] focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-1 focus-within:ring-offset-background dark:bg-input/32 dark:not-focus-within:before:shadow-[0_-1px_--theme(--color-white/6%)]",
+        isInline && "max-w-44"
+      )}
+    >
+      <HugeiconsIcon
+        icon={Search01Icon}
+        className="pointer-events-none absolute left-2 size-3.5 text-muted-foreground"
+      />
+      <input
+        ref={inputRef}
+        type="text"
+        role="searchbox"
+        aria-label="Search files"
+        placeholder="Search"
+        value={value}
+        onChange={(event) => onValueChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key !== "Escape") return
+          event.preventDefault()
+          event.stopPropagation()
+          if (value) {
+            onValueChange("")
+          } else {
+            onExpandedChange(false)
+            event.currentTarget.blur()
+          }
+        }}
+        className="h-full w-full min-w-0 rounded-[inherit] bg-transparent pr-6 pl-7 outline-none placeholder:text-muted-foreground"
+      />
+      {value ? (
+        <button
+          type="button"
+          aria-label="Clear search"
+          onClick={() => {
+            onValueChange("")
+            inputRef.current?.focus()
+          }}
+          className="absolute right-1 flex size-5 items-center justify-center rounded-sm text-muted-foreground transition-colors outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <HugeiconsIcon icon={Cancel01Icon} className="size-3" />
+        </button>
+      ) : null}
+    </div>
+  )
+
+  if (isInline) {
+    // A fixed basis (not flex-1) keeps the whole toolbar cluster packed
+    // against the header's right edge; the input shrinks first when the
+    // header tightens.
+    return <div className="flex w-44 min-w-9 items-center">{input}</div>
+  }
+
+  return (
+    <Popover open={isExpanded} onOpenChange={onExpandedChange}>
+      <PopoverTrigger
+        render={
+          <button
+            type="button"
+            aria-label="Search"
+            title="Search"
+            className={cn(TOOLBAR_ICON_BUTTON_CLASSNAME, "relative")}
+          />
+        }
+      >
+        <HugeiconsIcon icon={Search01Icon} className="size-4" />
+        {value ? (
+          <span className="absolute top-1 right-1 size-1.5 rounded-full bg-primary" />
+        ) : null}
+      </PopoverTrigger>
+      <PopoverContent align="end" sideOffset={6} className="w-64 p-1">
+        {input}
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+// Toolbar "sort by" select. The full layout shows the active key's label; at
+// compact widths the trigger collapses to the sort glyph + chevron.
+function FileSystemSortSelect({
+  layout,
+  onKeyChange,
+  sort,
+}: {
+  layout: "full" | "compact" | "minimal"
+  onKeyChange: (key: FileSystemSortKey) => void
+  sort: FileSystemSortState
+}) {
+  const activeOption = SORT_OPTIONS.find((option) => option.key === sort.key)
+
+  return (
+    <Select
+      value={sort.key}
+      onValueChange={(value) => onKeyChange(value as FileSystemSortKey)}
+    >
+      <SelectTrigger
+        size="sm"
+        aria-label="Sort by"
+        title="Sort by"
+        className="h-7 min-h-7 w-auto min-w-0 shrink-0 [&_svg]:size-4"
+      >
+        <SelectValue>
+          <span className="flex items-center gap-1.5">
+            <HugeiconsIcon icon={ArrowUpDownIcon} className="size-4" />
+            {layout === "full" ? activeOption?.triggerLabel : null}
+          </span>
+        </SelectValue>
+      </SelectTrigger>
+      <SelectContent align="end" alignItemWithTrigger={false}>
+        {SORT_OPTIONS.map((option) => (
+          <SelectItem key={option.key} value={option.key}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
+// Searchable file-type list (cmdk) rendered inside a menu popup, so the
+// long MIME list can be filtered by typing. Selection toggles stay open for
+// multi-select; ArrowUp/Down and Enter come from cmdk's combobox semantics.
+function FileSystemFileTypeCommand({
+  checkedMimes,
+  onToggle,
+  options,
+}: {
+  checkedMimes: string[]
+  onToggle: (mime: string, checked: boolean) => void
+  options: FileTypeFilterOption[]
+}) {
+  const inputRef = React.useRef<HTMLInputElement | null>(null)
+
+  // The menu focuses its popup when it opens; pull focus into the search
+  // field so typing filters immediately.
+  React.useEffect(() => {
+    const frame = requestAnimationFrame(() => inputRef.current?.focus())
+
+    return () => cancelAnimationFrame(frame)
+  }, [])
+
+  return (
+    <Command
+      // -m-1 spans the menu viewport's built-in padding so the search
+      // field's bottom border runs edge to edge.
+      className="-m-1 w-[calc(100%+--spacing(2))] bg-transparent"
+      // cmdk owns the keyboard while focus is in the list; only Escape
+      // (close the menu) and Tab continue outward.
+      onKeyDown={(event) => {
+        if (event.key !== "Escape" && event.key !== "Tab") {
+          event.stopPropagation()
+        }
+      }}
+    >
+      <CommandInput
+        ref={inputRef}
+        placeholder="Search file types…"
+        className="h-9"
+      />
+      <CommandList className="max-h-none">
+        <CommandEmpty>No file types found.</CommandEmpty>
+        <ScrollArea orientation="vertical" className="h-auto max-h-64">
+          <CommandGroup>
+            {options.map((option) => {
+              const isChecked = checkedMimes.includes(option.mime)
+
+              return (
+                <CommandItem
+                  key={option.mime}
+                  value={option.label}
+                  keywords={[option.mime]}
+                  onSelect={() => onToggle(option.mime, !isChecked)}
+                >
+                  <HugeiconsIcon
+                    icon={Tick02Icon}
+                    className={cn(
+                      "size-4 text-foreground",
+                      !isChecked && "opacity-0"
+                    )}
+                  />
+                  <FileTypeIcon
+                    fileName={option.iconFileName}
+                    className="size-4"
+                  />
+                  {option.label}
+                </CommandItem>
+              )
+            })}
+          </CommandGroup>
+        </ScrollArea>
+      </CommandList>
+    </Command>
+  )
+}
+
+// Toolbar filter menu: file types as a searchable checklist, dates as
+// single-select presets plus a custom range, mirroring Extend's table
+// filters.
+function FileSystemFilterMenu({
+  fileTypeOptions,
+  filters,
+  onOpenCustomRange,
+  onSelectDatePreset,
+  onToggleFileType,
+}: {
+  fileTypeOptions: FileTypeFilterOption[]
+  filters: FileSystemFilter[]
+  onOpenCustomRange: (type: FileSystemDateFilterType) => void
+  onSelectDatePreset: (type: FileSystemDateFilterType, preset: string) => void
+  onToggleFileType: (mime: string, checked: boolean) => void
+}) {
+  const fileTypeFilter = filters.find((filter) => filter.type === "fileType")
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            aria-label="Filter"
+            title="Filter"
+            className="relative size-7 sm:size-7"
+          />
+        }
+      >
+        <HugeiconsIcon icon={FilterIcon} className="size-4" />
+        {filters.length > 0 ? (
+          <span className="absolute top-1 right-1 size-1.5 rounded-full bg-primary" />
+        ) : null}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="min-w-44">
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <HugeiconsIcon
+              icon={File01Icon}
+              className="size-4 text-muted-foreground"
+            />
+            File type
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-60">
+            <FileSystemFileTypeCommand
+              checkedMimes={fileTypeFilter?.value ?? []}
+              onToggle={onToggleFileType}
+              options={fileTypeOptions}
+            />
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+        {(["dateModified", "dateCreated"] as const).map((type) => (
+          <DropdownMenuSub key={type}>
+            <DropdownMenuSubTrigger>
+              <HugeiconsIcon
+                icon={Calendar03Icon}
+                className="size-4 text-muted-foreground"
+              />
+              {FILTER_TYPE_LABELS[type]}
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              <ScrollArea orientation="vertical" className="h-auto max-h-72">
+                {DATE_FILTER_PRESETS.map((preset) => (
+                  <DropdownMenuItem
+                    key={preset}
+                    onClick={() => onSelectDatePreset(type, preset)}
+                  >
+                    {preset}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuItem onClick={() => onOpenCustomRange(type)}>
+                  Custom date range…
+                </DropdownMenuItem>
+              </ScrollArea>
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
+
+const FILTER_PILL_SEGMENT_CLASSNAME =
+  "flex h-5 items-center gap-1 border border-l-0 bg-background px-1.5 whitespace-nowrap text-foreground"
+
+const FILTER_PILL_BUTTON_CLASSNAME = cn(
+  FILTER_PILL_SEGMENT_CLASSNAME,
+  "transition-colors outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+)
+
+// One applied filter, rendered as a segmented pill in the status bar:
+// type · operator · value · remove, each segment interactive like Extend's
+// table filter pills.
+function FileSystemFilterPill({
+  fileTypeOptions,
+  filter,
+  onOpenCustomRange,
+  onOperatorChange,
+  onRemove,
+  onSelectDatePreset,
+  onToggleFileType,
+}: {
+  fileTypeOptions: FileTypeFilterOption[]
+  filter: FileSystemFilter
+  onOpenCustomRange?: () => void
+  onOperatorChange: (operator: FileSystemFilterOperator) => void
+  onRemove: () => void
+  onSelectDatePreset: (preset: string) => void
+  onToggleFileType: (mime: string, checked: boolean) => void
+}) {
+  const isCustomRange =
+    filter.type !== "fileType" && isCustomDateRangeValue(filter.value)
+  const selectedTypeLabels =
+    filter.type === "fileType"
+      ? filter.value.map(
+          (mime) =>
+            fileTypeOptions.find((option) => option.mime === mime)?.label ??
+            mime
+        )
+      : []
+
+  return (
+    <div className="flex items-center text-xs">
+      <span
+        className={cn(
+          FILTER_PILL_SEGMENT_CLASSNAME,
+          "rounded-l-md border-l text-primary"
+        )}
+      >
+        <HugeiconsIcon
+          icon={filter.type === "fileType" ? File01Icon : Calendar03Icon}
+          className="size-3"
+        />
+        {FILTER_TYPE_LABELS[filter.type]}
+      </span>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <button
+              type="button"
+              className={cn(FILTER_PILL_BUTTON_CLASSNAME, "text-primary")}
+            />
+          }
+        >
+          {FILTER_OPERATOR_LABELS[filter.operator]}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="min-w-28">
+          {filterOperatorChoices(filter).map((operator) => (
+            <DropdownMenuItem
+              key={operator}
+              onClick={() => onOperatorChange(operator)}
+            >
+              {FILTER_OPERATOR_LABELS[operator]}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {filter.type === "fileType" ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <button
+                type="button"
+                title={selectedTypeLabels.join(", ")}
+                className={FILTER_PILL_BUTTON_CLASSNAME}
+              />
+            }
+          >
+            {filter.value.length === 1
+              ? selectedTypeLabels[0]
+              : `${filter.value.length} selected`}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-60">
+            <FileSystemFileTypeCommand
+              checkedMimes={filter.value}
+              onToggle={onToggleFileType}
+              options={fileTypeOptions}
+            />
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : isCustomRange ? (
+        <button
+          type="button"
+          onClick={onOpenCustomRange}
+          className={FILTER_PILL_BUTTON_CLASSNAME}
+        >
+          {filter.value
+            .map((value) => new Date(value).toLocaleDateString("en-US"))
+            .join(" – ")}
+        </button>
+      ) : (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <button type="button" className={FILTER_PILL_BUTTON_CLASSNAME} />
+            }
+          >
+            {filter.value[0]}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start">
+            <ScrollArea orientation="vertical" className="h-auto max-h-72">
+              {DATE_FILTER_PRESETS.map((preset) => (
+                <DropdownMenuItem
+                  key={preset}
+                  onClick={() => onSelectDatePreset(preset)}
+                >
+                  {preset}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuItem onClick={onOpenCustomRange}>
+                Custom date range…
+              </DropdownMenuItem>
+            </ScrollArea>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+      <button
+        type="button"
+        aria-label={`Remove ${FILTER_TYPE_LABELS[filter.type]} filter`}
+        onClick={onRemove}
+        className={cn(
+          FILTER_PILL_BUTTON_CLASSNAME,
+          "rounded-r-md px-1 text-muted-foreground hover:text-foreground"
+        )}
+      >
+        <HugeiconsIcon icon={Cancel01Icon} className="size-3" />
+      </button>
+    </div>
+  )
+}
+
+function formatDateInputValue(date: Date | undefined) {
+  if (!date) return ""
+
+  const pad = (value: number) => String(value).padStart(2, "0")
+
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+function parseDateInputValue(value: string) {
+  const trimmed = value.trim()
+
+  if (!trimmed) return undefined
+
+  const isoMatch = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(trimmed)
+
+  if (isoMatch) {
+    const date = new Date(
+      Number(isoMatch[1]),
+      Number(isoMatch[2]) - 1,
+      Number(isoMatch[3])
+    )
+
+    return Number.isNaN(date.getTime()) ? undefined : date
+  }
+
+  const parsed = Date.parse(trimmed)
+
+  return Number.isNaN(parsed) ? undefined : new Date(parsed)
+}
+
+const DATE_RANGE_DIALOG_PRESETS = [
+  "Last 7 days",
+  "This month",
+  "Last 1 month",
+  "Last 3 months",
+  "This year",
+  "Last 12 months",
+]
+
+function dateRangePresetRange(preset: string) {
+  const from = new Date()
+  const to = new Date()
+
+  from.setHours(0, 0, 0, 0)
+  to.setHours(23, 59, 59, 999)
+
+  switch (preset) {
+    case "Last 7 days":
+      from.setDate(from.getDate() - 6)
+      break
+    case "This month":
+      from.setDate(1)
+      break
+    case "Last 1 month":
+      from.setMonth(from.getMonth() - 1)
+      break
+    case "Last 3 months":
+      from.setMonth(from.getMonth() - 3)
+      break
+    case "This year":
+      from.setMonth(0, 1)
+      break
+    case "Last 12 months":
+      from.setFullYear(from.getFullYear() - 1)
+      break
+  }
+  return { from, to }
+}
+
+const WEEKDAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
+
+function calendarDayKey(date: Date) {
+  return date.getFullYear() * 10_000 + date.getMonth() * 100 + date.getDate()
+}
+
+// Two-month range calendar for the custom date range dialog (one month at
+// phone widths). Clicking sets the start, then the end; clicking before the
+// start swaps the ends, and a third click restarts the range.
+function FileSystemRangeCalendar({
+  onSelect,
+  range,
+}: {
+  onSelect: (range: { from?: Date; to?: Date }) => void
+  range: { from?: Date; to?: Date }
+}) {
+  const [viewMonth, setViewMonth] = React.useState(() => {
+    const base = range.from ?? new Date()
+
+    return new Date(base.getFullYear(), base.getMonth(), 1)
+  })
+  const months = [
+    viewMonth,
+    new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1),
+  ]
+  const fromKey = range.from ? calendarDayKey(range.from) : null
+  const toKey = range.to ? calendarDayKey(range.to) : null
+  const todayKey = calendarDayKey(new Date())
+
+  const handleDayClick = (day: Date) => {
+    if (!range.from || range.to) {
+      onSelect({ from: day })
+    } else if (calendarDayKey(day) < calendarDayKey(range.from)) {
+      onSelect({ from: day, to: range.from })
+    } else {
+      onSelect({ from: range.from, to: day })
+    }
+  }
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        aria-label="Previous month"
+        onClick={() =>
+          setViewMonth(
+            (previous) =>
+              new Date(previous.getFullYear(), previous.getMonth() - 1, 1)
+          )
+        }
+        className="absolute top-0 left-0 flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <HugeiconsIcon icon={ArrowLeft01Icon} className="size-4" />
+      </button>
+      <button
+        type="button"
+        aria-label="Next month"
+        onClick={() =>
+          setViewMonth(
+            (previous) =>
+              new Date(previous.getFullYear(), previous.getMonth() + 1, 1)
+          )
+        }
+        className="absolute top-0 right-0 flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <HugeiconsIcon icon={ArrowRight01Icon} className="size-4" />
+      </button>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {months.map((month, monthIndex) => {
+          const firstWeekday = month.getDay()
+          const dayCount = new Date(
+            month.getFullYear(),
+            month.getMonth() + 1,
+            0
+          ).getDate()
+          const cells = [
+            ...Array.from({ length: firstWeekday }, () => null),
+            ...Array.from(
+              { length: dayCount },
+              (_, index) =>
+                new Date(month.getFullYear(), month.getMonth(), index + 1)
+            ),
+          ]
+
+          return (
+            <div
+              key={`${month.getFullYear()}-${month.getMonth()}`}
+              className={cn(monthIndex === 1 && "max-sm:hidden")}
+            >
+              <div className="text-center text-sm leading-6 font-medium">
+                {month.toLocaleDateString("en-US", {
+                  month: "long",
+                  year: "numeric",
+                })}
+              </div>
+              <div className="mt-1 grid grid-cols-7 text-center text-xs text-muted-foreground">
+                {WEEKDAY_LABELS.map((weekday) => (
+                  <span key={weekday} className="h-6 leading-6">
+                    {weekday}
+                  </span>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-y-px">
+                {cells.map((day, cellIndex) => {
+                  if (!day) return <span key={cellIndex} />
+
+                  const dayKey = calendarDayKey(day)
+                  const isFrom = dayKey === fromKey
+                  const isTo = dayKey === toKey
+                  const isWithinRange =
+                    fromKey !== null &&
+                    toKey !== null &&
+                    dayKey > fromKey &&
+                    dayKey < toKey
+
+                  return (
+                    <button
+                      key={cellIndex}
+                      type="button"
+                      onClick={() => handleDayClick(day)}
+                      className={cn(
+                        "flex h-7 items-center justify-center rounded-md text-xs tabular-nums transition-colors outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring",
+                        isWithinRange && "rounded-none bg-accent",
+                        (isFrom || isTo) &&
+                          "bg-primary text-primary-foreground hover:bg-primary",
+                        isFrom &&
+                          toKey !== null &&
+                          fromKey !== toKey &&
+                          "rounded-r-none",
+                        isTo && fromKey !== toKey && "rounded-l-none",
+                        dayKey === todayKey &&
+                          !isFrom &&
+                          !isTo &&
+                          "font-semibold text-primary"
+                      )}
+                    >
+                      {day.getDate()}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// Custom date range dialog mirroring Extend's table filters: From/To inputs,
+// a two-month range calendar, and quick presets. Applied ranges span from
+// the start of the first day to the end of the last.
+function FileSystemDateRangeDialog({
+  initialRange,
+  onApply,
+  onClose,
+}: {
+  initialRange?: { from: Date; to: Date }
+  onApply: (from: Date, to: Date) => void
+  onClose: () => void
+}) {
+  const [range, setRange] = React.useState<{ from?: Date; to?: Date }>(
+    () => initialRange ?? {}
+  )
+  const [fromInput, setFromInput] = React.useState(() =>
+    formatDateInputValue(initialRange?.from)
+  )
+  const [toInput, setToInput] = React.useState(() =>
+    formatDateInputValue(initialRange?.to)
+  )
+
+  const selectRange = (next: { from?: Date; to?: Date }) => {
+    setRange(next)
+    if (next.from) setFromInput(formatDateInputValue(next.from))
+    if (next.to) setToInput(formatDateInputValue(next.to))
+  }
+
+  const dateField = (
+    label: string,
+    value: string,
+    onChange: (value: string) => void
+  ) => (
+    <div className="flex flex-1 flex-col gap-1.5">
+      <span className="text-xs font-medium">{label}</span>
+      <div className="relative flex items-center">
+        <HugeiconsIcon
+          icon={Calendar03Icon}
+          className="pointer-events-none absolute left-2.5 size-3.5 text-muted-foreground"
+        />
+        <Input
+          type="text"
+          value={value}
+          placeholder="YYYY-MM-DD"
+          aria-label={`${label} date`}
+          onChange={(event) => onChange(event.target.value)}
+          className="h-8 pl-8 sm:h-8"
+        />
+      </div>
+    </div>
+  )
+
+  return (
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+    >
+      <DialogContent className="w-[30rem] max-w-[calc(100vw-2rem)]">
+        <DialogHeader>
+          <DialogTitle>Custom date range</DialogTitle>
+        </DialogHeader>
+        <DialogPanel className="flex flex-col gap-4">
+          <div className="flex gap-3">
+            {dateField("From", fromInput, (value) => {
+              setFromInput(value)
+
+              const parsed = parseDateInputValue(value)
+
+              if (parsed)
+                setRange((previous) => ({ ...previous, from: parsed }))
+            })}
+            {dateField("To", toInput, (value) => {
+              setToInput(value)
+
+              const parsed = parseDateInputValue(value)
+
+              if (parsed) setRange((previous) => ({ ...previous, to: parsed }))
+            })}
+          </div>
+          <FileSystemRangeCalendar range={range} onSelect={selectRange} />
+          <div className="grid grid-cols-3 gap-2">
+            {DATE_RANGE_DIALOG_PRESETS.map((preset) => (
+              <Button
+                key={preset}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => selectRange(dateRangePresetRange(preset))}
+              >
+                {preset}
+              </Button>
+            ))}
+          </div>
+        </DialogPanel>
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            disabled={!range.from || !range.to}
+            onClick={() => {
+              if (!range.from || !range.to) return
+
+              const from = new Date(range.from)
+              const to = new Date(range.to)
+
+              from.setHours(0, 0, 0, 0)
+              to.setHours(23, 59, 59, 999)
+              onApply(from, to)
+            }}
+          >
+            Apply
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 
 type FileSystemViewProps = {
   currentPath: string
   entries: FileSystemEntry[]
+  fileFilter: ((file: FileEntry) => boolean) | null
   getFileUrl?: (file: FileSystemFileItem) => string | Promise<string>
   index: FileSystemIndex
   loadPreviewImageUrl?: (
@@ -999,9 +2813,14 @@ type FileSystemViewProps = {
   loadingFolders: Set<string>
   onOpen: (entry: FileSystemEntry) => void
   onSelect: (entry: FileSystemEntry | null) => void
+  onSortColumnClick: (key: FileSystemSortKey) => void
   renderFilePreview?: (file: FileSystemFileItem) => React.ReactNode
+  searchQuery: string
   selectedEntry: FileSystemEntry | null
   selectedPath: string | null
+  sort: FileSystemSortState
+  /** Expanded tree folders per folder path, surviving view switches. */
+  treeExpansionRef: React.RefObject<Map<string, readonly string[]>>
 }
 
 // Resolves a display URL for a file: its own `url`, else via `getFileUrl`.
@@ -1089,6 +2908,86 @@ function FileSystemEmptyState({
 
 const ARROW_KEYS = new Set(["ArrowDown", "ArrowLeft", "ArrowRight", "ArrowUp"])
 
+// Type-ahead buffers reset after this idle period, like Finder.
+const TYPE_AHEAD_RESET_MS = 700
+
+// Letters and digits only — the same key test the tree uses — so shortcuts
+// and whitespace scrolling stay untouched.
+function isTypeAheadKey(event: React.KeyboardEvent) {
+  return (
+    event.key.length === 1 &&
+    /^[\p{L}\p{N}]$/u.test(event.key) &&
+    !event.altKey &&
+    !event.ctrlKey &&
+    !event.metaKey
+  )
+}
+
+// Shared Finder-style type-ahead used by every view: printable keys
+// accumulate a buffer that jumps to the next entry whose name starts with
+// it, and repeating a single letter cycles through entries with that
+// prefix. Each view passes its own display-ordered candidate list, so the
+// same keystrokes land on the same file everywhere.
+function useEntryTypeAhead() {
+  const stateRef = React.useRef({ buffer: "", timeout: 0 })
+
+  React.useEffect(() => {
+    const state = stateRef.current
+
+    return () => window.clearTimeout(state.timeout)
+  }, [])
+
+  return React.useCallback(
+    (
+      event: React.KeyboardEvent,
+      entries: readonly FileSystemEntry[],
+      currentIndex: number
+    ) => {
+      if (!isTypeAheadKey(event) || entries.length === 0) return null
+
+      // Embedded viewers (and any future inputs) keep their keystrokes.
+      const target = event.target
+
+      if (
+        target instanceof HTMLElement &&
+        (target.isContentEditable ||
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT")
+      ) {
+        return null
+      }
+
+      const state = stateRef.current
+
+      window.clearTimeout(state.timeout)
+      state.timeout = window.setTimeout(() => {
+        state.buffer = ""
+      }, TYPE_AHEAD_RESET_MS)
+      state.buffer += event.key.toLowerCase()
+
+      // A repeated single letter advances past the current entry; a longer
+      // buffer refines the match in place.
+      const startIndex =
+        currentIndex < 0
+          ? 0
+          : currentIndex + (state.buffer.length === 1 ? 1 : 0)
+
+      for (let step = 0; step < entries.length; step += 1) {
+        const entry = entries[(startIndex + step) % entries.length]
+
+        if (entry.name.toLowerCase().startsWith(state.buffer)) {
+          event.preventDefault()
+          return entry
+        }
+      }
+      event.preventDefault()
+      return null
+    },
+    []
+  )
+}
+
 // Selects (and focuses) the entry reached by an arrow key. Up/down use row
 // geometry so navigation follows the rendered auto-fill grid.
 function moveGridSelection({
@@ -1151,6 +3050,16 @@ function moveGridSelection({
   return true
 }
 
+// Icon grid geometry (px at the default 16px root font size). Tiles have a
+// fixed height — a 4rem glyph box plus a reserved two-line label — so rows
+// share one stride and the grid can window cleanly.
+const ICON_GRID_PADDING = 12 // p-3
+const ICON_MIN_TILE_WIDTH = 104 // 6.5rem
+const ICON_TILE_GAP_X = 4 // gap-x-1
+const ICON_TILE_HEIGHT = 102 // h-16 glyph box + gap-1.5 + two text-xs lines
+const ICON_ROW_GAP = 12 // gap-y-3
+const ICON_ROW_STRIDE = ICON_TILE_HEIGHT + ICON_ROW_GAP
+
 function FileSystemIconsView({
   entries,
   onOpen,
@@ -1159,15 +3068,84 @@ function FileSystemIconsView({
   selectedPath,
 }: FileSystemViewProps) {
   const itemRefs = React.useRef(new Map<string, HTMLButtonElement>())
-  // Roving tabindex: the grid is a single tab stop (the selected tile, or the
-  // first one), so Shift+Tab returns to the toolbar like in the list view.
-  const tabStopPath = entries.some((entry) => entry.path === selectedPath)
+  const viewportRef = React.useRef<HTMLDivElement | null>(null)
+  const typeAhead = useEntryTypeAhead()
+  // The column count mirrors what `repeat(auto-fill, minmax(6.5rem, 1fr))`
+  // produces (the CSS owns the actual layout) so item indices map to grid
+  // rows — the windowing below depends on that mapping. It stays null until
+  // the first client measure; server markup must not guess.
+  const [columnCount, setColumnCount] = React.useState<number | null>(null)
+
+  React.useLayoutEffect(() => {
+    const viewport = viewportRef.current
+
+    if (!viewport || typeof ResizeObserver === "undefined") return
+
+    const update = () => {
+      const available = viewport.clientWidth - ICON_GRID_PADDING * 2
+
+      setColumnCount(
+        Math.max(
+          1,
+          Math.floor(
+            (available + ICON_TILE_GAP_X) /
+              (ICON_MIN_TILE_WIDTH + ICON_TILE_GAP_X)
+          )
+        )
+      )
+    }
+    const observer = new ResizeObserver(update)
+
+    update()
+    observer.observe(viewport)
+    return () => observer.disconnect()
+  }, [])
+
+  const resolvedColumnCount = columnCount ?? 1
+  const rowCount = Math.ceil(entries.length / resolvedColumnCount)
+  const { end, start } = useVirtualWindow({
+    count: rowCount,
+    itemStride: ICON_ROW_STRIDE,
+    leadingPx: ICON_GRID_PADDING,
+    overscan: 4,
+    viewportRef,
+  })
+  const visibleEntries = entries.slice(
+    start * resolvedColumnCount,
+    end * resolvedColumnCount
+  )
+
+  // Selection can land outside the window (view switches, shrinking results);
+  // bring its row back into the viewport so the tile mounts and is focusable.
+  React.useLayoutEffect(() => {
+    if (!selectedPath) return
+
+    const entryIndex = entries.findIndex((entry) => entry.path === selectedPath)
+
+    if (entryIndex === -1) return
+
+    scrollIndexIntoView({
+      index: Math.floor(entryIndex / resolvedColumnCount),
+      itemSize: ICON_TILE_HEIGHT,
+      itemStride: ICON_ROW_STRIDE,
+      leadingPx: ICON_GRID_PADDING,
+      viewport: viewportRef.current,
+    })
+  }, [entries, resolvedColumnCount, selectedPath])
+
+  // Roving tabindex: the grid is a single tab stop (the selected tile when
+  // rendered, else the first rendered one), so Shift+Tab returns to the
+  // toolbar like in the list view.
+  const tabStopPath = visibleEntries.some(
+    (entry) => entry.path === selectedPath
+  )
     ? selectedPath
-    : (entries[0]?.path ?? null)
+    : (visibleEntries[0]?.path ?? null)
 
   return (
     <ScrollArea
       orientation="vertical"
+      viewportRef={viewportRef}
       viewportClassName="p-3"
       viewportProps={{
         onClick: (event) => {
@@ -1176,118 +3154,208 @@ function FileSystemIconsView({
       }}
     >
       <div
-        role="listbox"
-        aria-label="Files"
-        className="grid grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] gap-x-1 gap-y-3"
-        onKeyDown={(event) => {
-          if (!ARROW_KEYS.has(event.key)) return
-          if (
-            moveGridSelection({
-              entries,
-              itemRefs: itemRefs.current,
-              key: event.key,
-              onSelect,
-              selectedPath,
-            })
-          ) {
-            event.preventDefault()
-          }
+        className="relative"
+        // The scroll-height spacer needs the measured column count; until
+        // then the absolutely positioned grid alone defines the scrollable
+        // overflow, so the server-rendered frame doesn't flash an
+        // oversized scroll range.
+        style={{
+          height:
+            columnCount !== null && rowCount
+              ? rowCount * ICON_ROW_STRIDE - ICON_ROW_GAP
+              : undefined,
         }}
       >
-        {entries.map((entry) => {
-          const isSelected = entry.path === selectedPath
+        <div
+          role="listbox"
+          aria-label="Files"
+          className="absolute inset-x-0 grid gap-x-1 gap-y-3"
+          // The auto-fill expression produces the same column count the
+          // ResizeObserver measures (the measurement exists only for the
+          // windowing math), so the server-rendered first paint is already
+          // a grid instead of flashing a single stacked column until the
+          // first client measure.
+          style={{
+            gridTemplateColumns: "repeat(auto-fill, minmax(6.5rem, 1fr))",
+            top: start * ICON_ROW_STRIDE,
+          }}
+          onKeyDown={(event) => {
+            if (!ARROW_KEYS.has(event.key)) {
+              const match = typeAhead(
+                event,
+                entries,
+                entries.findIndex((entry) => entry.path === selectedPath)
+              )
 
-          return (
-            <button
-              key={entry.path}
-              type="button"
-              role="option"
-              aria-selected={isSelected}
-              tabIndex={entry.path === tabStopPath ? 0 : -1}
-              ref={(element) => {
-                if (element) {
-                  itemRefs.current.set(entry.path, element)
-                } else {
-                  itemRefs.current.delete(entry.path)
-                }
-              }}
-              onClick={() => onSelect(entry)}
-              onDoubleClick={() => onOpen(entry)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") onOpen(entry)
-              }}
-              className="group flex flex-col items-center gap-1.5 outline-none"
-            >
-              <span
-                className={cn(
-                  "flex h-16 w-20 items-center justify-center rounded-lg p-1 transition-colors group-focus-visible:ring-2 group-focus-visible:ring-ring",
-                  isSelected && "bg-accent"
-                )}
+              if (match) {
+                onSelect(match)
+                // The matched tile may be outside the virtual window; the
+                // selection effect scrolls it in, and focus follows once it
+                // has mounted.
+                requestAnimationFrame(() =>
+                  itemRefs.current.get(match.path)?.focus()
+                )
+              }
+              return
+            }
+            if (
+              moveGridSelection({
+                entries,
+                itemRefs: itemRefs.current,
+                key: event.key,
+                onSelect,
+                selectedPath,
+              })
+            ) {
+              event.preventDefault()
+            }
+          }}
+        >
+          {visibleEntries.map((entry) => {
+            const isSelected = entry.path === selectedPath
+
+            return (
+              <button
+                key={entry.path}
+                type="button"
+                role="option"
+                aria-selected={isSelected}
+                tabIndex={entry.path === tabStopPath ? 0 : -1}
+                ref={(element) => {
+                  if (element) {
+                    itemRefs.current.set(entry.path, element)
+                  } else {
+                    itemRefs.current.delete(entry.path)
+                  }
+                }}
+                onClick={() => onSelect(entry)}
+                onDoubleClick={() => onOpen(entry)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") onOpen(entry)
+                }}
+                className="group flex h-[6.375rem] flex-col items-center gap-1.5 outline-none"
               >
-                {entry.kind === "folder" ? (
-                  <FileSystemFolderGlyph className="h-13 w-auto drop-shadow-sm" />
-                ) : (
-                  <FileVisual
-                    file={entry}
-                    className={cn(
-                      "rounded-sm shadow-xs",
-                      // Landscape thumbnails get extra width so they fill
-                      // the tile instead of rendering as a short sliver.
-                      (entry.previewAspectRatio ?? 0.78) > 1.2
-                        ? "w-[4.75rem]"
-                        : "w-12"
-                    )}
-                    previewAspectRatio={0.78}
-                    renderFilePreview={renderFilePreview}
-                  />
-                )}
-              </span>
-              <span
-                className={cn(
-                  "max-w-full rounded-sm px-1.5 py-px text-center text-xs leading-tight break-words",
-                  isSelected
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground"
-                )}
-              >
-                <span className="line-clamp-2">{entry.name}</span>
-              </span>
-            </button>
-          )
-        })}
+                <span
+                  className={cn(
+                    "flex h-16 w-20 shrink-0 items-center justify-center rounded-lg p-1 transition-colors group-focus-visible:ring-2 group-focus-visible:ring-ring",
+                    isSelected && "bg-accent"
+                  )}
+                >
+                  {entry.kind === "folder" ? (
+                    <FileSystemFolderGlyph className="h-13 w-auto drop-shadow-sm" />
+                  ) : (
+                    <FileVisual
+                      file={entry}
+                      className={cn(
+                        "rounded-sm shadow-xs",
+                        // Landscape thumbnails get extra width so they fill
+                        // the tile instead of rendering as a short sliver.
+                        (entry.previewAspectRatio ?? 0.78) > 1.2
+                          ? "w-[4.75rem]"
+                          : "w-12"
+                      )}
+                      previewAspectRatio={0.78}
+                      renderFilePreview={renderFilePreview}
+                    />
+                  )}
+                </span>
+                <span
+                  className={cn(
+                    "max-w-full rounded-sm px-1.5 py-px text-center text-xs leading-tight break-words",
+                    isSelected
+                      ? "bg-primary text-primary-foreground"
+                      : "text-foreground"
+                  )}
+                >
+                  <span className="line-clamp-2">{entry.name}</span>
+                </span>
+              </button>
+            )
+          })}
+        </div>
       </div>
     </ScrollArea>
   )
 }
 
+// One sortable column header for the list view; the active column shows the
+// direction chevron on its right.
+function FileSystemListColumnHeader({
+  className,
+  label,
+  onClick,
+  sort,
+  sortKey,
+}: {
+  className?: string
+  label: string
+  onClick: (key: FileSystemSortKey) => void
+  sort: FileSystemSortState
+  sortKey: FileSystemSortKey
+}) {
+  const isActive = sort.key === sortKey
+
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(sortKey)}
+      className={cn(
+        "flex items-center gap-0.5 rounded-sm py-0.5 transition-colors outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring",
+        isActive && "text-foreground",
+        className
+      )}
+    >
+      {label}
+      {isActive ? (
+        <HugeiconsIcon
+          icon={sort.direction === "asc" ? ArrowUp01Icon : ArrowDown01Icon}
+          className="size-3 shrink-0"
+        />
+      ) : null}
+    </button>
+  )
+}
+
 function FileSystemListView({
   currentPath,
+  fileFilter,
   index,
   onOpen,
   onSelect,
+  onSortColumnClick,
+  searchQuery,
   selectedPath,
+  sort,
+  treeExpansionRef,
 }: FileSystemViewProps) {
+  // Filters narrow the path list handed to the tree; the search query stays
+  // out of it so the tree's own search session (with match highlighting)
+  // keeps handling it without remounts per keystroke.
   const relativePaths = React.useMemo(() => {
     const paths: string[] = []
 
-    for (const path of index.files.keys()) {
+    for (const [path, file] of index.files) {
       if (currentPath === "" || path.startsWith(currentPath)) {
         const relativePath = path.slice(currentPath.length)
 
-        if (relativePath) paths.push(relativePath)
+        if (!relativePath) continue
+        if (fileFilter && !fileFilter(file)) continue
+        paths.push(relativePath)
       }
     }
     return paths.sort()
-  }, [currentPath, index])
-  // Content-derived key: the tree only remounts when the path set actually
-  // changes (a bare length check misses same-count replacements).
-  const treeKey = React.useMemo(
-    () => hashString(relativePaths.join("\n")),
-    [relativePaths]
-  )
+  }, [currentPath, fileFilter, index])
 
   if (relativePaths.length === 0) {
-    return <FileSystemEmptyState label="This folder is empty" />
+    return (
+      <FileSystemEmptyState
+        label={
+          fileFilter
+            ? "No items match the active filters"
+            : "This folder is empty"
+        }
+      />
+    )
   }
 
   return (
@@ -1295,14 +3363,36 @@ function FileSystemListView({
       {/* Paddings match the tree's row geometry: name text starts 46px in
           (16px tree padding + 30px icon lane), metadata ends 24px from the
           right (16px tree padding + 8px decoration inset). */}
-      <div className="flex shrink-0 items-center border-b py-1.5 pr-6 pl-[46px] text-xs font-medium text-muted-foreground">
-        <span className="flex-1">Name</span>
-        <span className="w-44 text-right">Date Modified</span>
-        <span className="w-20 text-right">Size</span>
+      <div className="flex shrink-0 items-center border-b py-1 pr-6 pl-[46px] text-xs font-medium text-muted-foreground">
+        <FileSystemListColumnHeader
+          className="flex-1 justify-start"
+          label="Name"
+          onClick={onSortColumnClick}
+          sort={sort}
+          sortKey="name"
+        />
+        <FileSystemListColumnHeader
+          className="w-44 justify-end"
+          label="Date Modified"
+          onClick={onSortColumnClick}
+          sort={sort}
+          sortKey="updatedAt"
+        />
+        <FileSystemListColumnHeader
+          className="w-20 justify-end"
+          label="Size"
+          onClick={onSortColumnClick}
+          sort={sort}
+          sortKey="size"
+        />
       </div>
+      {/* Keyed by folder only: navigation remounts the tree, while filter,
+          sort, and manifest changes update the mounted model in place so
+          folder disclosure state survives them. */}
       <FileSystemPierreTree
-        key={`${currentPath}::${treeKey}`}
+        key={currentPath}
         currentPath={currentPath}
+        hasActiveFilters={fileFilter !== null}
         index={index}
         initialSelectedPath={
           selectedPath?.startsWith(currentPath)
@@ -1312,32 +3402,105 @@ function FileSystemListView({
         onOpen={onOpen}
         onSelect={onSelect}
         relativePaths={relativePaths}
+        searchQuery={searchQuery}
+        sort={sort}
+        treeExpansionRef={treeExpansionRef}
       />
     </div>
   )
 }
 
+// Embedded thumbnail symbols grow the sprite injected into the tree's shadow
+// DOM (data-URL covers can run hundreds of KB each); past this many the
+// remaining files fall back to the built-in file-type icons alone.
+const TREE_THUMBNAIL_SPRITE_LIMIT = 400
+
 function FileSystemPierreTree({
   currentPath,
+  hasActiveFilters,
   index,
   initialSelectedPath,
   onOpen,
   onSelect,
   relativePaths,
+  searchQuery,
+  sort,
+  treeExpansionRef,
 }: {
   currentPath: string
+  hasActiveFilters: boolean
   index: FileSystemIndex
   initialSelectedPath: string | null
   onOpen: (entry: FileSystemEntry) => void
   onSelect: (entry: FileSystemEntry | null) => void
   relativePaths: string[]
+  searchQuery: string
+  sort: FileSystemSortState
+  treeExpansionRef: React.RefObject<Map<string, readonly string[]>>
 }) {
+  // The tree's comparator receives whole paths, not siblings, so it walks
+  // the shared segments and applies the active sort at the first level the
+  // two paths diverge — keeping directories first per level, the tree's
+  // default convention. Lookups go through the index maps, which are stable
+  // across search keystrokes.
+  const indexFiles = index.files
+  const indexFolders = index.folders
+  const sortComparator = React.useMemo<
+    "default" | FileTreeSortComparator
+  >(() => {
+    if (
+      sort.key === DEFAULT_SORT.key &&
+      sort.direction === DEFAULT_SORT.direction
+    ) {
+      return "default"
+    }
+
+    const entryAtDepth = (sortEntry: FileTreeSortEntry, depth: number) => {
+      const isDirectory =
+        depth < sortEntry.segments.length - 1 || sortEntry.isDirectory
+      const absolutePath = `${currentPath}${sortEntry.segments
+        .slice(0, depth + 1)
+        .join("/")}${isDirectory ? "/" : ""}`
+
+      return isDirectory
+        ? indexFolders.get(absolutePath)
+        : indexFiles.get(absolutePath)
+    }
+
+    return (left, right) => {
+      const sharedDepth = Math.min(left.segments.length, right.segments.length)
+
+      for (let depth = 0; depth < sharedDepth; depth += 1) {
+        if (left.segments[depth] === right.segments[depth]) continue
+
+        const leftIsDirectory =
+          depth < left.segments.length - 1 || left.isDirectory
+        const rightIsDirectory =
+          depth < right.segments.length - 1 || right.isDirectory
+
+        if (leftIsDirectory !== rightIsDirectory) {
+          return leftIsDirectory ? -1 : 1
+        }
+
+        const leftEntry = entryAtDepth(left, depth)
+        const rightEntry = entryAtDepth(right, depth)
+
+        if (leftEntry && rightEntry) {
+          return compareEntriesBySort(leftEntry, rightEntry, sort)
+        }
+        return left.segments[depth] < right.segments[depth] ? -1 : 1
+      }
+      return left.segments.length - right.segments.length
+    }
+  }, [currentPath, indexFiles, indexFolders, sort])
   const preparedInput = React.useMemo(
-    () => prepareFileTreeInput(relativePaths, { sort: "default" }),
-    [relativePaths]
+    () => prepareFileTreeInput(relativePaths, { sort: sortComparator }),
+    [relativePaths, sortComparator]
   )
   // Inject per-file thumbnails into the tree's shadow DOM as sprite symbols
-  // wrapping an <image>, remapped onto rows by file basename. The chevron is
+  // wrapping an <image>, remapped onto rows by file basename. Files without
+  // a thumbnail resolve through the built-in complete icon set instead — the
+  // same colored file-type icons the other views use. The chevron is
   // remapped to the Hugeicons arrow so it matches the rest of the component;
   // the tree's rotation CSS keys off data-icon-name, which remapping keeps.
   const icons = React.useMemo(() => {
@@ -1346,7 +3509,11 @@ function FileSystemPierreTree({
       `<symbol id="file-system-chevron" viewBox="0 0 24 24"><path d="M18 9.00005C18 9.00005 13.5811 15 12 15C10.4188 15 6 9 6 9" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/></symbol>`,
     ]
 
+    let thumbnailCount = 0
+
     for (const relativePath of relativePaths) {
+      if (thumbnailCount >= TREE_THUMBNAIL_SPRITE_LIMIT) break
+
       const file = index.files.get(`${currentPath}${relativePath}`)
       const coverUrl = file ? filePreviewUrls(file)[0] : undefined
 
@@ -1362,16 +3529,19 @@ function FileSystemPierreTree({
         `<symbol id="${symbolId}" viewBox="0 0 16 16"><clipPath id="${symbolId}-clip"><rect width="16" height="16" rx="2.5"/></clipPath><image href="${escapeXmlAttribute(coverUrl)}" width="16" height="16" preserveAspectRatio="xMidYMid slice" clip-path="url(#${symbolId}-clip)"/></symbol>`
       )
       byFileName[baseName] = { name: symbolId, viewBox: "0 0 16 16" }
+      thumbnailCount += 1
     }
 
     return {
       byFileName,
+      colored: true,
       remap: {
         "file-tree-icon-chevron": {
           name: "file-system-chevron",
           viewBox: "0 0 24 24",
         },
       },
+      set: "complete" as const,
       spriteSheet: `<svg data-icon-sprite aria-hidden="true" width="0" height="0">${symbols.join("")}</svg>`,
     }
   }, [currentPath, index, relativePaths])
@@ -1379,6 +3549,8 @@ function FileSystemPierreTree({
     flattenEmptyDirectories: false,
     icons,
     initialExpansion: "closed",
+    // Remounts (folder changes, manifest updates) keep the active filter.
+    initialSearchQuery: searchQuery || null,
     initialSelectedPaths: initialSelectedPath ? [initialSelectedPath] : [],
     itemHeight: 28,
     overscan: 12,
@@ -1417,10 +3589,14 @@ function FileSystemPierreTree({
       button[data-type='item'][data-item-selected] {
         background: var(--color-primary);
         color: var(--color-primary-foreground);
+        /* The primary surface is the opposite of the mode's background, so
+           the row's light-dark() icon colors resolve against the opposite
+           scheme — light-palette icons on the light pill in dark mode and
+           vice versa. */
+        color-scheme: var(--fs-selected-color-scheme, normal);
       }
-      button[data-type='item'][data-item-selected] *,
-      button[data-type='item'][data-item-selected] [data-item-section]::before,
-      button[data-type='item'][data-item-selected] svg {
+      button[data-type='item'][data-item-selected] *:not([data-icon-token]):not([data-icon-token] *),
+      button[data-type='item'][data-item-selected] [data-item-section]::before {
         color: var(--color-primary-foreground) !important;
       }
       [data-item-section='decoration'] > span {
@@ -1470,6 +3646,138 @@ function FileSystemPierreTree({
     model.setIcons(icons)
   }, [icons, model])
 
+  // The folders currently expanded in the mounted model, derived from the
+  // given path list (the model knows the rows; the paths name the
+  // directories to ask about).
+  const collectExpandedDirectories = React.useCallback(
+    (paths: readonly string[]) => {
+      const expandedPaths: string[] = []
+
+      for (const directoryPath of directoryPathsOf(paths)) {
+        const item =
+          model.getItem(directoryPath) ?? model.getItem(`${directoryPath}/`)
+
+        if (item && "isExpanded" in item && item.isExpanded()) {
+          expandedPaths.push(directoryPath)
+        }
+      }
+      return expandedPaths
+    },
+    [model]
+  )
+
+  // Opens every given folder on the mounted model (no-ops on the already
+  // open ones).
+  const expandDirectories = React.useCallback(
+    (directoryPaths: Iterable<string>) => {
+      for (const directoryPath of directoryPaths) {
+        const item =
+          model.getItem(directoryPath) ?? model.getItem(`${directoryPath}/`)
+
+        if (item && "isExpanded" in item && !item.isExpanded()) {
+          item.toggle()
+        }
+      }
+    },
+    [model]
+  )
+
+  // Sort and filter changes swap the prepared input in place — remounting
+  // would reset every folder's disclosure. The folders expanded in the
+  // outgoing path list, the selection, and the active search query are
+  // captured first and handed back to the reset.
+  const appliedPreparedInputRef = React.useRef(preparedInput)
+  // Filter bookkeeping: the latest prop (for unmount-time decisions), the
+  // state at the last applied reset (for transition detection), and the
+  // disclosure to restore once the filters clear.
+  const hasActiveFiltersRef = React.useRef(hasActiveFilters)
+  const filteredAtLastResetRef = React.useRef(hasActiveFilters)
+  const preFilterExpansionRef = React.useRef<readonly string[] | null>(null)
+
+  React.useEffect(() => {
+    hasActiveFiltersRef.current = hasActiveFilters
+  })
+
+  React.useEffect(() => {
+    const previousPreparedInput = appliedPreparedInputRef.current
+
+    if (previousPreparedInput === preparedInput) return
+    appliedPreparedInputRef.current = preparedInput
+
+    const wasFiltered = filteredAtLastResetRef.current
+
+    filteredAtLastResetRef.current = hasActiveFilters
+
+    // Filters reveal their matches the way the search session does: every
+    // folder on the way to a match opens. The disclosure from just before
+    // filtering is kept aside and comes back when the filters clear.
+    let expandedPaths: readonly string[]
+
+    if (hasActiveFilters) {
+      if (!wasFiltered) {
+        preFilterExpansionRef.current = collectExpandedDirectories(
+          previousPreparedInput.paths
+        )
+      }
+      expandedPaths = [...directoryPathsOf(preparedInput.paths)]
+    } else if (wasFiltered) {
+      expandedPaths = preFilterExpansionRef.current ?? []
+      preFilterExpansionRef.current = null
+    } else {
+      expandedPaths = collectExpandedDirectories(previousPreparedInput.paths)
+    }
+
+    const searchValue = model.getSearchValue()
+
+    // The `paths` argument must stay unset: when both are given, resetPaths
+    // re-prepares the paths with the comparator the model was CREATED with
+    // and rejects the differently-ordered prepared input. Passing only the
+    // prepared input makes the reset adopt its path list as-is, and the
+    // reset itself carries the selection over.
+    model.resetPaths(undefined as unknown as readonly string[], {
+      initialExpandedPaths: expandedPaths,
+      preparedInput,
+    })
+    if (searchValue) model.setSearch(searchValue)
+  }, [collectExpandedDirectories, hasActiveFilters, model, preparedInput])
+
+  // View switches and navigation unmount the tree; remember which folders
+  // were left expanded and reopen them on the next mount of this folder
+  // (before paint, so the restored disclosure never flashes closed). While
+  // filters are active their matches are revealed instead, and the
+  // remembered disclosure is the pre-filter one.
+  React.useLayoutEffect(() => {
+    const expansionStore = treeExpansionRef.current
+    const savedExpansion = expansionStore.get(currentPath) ?? []
+
+    if (hasActiveFiltersRef.current) {
+      preFilterExpansionRef.current = savedExpansion
+      expandDirectories(directoryPathsOf(appliedPreparedInputRef.current.paths))
+    } else {
+      expandDirectories(savedExpansion)
+    }
+
+    return () => {
+      expansionStore.set(
+        currentPath,
+        hasActiveFiltersRef.current
+          ? (preFilterExpansionRef.current ?? [])
+          : collectExpandedDirectories(appliedPreparedInputRef.current.paths)
+      )
+    }
+  }, [
+    collectExpandedDirectories,
+    currentPath,
+    expandDirectories,
+    treeExpansionRef,
+  ])
+
+  // The toolbar search drives the tree's own search session, which filters
+  // rows with hide-non-matches semantics and highlights the matched text.
+  React.useEffect(() => {
+    model.setSearch(searchQuery || null)
+  }, [model, searchQuery])
+
   // The tree's arrow keys move focus and only select on click/Enter; mirror
   // focus into the (single) selection so arrowing selects like Finder. Shift
   // ranges keep the focused row selected, so they pass through untouched.
@@ -1496,22 +3804,111 @@ function FileSystemPierreTree({
     })
   }, [model])
 
+  // Rows live in the tree's shadow DOM; composedPath surfaces the row
+  // element behind a pointer or keyboard event so it can resolve to a
+  // manifest entry.
+  const entryFromEvent = (event: React.SyntheticEvent) => {
+    for (const target of event.nativeEvent.composedPath()) {
+      if (!(target instanceof HTMLElement)) continue
+
+      const relativePath = target.dataset?.itemPath
+
+      if (!relativePath) continue
+
+      const absolutePath = `${currentPath}${relativePath}`
+
+      return (
+        index.files.get(absolutePath) ??
+        index.folders.get(normalizeFolderPath(absolutePath)) ??
+        null
+      )
+    }
+    return null
+  }
+
+  // The tree exposes rows by relative path; directory ids may or may not
+  // carry the trailing slash depending on the call site.
+  const resolveTreeItem = (relativePath: string) =>
+    model.getItem(relativePath) ??
+    model.getItem(
+      relativePath.endsWith("/")
+        ? relativePath.slice(0, -1)
+        : `${relativePath}/`
+    )
+
+  // The tree's rows in display order — folders first per level, recursing
+  // only into expanded folders — so type-ahead cycles exactly what's on
+  // screen. Virtualization keeps this off the DOM; the index and the item
+  // handles carry the same information.
+  const collectVisibleEntries = () => {
+    const visibleEntries: FileSystemEntry[] = []
+    const walk = (folderPath: string) => {
+      const children = index.children.get(folderPath) ?? []
+
+      for (const child of children) {
+        if (child.kind !== "folder") continue
+
+        const item = resolveTreeItem(child.path.slice(currentPath.length))
+
+        if (!item) continue
+        visibleEntries.push(child)
+        if ("isExpanded" in item && item.isExpanded()) walk(child.path)
+      }
+      for (const child of children) {
+        if (child.kind === "file") visibleEntries.push(child)
+      }
+    }
+
+    walk(currentPath)
+    return visibleEntries
+  }
+
+  const typeAhead = useEntryTypeAhead()
+
   return (
     <PierreFileTree
       model={model}
       className="block min-h-0 flex-1"
+      // Finder semantics: double-clicking a folder navigates into it and
+      // double-clicking a file opens it; a single click still only toggles
+      // the folder's disclosure.
       onDoubleClick={(event) => {
-        // Rows live in the tree's shadow DOM; composedPath surfaces the row
-        // element so double-clicked files open like in the other views.
-        for (const target of event.nativeEvent.composedPath()) {
-          if (!(target instanceof HTMLElement)) continue
-          const relativePath = target.dataset?.itemPath
-          if (!relativePath) continue
+        const entry = entryFromEvent(event)
 
-          const file = index.files.get(`${currentPath}${relativePath}`)
+        if (entry) onOpen(entry)
+      }}
+      // Enter mirrors the other views: navigate into the focused folder or
+      // open the focused file. Printable keys run the shared type-ahead
+      // over the visible rows.
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          const entry = entryFromEvent(event)
 
-          if (file) onOpen(file)
+          if (entry) {
+            event.preventDefault()
+            onOpen(entry)
+          }
           return
+        }
+
+        if (!isTypeAheadKey(event)) return
+
+        const visibleEntries = collectVisibleEntries()
+        const focusedPath = model.getFocusedPath()?.replace(/\/$/, "") ?? null
+        const focusedIndex = visibleEntries.findIndex(
+          (entry) =>
+            entry.path.slice(currentPath.length).replace(/\/$/, "") ===
+            focusedPath
+        )
+        const match = typeAhead(event, visibleEntries, focusedIndex)
+
+        if (!match) return
+
+        const item = resolveTreeItem(match.path.slice(currentPath.length))
+
+        if (item) {
+          model.scrollToPath(item.getPath())
+          item.focus()
         }
       }}
       style={
@@ -1552,9 +3949,34 @@ function FileSystemColumnsView(props: FileSystemViewProps) {
   const deferredSelectedEntry = React.useDeferredValue(selectedEntry)
   const deferredSelectedPath = React.useDeferredValue(selectedPath)
   const pendingFocusPathRef = React.useRef<string | null>(null)
+  const typeAhead = useEntryTypeAhead()
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (!ARROW_KEYS.has(event.key)) return
+    if (!ARROW_KEYS.has(event.key)) {
+      // Type-ahead moves within the active column's rows, like Finder.
+      const siblings =
+        selectedEntry && selectedPath?.startsWith(currentPath)
+          ? (index.children.get(selectedEntry.parentPath) ?? [])
+          : (index.children.get(currentPath) ?? [])
+      const match = typeAhead(
+        event,
+        siblings,
+        siblings.findIndex((sibling) => sibling.path === selectedPath)
+      )
+
+      if (match) {
+        onSelect(match)
+
+        const row = rowRefs.current.get(match.path)
+
+        if (row) {
+          row.focus()
+        } else {
+          pendingFocusPathRef.current = match.path
+        }
+      }
+      return
+    }
 
     let nextEntry: FileSystemEntry | null | undefined
 
@@ -1624,7 +4046,6 @@ function FileSystemColumnsView(props: FileSystemViewProps) {
     }
     return paths
   }, [currentPath, deferredSelectedEntry, deferredSelectedPath])
-  const columnPathSet = React.useMemo(() => new Set(columnPaths), [columnPaths])
   // Roving tabindex: all columns together form a single tab stop (the
   // selected row when its column is mounted, else the first row), so
   // Shift+Tab returns to the toolbar like in the list view.
@@ -1663,92 +4084,30 @@ function FileSystemColumnsView(props: FileSystemViewProps) {
       viewportClassName="overscroll-x-contain"
     >
       <div className="flex h-full w-max min-w-full" onKeyDown={handleKeyDown}>
-        {columnPaths.map((columnPath) => (
-          <ScrollArea
+        {columnPaths.map((columnPath, columnIndex) => (
+          <FileSystemColumn
             key={columnPath || "(root)"}
-            orientation="vertical"
-            className="w-60 shrink-0 border-r"
-            viewportClassName="flex flex-col gap-px p-1.5"
-            viewportProps={{ "aria-label": "Files", role: "listbox" }}
-          >
-            {loadingFolders.has(columnPath) &&
-            !index.children.get(columnPath)?.length ? (
-              <div className="animate-pulse px-2 py-1.5 text-xs text-muted-foreground motion-reduce:animate-none">
-                Loading…
-              </div>
-            ) : (
-              (index.children.get(columnPath) ?? []).map((entry) => {
-                const isSelected = entry.path === selectedPath
-                const isOnTrail =
-                  entry.kind === "folder" && columnPathSet.has(entry.path)
-
-                const coverUrl =
-                  entry.kind === "file" ? filePreviewUrls(entry)[0] : undefined
-
-                return (
-                  <button
-                    key={entry.path}
-                    type="button"
-                    role="option"
-                    aria-selected={isSelected}
-                    tabIndex={entry.path === tabStopPath ? 0 : -1}
-                    ref={(element) => {
-                      if (element) {
-                        rowRefs.current.set(entry.path, element)
-                      } else {
-                        rowRefs.current.delete(entry.path)
-                      }
-                    }}
-                    onClick={() => onSelect(entry)}
-                    onDoubleClick={() => onOpen(entry)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter") onOpen(entry)
-                    }}
-                    className={cn(
-                      "flex shrink-0 items-center gap-2 rounded-md px-2 py-1 text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                      isSelected
-                        ? "bg-primary text-primary-foreground"
-                        : isOnTrail
-                          ? "bg-accent"
-                          : "hover:bg-accent/50"
-                    )}
-                  >
-                    {entry.kind === "folder" ? (
-                      <FileSystemFolderGlyph className="h-3.5 w-auto shrink-0" />
-                    ) : coverUrl ? (
-                      <img
-                        src={coverUrl}
-                        alt=""
-                        draggable={false}
-                        className="size-4 shrink-0 rounded-[3px] bg-white object-cover"
-                      />
-                    ) : (
-                      <HugeiconsIcon
-                        icon={File01Icon}
-                        className={cn(
-                          "size-4 shrink-0",
-                          !isSelected && "text-muted-foreground"
-                        )}
-                      />
-                    )}
-                    <span className="min-w-0 flex-1 truncate">
-                      {entry.name}
-                    </span>
-                    {entry.kind === "folder" &&
-                    folderHasChildren(index, entry) ? (
-                      <HugeiconsIcon
-                        icon={ArrowRight01Icon}
-                        className={cn(
-                          "size-3.5 shrink-0",
-                          !isSelected && "text-muted-foreground/60"
-                        )}
-                      />
-                    ) : null}
-                  </button>
-                )
-              })
-            )}
-          </ScrollArea>
+            entries={index.children.get(columnPath) ?? []}
+            index={index}
+            isLoading={loadingFolders.has(columnPath)}
+            onOpen={onOpen}
+            onSelect={onSelect}
+            rowRefs={rowRefs}
+            // Scalar per-column props so the memoized column only
+            // re-renders when its own rows change — a selection deeper in
+            // the trail leaves ancestor columns untouched.
+            selectedChildPath={
+              selectedPath && pathParent(selectedPath) === columnPath
+                ? selectedPath
+                : null
+            }
+            tabStopChildPath={
+              tabStopPath && pathParent(tabStopPath) === columnPath
+                ? tabStopPath
+                : null
+            }
+            trailChildPath={columnPaths[columnIndex + 1] ?? null}
+          />
         ))}
         {selectedFile ? (
           <ScrollArea
@@ -1791,6 +4150,168 @@ function FileSystemColumnsView(props: FileSystemViewProps) {
     </ScrollArea>
   )
 }
+
+// Column row geometry (px at the default 16px root font size).
+const COLUMN_PADDING = 6 // p-1.5
+const COLUMN_ROW_HEIGHT = 28 // h-7
+const COLUMN_ROW_GAP = 1 // gap-px
+const COLUMN_ROW_STRIDE = COLUMN_ROW_HEIGHT + COLUMN_ROW_GAP
+
+// Memoized with scalar selection props: pressing into a deep trail only
+// re-renders the columns whose rows actually change.
+const FileSystemColumn = React.memo(function FileSystemColumn({
+  entries,
+  index,
+  isLoading,
+  onOpen,
+  onSelect,
+  rowRefs,
+  selectedChildPath,
+  tabStopChildPath,
+  trailChildPath,
+}: {
+  entries: FileSystemEntry[]
+  index: FileSystemIndex
+  isLoading: boolean
+  onOpen: (entry: FileSystemEntry) => void
+  onSelect: (entry: FileSystemEntry | null) => void
+  rowRefs: React.RefObject<Map<string, HTMLButtonElement>>
+  selectedChildPath: string | null
+  tabStopChildPath: string | null
+  trailChildPath: string | null
+}) {
+  const viewportRef = React.useRef<HTMLDivElement | null>(null)
+  const { end, start } = useVirtualWindow({
+    count: entries.length,
+    itemStride: COLUMN_ROW_STRIDE,
+    leadingPx: COLUMN_PADDING,
+    overscan: 10,
+    viewportRef,
+  })
+
+  // Keyboard navigation can select a row this column hasn't mounted; scroll
+  // it into the viewport so it mounts and the pending-focus effect can land.
+  React.useLayoutEffect(() => {
+    if (!selectedChildPath) return
+
+    scrollIndexIntoView({
+      index: entries.findIndex((entry) => entry.path === selectedChildPath),
+      itemSize: COLUMN_ROW_HEIGHT,
+      itemStride: COLUMN_ROW_STRIDE,
+      leadingPx: COLUMN_PADDING,
+      viewport: viewportRef.current,
+    })
+  }, [entries, selectedChildPath])
+
+  return (
+    <ScrollArea
+      orientation="vertical"
+      className="w-60 shrink-0 border-r"
+      viewportRef={viewportRef}
+      viewportClassName="p-1.5"
+      viewportProps={{ "aria-label": "Files", role: "listbox" }}
+    >
+      {isLoading && entries.length === 0 ? (
+        <div className="animate-pulse px-2 py-1.5 text-xs text-muted-foreground motion-reduce:animate-none">
+          Loading…
+        </div>
+      ) : (
+        <div
+          className="relative"
+          style={{
+            height: entries.length
+              ? entries.length * COLUMN_ROW_STRIDE - COLUMN_ROW_GAP
+              : undefined,
+          }}
+        >
+          <div
+            className="absolute inset-x-0 flex flex-col gap-px"
+            style={{ top: start * COLUMN_ROW_STRIDE }}
+          >
+            {entries.slice(start, end).map((entry) => {
+              const isSelected = entry.path === selectedChildPath
+              const isOnTrail =
+                entry.kind === "folder" && entry.path === trailChildPath
+
+              const coverUrl =
+                entry.kind === "file" ? filePreviewUrls(entry)[0] : undefined
+
+              return (
+                <button
+                  key={entry.path}
+                  type="button"
+                  role="option"
+                  aria-selected={isSelected}
+                  // Selected rows sit on the primary surface — the opposite
+                  // of the mode's background — so the file-type icon swaps
+                  // to the opposite palette.
+                  data-file-system-on-primary={isSelected ? "" : undefined}
+                  tabIndex={entry.path === tabStopChildPath ? 0 : -1}
+                  ref={(element) => {
+                    if (element) {
+                      rowRefs.current.set(entry.path, element)
+                    } else {
+                      rowRefs.current.delete(entry.path)
+                    }
+                  }}
+                  // Selecting on press (mouse only) starts mounting the
+                  // child column a beat before mouseup — the immediacy
+                  // @pierre/trees rows have. Touch keeps selection on the
+                  // click so scroll gestures don't select.
+                  onPointerDown={(event) => {
+                    if (event.pointerType === "mouse" && event.button === 0) {
+                      onSelect(entry)
+                    }
+                  }}
+                  onClick={() => onSelect(entry)}
+                  onDoubleClick={() => onOpen(entry)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") onOpen(entry)
+                  }}
+                  className={cn(
+                    "flex h-7 shrink-0 items-center gap-2 rounded-md px-2 py-1 text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    isSelected
+                      ? "bg-primary text-primary-foreground"
+                      : isOnTrail
+                        ? "bg-accent"
+                        : "hover:bg-accent/50"
+                  )}
+                >
+                  {entry.kind === "folder" ? (
+                    <FileSystemFolderGlyph className="h-3.5 w-auto shrink-0" />
+                  ) : coverUrl ? (
+                    <img
+                      src={coverUrl}
+                      alt=""
+                      draggable={false}
+                      className="size-4 shrink-0 rounded-[3px] bg-white object-cover"
+                    />
+                  ) : (
+                    <FileTypeIcon
+                      fileName={entry.name}
+                      className="size-4 shrink-0"
+                    />
+                  )}
+                  <span className="min-w-0 flex-1 truncate">{entry.name}</span>
+                  {entry.kind === "folder" &&
+                  folderHasChildren(index, entry) ? (
+                    <HugeiconsIcon
+                      icon={ArrowRight01Icon}
+                      className={cn(
+                        "size-3.5 shrink-0",
+                        !isSelected && "text-muted-foreground/60"
+                      )}
+                    />
+                  ) : null}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </ScrollArea>
+  )
+})
 
 function FileSystemInformation({
   entry,
@@ -1839,6 +4360,12 @@ function FileSystemInformation({
   )
 }
 
+// Filmstrip geometry (px at the default 16px root font size).
+const GALLERY_STRIP_PADDING = 8 // p-2
+const GALLERY_TILE_SIZE = 56 // size-14
+const GALLERY_TILE_GAP = 6 // gap-1.5
+const GALLERY_TILE_STRIDE = GALLERY_TILE_SIZE + GALLERY_TILE_GAP
+
 function FileSystemGalleryView(props: FileSystemViewProps) {
   const {
     entries,
@@ -1852,6 +4379,8 @@ function FileSystemGalleryView(props: FileSystemViewProps) {
     selectedPath,
   } = props
   const stripRefs = React.useRef(new Map<string, HTMLButtonElement>())
+  const stripViewportRef = React.useRef<HTMLDivElement | null>(null)
+  const typeAhead = useEntryTypeAhead()
   const activeEntry =
     selectedEntry && entries.some((entry) => entry.path === selectedEntry.path)
       ? selectedEntry
@@ -1873,12 +4402,24 @@ function FileSystemGalleryView(props: FileSystemViewProps) {
   const activeFileSize = activeFile ? formatByteSize(activeFile.size) : null
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return
     if (entries.length === 0) return
 
     const currentIndex = activeEntry
       ? entries.findIndex((entry) => entry.path === activeEntry.path)
       : -1
+
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+      const match = typeAhead(event, entries, currentIndex)
+
+      if (match) {
+        onSelect(match)
+        // The matched tile may be outside the strip's virtual window; the
+        // active-tile effect scrolls it in, and focus follows once mounted.
+        requestAnimationFrame(() => stripRefs.current.get(match.path)?.focus())
+      }
+      return
+    }
+
     const nextEntry =
       entries[
         currentIndex === -1
@@ -1893,6 +4434,32 @@ function FileSystemGalleryView(props: FileSystemViewProps) {
     event.preventDefault()
   }
 
+  const { end: stripEnd, start: stripStart } = useVirtualWindow({
+    count: entries.length,
+    horizontal: true,
+    itemStride: GALLERY_TILE_STRIDE,
+    leadingPx: GALLERY_STRIP_PADDING,
+    overscan: 8,
+    viewportRef: stripViewportRef,
+  })
+
+  // Keep the active tile mounted and visible while scrubbing or when the
+  // selection arrives from another view.
+  const activePath = activeEntry?.path ?? null
+
+  React.useLayoutEffect(() => {
+    if (!activePath) return
+
+    scrollIndexIntoView({
+      horizontal: true,
+      index: entries.findIndex((entry) => entry.path === activePath),
+      itemSize: GALLERY_TILE_SIZE,
+      itemStride: GALLERY_TILE_STRIDE,
+      leadingPx: GALLERY_STRIP_PADDING,
+      viewport: stripViewportRef.current,
+    })
+  }, [activePath, entries])
+
   return (
     <div className="flex size-full flex-col" onKeyDown={handleKeyDown}>
       {/* The strip comes first in DOM order (rendered below via order-last)
@@ -1901,53 +4468,66 @@ function FileSystemGalleryView(props: FileSystemViewProps) {
       <ScrollArea
         orientation="horizontal"
         className="order-last h-auto w-full shrink-0 border-t"
+        viewportRef={stripViewportRef}
+        viewportClassName="p-2"
       >
         <div
-          role="listbox"
-          aria-label="Files"
-          className="flex w-max min-w-full items-center gap-1.5 p-2"
+          className="relative h-14 min-w-full"
+          style={{
+            width: entries.length
+              ? entries.length * GALLERY_TILE_STRIDE - GALLERY_TILE_GAP
+              : undefined,
+          }}
         >
-          {entries.map((entry) => {
-            const isActive = entry.path === (activeEntry?.path ?? selectedPath)
+          <div
+            role="listbox"
+            aria-label="Files"
+            className="absolute inset-y-0 flex items-center gap-1.5"
+            style={{ left: stripStart * GALLERY_TILE_STRIDE }}
+          >
+            {entries.slice(stripStart, stripEnd).map((entry) => {
+              const isActive =
+                entry.path === (activeEntry?.path ?? selectedPath)
 
-            return (
-              <button
-                key={entry.path}
-                type="button"
-                role="option"
-                aria-selected={isActive}
-                tabIndex={isActive ? 0 : -1}
-                ref={(element) => {
-                  if (element) {
-                    stripRefs.current.set(entry.path, element)
-                  } else {
-                    stripRefs.current.delete(entry.path)
-                  }
-                }}
-                onClick={() => onSelect(entry)}
-                onDoubleClick={() => onOpen(entry)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") onOpen(entry)
-                }}
-                title={entry.name}
-                className={cn(
-                  "flex size-14 shrink-0 items-center justify-center rounded-md border border-transparent p-1 outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                  isActive && "border-ring/40 bg-accent"
-                )}
-              >
-                {entry.kind === "folder" ? (
-                  <FileSystemFolderGlyph className="h-9 w-auto" />
-                ) : (
-                  <FileVisual
-                    file={entry}
-                    className="w-9 rounded-sm"
-                    previewAspectRatio={0.78}
-                    renderFilePreview={renderFilePreview}
-                  />
-                )}
-              </button>
-            )
-          })}
+              return (
+                <button
+                  key={entry.path}
+                  type="button"
+                  role="option"
+                  aria-selected={isActive}
+                  tabIndex={isActive ? 0 : -1}
+                  ref={(element) => {
+                    if (element) {
+                      stripRefs.current.set(entry.path, element)
+                    } else {
+                      stripRefs.current.delete(entry.path)
+                    }
+                  }}
+                  onClick={() => onSelect(entry)}
+                  onDoubleClick={() => onOpen(entry)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") onOpen(entry)
+                  }}
+                  title={entry.name}
+                  className={cn(
+                    "flex size-14 shrink-0 items-center justify-center rounded-md border border-transparent p-1 outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                    isActive && "border-ring/40 bg-accent"
+                  )}
+                >
+                  {entry.kind === "folder" ? (
+                    <FileSystemFolderGlyph className="h-9 w-auto" />
+                  ) : (
+                    <FileVisual
+                      file={entry}
+                      className="w-9 rounded-sm"
+                      previewAspectRatio={0.78}
+                      renderFilePreview={renderFilePreview}
+                    />
+                  )}
+                </button>
+              )
+            })}
+          </div>
         </div>
       </ScrollArea>
       <div className="flex min-h-0 flex-1">
@@ -1965,32 +4545,38 @@ function FileSystemGalleryView(props: FileSystemViewProps) {
               />
             ) : activeViewerKind === "pdf" && activeFileUrl ? (
               <div className="size-full overflow-hidden rounded-lg border">
-                <PDFViewer
-                  key={activeEntry.path}
-                  file={activeFileUrl}
-                  className="h-full"
-                  showToolbar={false}
-                />
+                <React.Suspense fallback={<FileSystemViewerLoading />}>
+                  <LazyPDFViewer
+                    key={activeEntry.path}
+                    file={activeFileUrl}
+                    className="h-full"
+                    showToolbar={false}
+                  />
+                </React.Suspense>
               </div>
             ) : activeViewerKind === "docx" && activeFileUrl ? (
               <div className="size-full overflow-hidden rounded-lg border">
-                <DocxViewerPreview
-                  key={activeEntry.path}
-                  src={activeFileUrl}
-                  fileName={activeEntry.name}
-                  className="h-full"
-                  showToolbar={false}
-                />
+                <React.Suspense fallback={<FileSystemViewerLoading />}>
+                  <LazyDocxViewerPreview
+                    key={activeEntry.path}
+                    src={activeFileUrl}
+                    fileName={activeEntry.name}
+                    className="h-full"
+                    showToolbar={false}
+                  />
+                </React.Suspense>
               </div>
             ) : activeViewerKind === "xlsx" && activeFileUrl ? (
               <div className="size-full overflow-hidden rounded-lg border">
-                <XlsxViewerPreview
-                  key={activeEntry.path}
-                  src={activeFileUrl}
-                  fileName={activeEntry.name}
-                  className="h-full"
-                  showToolbar={false}
-                />
+                <React.Suspense fallback={<FileSystemViewerLoading />}>
+                  <LazyXlsxViewerPreview
+                    key={activeEntry.path}
+                    src={activeFileUrl}
+                    fileName={activeEntry.name}
+                    className="h-full"
+                    showToolbar={false}
+                  />
+                </React.Suspense>
               </div>
             ) : (
               <FileVisual

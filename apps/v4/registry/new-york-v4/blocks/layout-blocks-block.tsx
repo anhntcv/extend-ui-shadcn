@@ -59,6 +59,21 @@ export function OcrBlocksBlock({
     )
   }, [])
 
+  const activeOverlayBlockId = activeBlock?.id
+  const renderPageOverlay = React.useCallback(
+    ({ pageNumber }: { pageNumber: number }) =>
+      blocks
+        .filter((block) => block.page === pageNumber)
+        .map((block) => (
+          <OcrBlockOverlay
+            key={block.id}
+            block={block}
+            isActive={block.id === activeOverlayBlockId}
+          />
+        )),
+    [activeOverlayBlockId, blocks]
+  )
+
   return (
     <PdfBlockResizableShell
       autoSaveId="pdf-block-ocr"
@@ -67,17 +82,7 @@ export function OcrBlocksBlock({
           ref={viewerRef}
           file={file}
           defaultZoom={1}
-          renderPageOverlay={({ pageNumber }) =>
-            blocks
-              .filter((block) => block.page === pageNumber)
-              .map((block) => (
-                <OcrBlockOverlay
-                  key={block.id}
-                  block={block}
-                  isActive={block.id === activeBlock?.id}
-                />
-              ))
-          }
+          renderPageOverlay={renderPageOverlay}
         />
       }
       right={

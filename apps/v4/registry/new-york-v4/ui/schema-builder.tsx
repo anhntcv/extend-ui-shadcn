@@ -1121,6 +1121,24 @@ function useSchemaBuilderSensors() {
   )
 }
 
+function useStableCallback<Args extends unknown[], Result>(
+  callback: (...args: Args) => Result
+) {
+  const callbackRef = React.useRef(callback)
+
+  React.useInsertionEffect(() => {
+    callbackRef.current = callback
+  })
+
+  return React.useCallback((...args: Args) => callbackRef.current(...args), [])
+}
+
+function useStableIds(ids: string[]) {
+  const idsKey = JSON.stringify(ids)
+
+  return React.useMemo(() => JSON.parse(idsKey) as string[], [idsKey])
+}
+
 function getTypeStyleKey(
   property: SchemaBuilderProperty
 ): SchemaBuilderTypeStyleKey {
@@ -1383,18 +1401,14 @@ function EnumEditor({
 }) {
   const sensors = useSchemaBuilderSensors()
   const dndContextId = React.useId()
-  const sortableItems = React.useMemo(
-    () => values.map((value) => value.id),
-    [values]
-  )
-  const updateValue = React.useCallback(
+  const sortableItems = useStableIds(values.map((value) => value.id))
+  const updateValue = useStableCallback(
     (
       id: string,
       update: (value: SchemaBuilderEnumValue) => SchemaBuilderEnumValue
     ) => {
       onChange(values.map((value) => (value.id === id ? update(value) : value)))
-    },
-    [onChange, values]
+    }
   )
   const handleDragEnd = React.useCallback(
     (event: DragEndEvent) => {
@@ -1461,7 +1475,7 @@ function EnumEditor({
   )
 }
 
-function SortableEnumRow({
+const SortableEnumRow = React.memo(function SortableEnumRow({
   value,
   onValueChange,
 }: {
@@ -1537,7 +1551,7 @@ function SortableEnumRow({
       </td>
     </tr>
   )
-}
+})
 
 function ArrayItemsEditor({
   property,
@@ -1674,18 +1688,13 @@ function SchemaBuilderTable({
       containerId,
     },
   })
-  const sortableItems = React.useMemo(
-    () => properties.map((property) => property.id),
-    [properties]
-  )
-  const updateProperty = React.useCallback(
-    (
-      id: string,
-      update: (property: SchemaBuilderProperty) => SchemaBuilderProperty
-    ) => {
-      onPropertiesChange(updatePropertyById(properties, id, update))
-    },
-    [onPropertiesChange, properties]
+  const sortableItems = useStableIds(properties.map((property) => property.id))
+  const updateProperty = useStableCallback(
+    (id: string, nextProperty: SchemaBuilderProperty) => {
+      onPropertiesChange(
+        updatePropertyById(properties, id, () => nextProperty)
+      )
+    }
   )
 
   const addProperty = React.useCallback(() => {
@@ -1731,9 +1740,7 @@ function SchemaBuilderTable({
                 dropPreview={dropPreview}
                 nestedEditorOpenByPropertyId={nestedEditorOpenByPropertyId}
                 onNestedEditorOpenChange={onNestedEditorOpenChange}
-                onPropertyChange={(nextProperty) =>
-                  updateProperty(property.id, () => nextProperty)
-                }
+                onPropertyChange={updateProperty}
               />
             </React.Fragment>
           ))}
@@ -1762,7 +1769,7 @@ function SchemaBuilderTable({
   )
 }
 
-function SortablePropertyRows({
+const SortablePropertyRows = React.memo(function SortablePropertyRows({
   property,
   depth,
   dropPreview,
@@ -1775,7 +1782,7 @@ function SortablePropertyRows({
   dropPreview: PropertyMovePreview | null
   nestedEditorOpenByPropertyId: Record<string, boolean>
   onNestedEditorOpenChange: (propertyId: string, open: boolean) => void
-  onPropertyChange: (property: SchemaBuilderProperty) => void
+  onPropertyChange: (id: string, property: SchemaBuilderProperty) => void
 }) {
   const {
     attributes,
@@ -1790,6 +1797,12 @@ function SortablePropertyRows({
       type: SCHEMA_PROPERTY_DRAG_TYPE,
     },
   })
+  const handlePropertyChange = React.useCallback(
+    (nextProperty: SchemaBuilderProperty) => {
+      onPropertyChange(nextProperty.id, nextProperty)
+    },
+    [onPropertyChange]
+  )
   const hasNestedEditor = propertyHasNestedEditor(property)
   const isNestedEditorOpen = nestedEditorOpenByPropertyId[property.id] ?? true
   const nestedEditorLabel = getNestedEditorLabel(property)
@@ -1831,7 +1844,7 @@ function SortablePropertyRows({
               className="font-mono"
               spellCheck={false}
               onChange={(event) =>
-                onPropertyChange({
+                handlePropertyChange({
                   ...property,
                   key: event.target.value,
                 })
@@ -1840,14 +1853,17 @@ function SortablePropertyRows({
           </div>
         </td>
         <td className="border-l p-1 align-top">
-          <SchemaTypeMenu property={property} onChange={onPropertyChange} />
+          <SchemaTypeMenu
+            property={property}
+            onChange={handlePropertyChange}
+          />
         </td>
         <td className="border-l p-0 align-top">
           <InlineTextInput
             value={property.description}
             placeholder="Describe what this field should extract."
             onChange={(event) =>
-              onPropertyChange({
+              handlePropertyChange({
                 ...property,
                 description: event.target.value,
               })
@@ -1882,7 +1898,7 @@ function SortablePropertyRows({
                   <div className="flex h-full shrink-0 items-center px-2">
                     <ArrayItemTypeMenu
                       property={property}
-                      onChange={onPropertyChange}
+                      onChange={handlePropertyChange}
                     />
                   </div>
                 ) : null}
@@ -1904,7 +1920,7 @@ function SortablePropertyRows({
                     dropPreview={dropPreview}
                     nestedEditorOpenByPropertyId={nestedEditorOpenByPropertyId}
                     onNestedEditorOpenChange={onNestedEditorOpenChange}
-                    onChange={onPropertyChange}
+                    onChange={handlePropertyChange}
                   />
                 </div>
               </CollapsiblePanel>
@@ -1914,7 +1930,7 @@ function SortablePropertyRows({
       ) : null}
     </tbody>
   )
-}
+})
 
 function SchemaPropertyDropPreviewRows({
   property,
@@ -2146,7 +2162,7 @@ function SchemaPropertiesPreview({
   )
 }
 
-export function SchemaJsonView({
+export const SchemaJsonView = React.memo(function SchemaJsonView({
   scrollResetKey = 0,
   schema,
   theme,
@@ -2201,7 +2217,7 @@ export function SchemaJsonView({
       </WorkerPoolContextProvider>
     </div>
   )
-}
+})
 
 export function SchemaBuilderPanel({
   className,
@@ -2232,6 +2248,15 @@ export function SchemaBuilderPanel({
   const [uncontrolledSchema, setUncontrolledSchema] =
     React.useState(defaultSchema)
   const schema = controlledSchema ?? uncontrolledSchema
+  // The JSON tab stays mounted, so feed it a schema frozen while it is
+  // hidden; otherwise every form keystroke re-serializes and re-highlights
+  // the code view. Syncing during render keeps it fresh once visible.
+  const [jsonViewSchema, setJsonViewSchema] = React.useState(schema)
+
+  if (activeTab === "json" && jsonViewSchema !== schema) {
+    setJsonViewSchema(schema)
+  }
+
   const dropPreview = React.useMemo(() => {
     if (!activeSchemaDrag?.overId) return null
 
@@ -2539,7 +2564,7 @@ export function SchemaBuilderPanel({
       <TabsContent value="json" keepMounted className="min-h-0 flex-1">
         <SchemaJsonView
           scrollResetKey={jsonScrollResetKey}
-          schema={schema}
+          schema={jsonViewSchema}
           theme={theme}
         />
       </TabsContent>

@@ -7,7 +7,6 @@ import { META_THEME_COLORS, siteConfig } from "@/lib/config"
 import { fontVariables } from "@/lib/fonts"
 import { cn } from "@/lib/utils"
 import { withUiBasePath } from "@/lib/zone-path"
-import { LayoutProvider } from "@/hooks/use-layout"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { ActiveThemeProvider } from "@/components/active-theme"
@@ -92,9 +91,6 @@ export default function RootLayout({
                 if (localStorage.theme === 'dark' || ((!('theme' in localStorage) || localStorage.theme === 'system') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                   document.querySelector('meta[name="theme-color"]').setAttribute('content', '${META_THEME_COLORS.dark}')
                 }
-                if (localStorage.layout) {
-                  document.documentElement.classList.add('layout-' + localStorage.layout)
-                }
               } catch (_) {}
             `,
           }}
@@ -107,17 +103,15 @@ export default function RootLayout({
         )}
       >
         <ThemeProvider>
-          <LayoutProvider>
-            <ActiveThemeProvider>
-              <NuqsAdapter>
-                <TooltipProvider delayDuration={0}>
-                  {children}
-                  <Toaster position="top-center" />
-                </TooltipProvider>
-              </NuqsAdapter>
-              <TailwindIndicator />
-            </ActiveThemeProvider>
-          </LayoutProvider>
+          <ActiveThemeProvider>
+            <NuqsAdapter>
+              <TooltipProvider delayDuration={0}>
+                {children}
+                <Toaster position="top-center" />
+              </TooltipProvider>
+            </NuqsAdapter>
+            <TailwindIndicator />
+          </ActiveThemeProvider>
         </ThemeProvider>
         <Analytics />
         <div id="portal" className="fixed top-0 left-0 z-40" />
