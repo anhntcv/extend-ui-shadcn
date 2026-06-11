@@ -68,6 +68,7 @@ const XLSX_DROPDOWN_Z_INDEX_CLASS = "z-40"
 const XLSX_SEARCH_BATCH_ROW_COUNT = 500
 const XLSX_GRID_HEADER_HEIGHT = 24
 const XLSX_GRID_ROW_HEADER_WIDTH = 40
+const XLSX_MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024
 const ZOOM_OPTIONS = [10, 25, 50, 75, 100, 125, 150, 175, 200, 400] as const
 
 // Stable reference so the thumbnails memo isn't invalidated on every render
@@ -1177,6 +1178,32 @@ const WorkbookSheetTabsInner = React.memo(function WorkbookSheetTabsInner({
     }
   }, [updatePreviewPosition, visiblePreviewIndex])
 
+  // The preview card portals to document.body, so it outlives the tab
+  // strip's own visibility: when the viewer is hidden or reparented under
+  // the cursor (keep-alive preview pools, a closing dialog) no mouseleave
+  // fires and the card would hang on screen. While the preview is open,
+  // poll the strip's effective visibility and dismiss as soon as it stops
+  // being shown.
+  React.useEffect(() => {
+    if (visiblePreviewIndex === null) return
+
+    const dismissWhenHidden = () => {
+      const element = scrollRef.current
+      const isVisible = Boolean(
+        element?.isConnected &&
+          (element.checkVisibility?.({ checkVisibilityCSS: true }) ?? true)
+      )
+
+      if (isVisible) return
+      clearOpenTimeout()
+      clearCloseTimeout()
+      setVisiblePreviewIndex(null)
+    }
+    const interval = setInterval(dismissWhenHidden, 200)
+
+    return () => clearInterval(interval)
+  }, [clearCloseTimeout, clearOpenTimeout, visiblePreviewIndex])
+
   if (sheets.length <= 1) return null
 
   const previewSheet =
@@ -1696,6 +1723,7 @@ function XlsxWorkbookLoadedViewer({
         allowResizeInReadOnly: true,
         file: workbookBuffer,
         fileName,
+        maxFileSizeBytes: XLSX_MAX_FILE_SIZE_BYTES,
         readOnly: true,
         useWorker: true,
       }),

@@ -27,6 +27,7 @@ import {
   useInlineThumbnailSidebar,
 } from "@/components/ui/document-viewer-sidebar"
 import { FileThumbnail } from "@/components/ui/file-thumbnail"
+import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   Select,
@@ -255,6 +256,94 @@ function ViewerLoadingSurface({
   )
 }
 
+function DocxPageNumberControl({
+  activePage,
+  controlsDisabled,
+  onPageChange,
+  pageCount,
+}: {
+  activePage: number
+  controlsDisabled: boolean
+  onPageChange: (pageNumber: number) => void
+  pageCount: number
+}) {
+  const inputRef = React.useRef<HTMLInputElement>(null)
+  const displayPage = pageCount ? activePage : 1
+  const [isEditing, setIsEditing] = React.useState(false)
+  const [draftPage, setDraftPage] = React.useState(() => String(displayPage))
+
+  React.useEffect(() => {
+    if (!isEditing) {
+      setDraftPage(String(displayPage))
+    }
+  }, [displayPage, isEditing])
+
+  React.useEffect(() => {
+    if (!isEditing) return
+
+    inputRef.current?.focus()
+    inputRef.current?.select()
+  }, [isEditing])
+
+  const applyPageDraft = React.useCallback(
+    (value: string) => {
+      const trimmedValue = value.trim()
+
+      if (!trimmedValue) return
+
+      const parsedPage = Number(trimmedValue)
+
+      if (!Number.isInteger(parsedPage)) return
+      if (parsedPage < 1 || parsedPage > pageCount) return
+
+      onPageChange(parsedPage)
+    },
+    [onPageChange, pageCount]
+  )
+
+  return (
+    <div className="flex items-center text-sm whitespace-nowrap text-primary">
+      <span>Page</span>
+      {isEditing ? (
+        <Input
+          ref={inputRef}
+          aria-label="Page number"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          size="sm"
+          value={draftPage}
+          className="mx-1 w-14 min-w-14 rounded-md [&_[data-slot=input]]:text-center"
+          onBlur={() => setIsEditing(false)}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+            const nextValue = event.target.value
+
+            setDraftPage(nextValue)
+            applyPageDraft(nextValue)
+          }}
+          onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
+            if (event.key === "Enter" || event.key === "Escape") {
+              event.currentTarget.blur()
+            }
+          }}
+        />
+      ) : (
+        <Button
+          type="button"
+          variant="ghost"
+          size="xs"
+          className="relative top-px mx-0.5 h-auto min-w-7 rounded-sm px-1.5 py-0 text-sm leading-normal font-normal text-primary sm:text-sm"
+          aria-label={`Current page ${displayPage}. Edit page number`}
+          disabled={controlsDisabled || !pageCount}
+          onClick={() => setIsEditing(true)}
+        >
+          {displayPage}
+        </Button>
+      )}
+      <span>of {pageCount || "-"}</span>
+    </div>
+  )
+}
+
 function DocxToolbar({
   activePage,
   controlsDisabled,
@@ -262,6 +351,7 @@ function DocxToolbar({
   isPreparingDownload,
   onDownload,
   onIsDarkChange,
+  onPageChange,
   onToggleSidebar,
   onUploadClick,
   pageCount,
@@ -278,6 +368,7 @@ function DocxToolbar({
   isPreparingDownload: boolean
   onDownload: () => void
   onIsDarkChange: (checked: boolean) => void
+  onPageChange: (pageNumber: number) => void
   onToggleSidebar: () => void
   onUploadClick: () => void
   pageCount: number
@@ -307,9 +398,12 @@ function DocxToolbar({
               <HugeiconsIcon icon={SidebarLeftIcon} className="size-4" />
             </Button>
           </ToolbarTooltip>
-          <div className="text-sm whitespace-nowrap text-primary">
-            Page {pageCount ? activePage : 1} of {pageCount || "-"}
-          </div>
+          <DocxPageNumberControl
+            activePage={activePage}
+            controlsDisabled={controlsDisabled}
+            onPageChange={onPageChange}
+            pageCount={pageCount}
+          />
         </div>
         <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-1">
           {showNightRenderToggle ? (
@@ -850,6 +944,7 @@ function DocxViewerContent({
           isPreparingDownload={isPreparingDownload}
           onDownload={handleDownload}
           onIsDarkChange={setNightRenderEnabled}
+          onPageChange={scrollToPage}
           onToggleSidebar={() => setSidebarOpen((open) => !open)}
           onUploadClick={() => fileInputRef.current?.click()}
           pageCount={pageCount}

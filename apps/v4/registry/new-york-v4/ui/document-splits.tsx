@@ -30,8 +30,8 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react"
 
 import { cn } from "@/lib/utils"
-import { FileThumbnail } from "@/components/ui/file-thumbnail"
 import { Button } from "@/components/ui/button"
+import { FileThumbnail } from "@/components/ui/file-thumbnail"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 export type DocumentSplitPageId = `page-${number}`
@@ -47,6 +47,12 @@ type SplitGroup = DocumentSplit
 const THUMBNAIL_WIDTH = 72
 const THUMBNAIL_HEIGHT = 92
 const DRAG_OVERLAY_DROP_ANIMATION = null
+const THUMBNAIL_SURFACE_CLASS_NAME =
+  "relative overflow-hidden rounded-lg border border-border bg-background shadow-xs"
+const THUMBNAIL_BUTTON_CLASS_NAME = cn(
+  THUMBNAIL_SURFACE_CLASS_NAME,
+  "cursor-grab text-left transition-[border-color,box-shadow,opacity] outline-none hover:border-ring/40 hover:ring-2 hover:ring-ring focus-visible:border-ring/40 focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
+)
 
 const splitterCollisionDetection: CollisionDetection = (args) => {
   const dragType = args.active.data.current?.type
@@ -270,7 +276,8 @@ function PageThumbnail({
       ref={setNodeRef}
       type="button"
       className={cn(
-        "relative shrink-0 cursor-grab overflow-hidden rounded-md border border-border bg-muted text-left shadow-xs transition-[border-color,opacity] hover:border-foreground/30 active:cursor-grabbing",
+        THUMBNAIL_BUTTON_CLASS_NAME,
+        "shrink-0",
         isDragging && "opacity-0"
       )}
       style={{
@@ -291,7 +298,7 @@ function PageThumbnail({
         previewImageUrl={imageUrl}
         isLoading={!imageUrl}
         previewClassName="h-full aspect-auto"
-        className="size-full rounded-[inherit] border-0"
+        className="size-full rounded-[inherit] border-0 bg-transparent"
       />
       <span className="absolute right-1 bottom-1 rounded bg-background/95 px-1.5 py-0.5 text-[10px] font-semibold text-foreground shadow-xs ring-1 ring-border/80">
         {pageNumber}
@@ -443,10 +450,7 @@ function SplitGroupDragOverlay({
   onSelectPage: (pageNumber: number) => void
 }) {
   return (
-    <div
-      className="relative z-40 max-w-[calc(100vw-2rem)]"
-      style={{ width }}
-    >
+    <div className="relative z-40 max-w-[calc(100vw-2rem)]" style={{ width }}>
       <SplitGroupCard
         canRemove={false}
         group={group}
@@ -693,7 +697,10 @@ export function DocumentSplits({
         <DragOverlay dropAnimation={DRAG_OVERLAY_DROP_ANIMATION} zIndex={40}>
           {draggedPageId ? (
             <div
-              className="relative overflow-hidden rounded-md border bg-background shadow-lg shadow-black/10"
+              className={cn(
+                THUMBNAIL_SURFACE_CLASS_NAME,
+                "shadow-lg shadow-black/10"
+              )}
               style={{ width: THUMBNAIL_WIDTH, height: THUMBNAIL_HEIGHT }}
             >
               <FileThumbnail
@@ -701,7 +708,7 @@ export function DocumentSplits({
                 previewImageUrl={thumbnailImages[draggedPageId]}
                 isLoading={!thumbnailImages[draggedPageId]}
                 previewClassName="h-full aspect-auto"
-                className="size-full rounded-[inherit] border-0"
+                className="size-full rounded-[inherit] border-0 bg-transparent"
               />
             </div>
           ) : activeSplitGroup ? (

@@ -17,7 +17,11 @@ import type * as ReactPdf from "react-pdf"
 
 import { cn } from "@/lib/utils"
 import { withUiBasePath } from "@/lib/zone-path"
-import { FileSystem, type FileSystemItem } from "@/components/ui/file-system"
+import {
+  FileSystem,
+  type FileSystemItem,
+  type FileSystemProps,
+} from "@/components/ui/file-system"
 import { DocsViewCodeBlock } from "@/components/docs-code-block"
 import { FileSystemSourceCode } from "@/components/file-system-source-code"
 import { FileSystemBlock } from "@/registry/new-york-v4/blocks/file-system-block"
@@ -743,8 +747,10 @@ export function FileSystemDemo() {
 }
 
 export function FileSystemFinderBlock({
+  defaultView,
   heightClassName = "h-[680px]",
 }: {
+  defaultView?: FileSystemProps["defaultView"]
   heightClassName?: string
 }) {
   const { items, loadPreviewImageUrl, thumbnailGenerators } =
@@ -756,6 +762,7 @@ export function FileSystemFinderBlock({
         items={items}
         title="Documents"
         className={cn("min-h-0 flex-1 rounded-none border-0", heightClassName)}
+        defaultView={defaultView}
         loadPreviewImageUrl={loadPreviewImageUrl}
       />
       {thumbnailGenerators}

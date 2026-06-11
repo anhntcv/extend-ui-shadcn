@@ -142,7 +142,7 @@ function FileSystemTile() {
       viewHref="/docs/components/file-system"
       className="h-[560px] bg-background"
     >
-      <FileSystemBlock heightClassName="h-full" />
+      <FileSystemBlock defaultView="gallery" heightClassName="h-full" />
     </ComponentCrop>
   )
 }

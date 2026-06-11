@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { createPortal } from "react-dom"
 import {
   ArrowDown01Icon,
   ArrowLeft01Icon,
@@ -1030,6 +1031,7 @@ function FileVisual({
   className,
   loadPreviewImageUrl,
   pageable = false,
+  pageUrlCache,
   previewAspectRatio,
   previewClassName,
   renderFilePreview,
@@ -1042,6 +1044,11 @@ function FileVisual({
   ) => Promise<string | null>
   /** Show a hover pager over multi-page thumbnails. */
   pageable?: boolean
+  /**
+   * Shared `"path#pageIndex"` → URL cache so pages fetched by one pager
+   * (gallery stage, columns preview) are reused by every other instance.
+   */
+  pageUrlCache?: Map<string, string>
   previewAspectRatio?: number
   previewClassName?: string
   renderFilePreview?: (file: FileSystemFileItem) => React.ReactNode
@@ -1058,7 +1065,10 @@ function FileVisual({
   >({})
   const clampedPageIndex = Math.min(pageIndex, Math.max(totalPages - 1, 0))
   const previewUrl =
-    previewUrls[clampedPageIndex] ?? lazyPageUrls[clampedPageIndex] ?? null
+    previewUrls[clampedPageIndex] ??
+    lazyPageUrls[clampedPageIndex] ??
+    pageUrlCache?.get(`${file.path}#${clampedPageIndex}`) ??
+    null
   const resolvedAspectRatio = file.previewAspectRatio ?? previewAspectRatio
   const isLazyPagePending =
     canLoadLazily && !previewUrl && clampedPageIndex < totalPages
@@ -1083,6 +1093,9 @@ function FileVisual({
 
     void loadPreviewImageUrl(fileRef.current, clampedPageIndex)
       .then((url) => {
+        // Cache even when stale (page flipped away mid-load): the fetch is
+        // done, so let the next visit use it.
+        if (url) pageUrlCache?.set(`${file.path}#${clampedPageIndex}`, url)
         if (isCurrent && url) {
           setLazyPageUrls((previous) => ({
             ...previous,
@@ -1095,7 +1108,13 @@ function FileVisual({
     return () => {
       isCurrent = false
     }
-  }, [clampedPageIndex, file.path, isLazyPagePending, loadPreviewImageUrl])
+  }, [
+    clampedPageIndex,
+    file.path,
+    isLazyPagePending,
+    loadPreviewImageUrl,
+    pageUrlCache,
+  ])
 
   const customPreview =
     !previewUrl && !isLazyPagePending ? renderFilePreview?.(file) : null
@@ -1601,14 +1620,172 @@ export function FileSystem({
     url: string
   } | null>(null)
 
+  // Component-lifetime caches shared by every view and the open dialog:
+  // resolved (e.g. presigned) URLs keyed by path, and lazily loaded page
+  // thumbnails keyed by `"path#pageIndex"`. Each resolution happens once no
+  // matter how often the user revisits a file or switches views; stable
+  // URLs also keep the browser's HTTP cache valid for fetched content.
+  // Lazy state (never set) rather than refs: the Maps are passed down
+  // during render, which the rules of React disallow for ref reads.
+  const [resolvedUrlCache] = React.useState(() => new Map<string, string>())
+  const [pageUrlCache] = React.useState(() => new Map<string, string>())
+
+  // The keep-alive preview pool. Recently shown documents stay mounted so
+  // returning to one — in the gallery stage or the viewer dialog — skips
+  // the download and parse work instead of repeating it behind a spinner.
+  // Each pooled path renders through a portal into a stable detached <div>
+  // created once per path and never swapped (React remounts a portal's
+  // children when its container changes); a layout effect reparents that
+  // div into whichever host currently shows the file: the gallery's stage
+  // wrapper or the open dialog. Imperative appendChild keeps the mounted
+  // viewer (and its parsed document) alive across every move. Pooled paths
+  // without a current host stay mounted but DETACHED from the DOM — a
+  // detached subtree costs no layout, paint, or style-recalc work, so idle
+  // pool members never slow down interactions in the visible viewer.
+  const [stagePool, setStagePool] = React.useState<string[]>([])
+  const [stageRecency] = React.useState(() => new Map<string, number>())
+  const stageClockRef = React.useRef(0)
+  const [stageContainers] = React.useState(
+    () => new Map<string, HTMLDivElement>()
+  )
+  const [stageHosts] = React.useState(() => new Map<string, HTMLElement>())
+  const [, bumpStageHosts] = React.useState(0)
+  // Bumped on every admission so the attach set recomputes when recency
+  // changes without a pool membership change.
+  const [stageVersion, setStageVersion] = React.useState(0)
+  const [dialogStageHost, setDialogStageHost] =
+    React.useState<HTMLElement | null>(null)
+
+  const registerStageHost = React.useCallback(
+    (path: string, element: HTMLElement | null) => {
+      if (element) {
+        if (stageHosts.get(path) === element) return
+        stageHosts.set(path, element)
+      } else {
+        if (!stageHosts.has(path)) return
+        stageHosts.delete(path)
+      }
+      bumpStageHosts((version) => version + 1)
+    },
+    [stageHosts]
+  )
+
+  const dialogStageHostRef = React.useCallback(
+    (element: HTMLDivElement | null) => setDialogStageHost(element),
+    []
+  )
+
+  // Admits a file into the pool (idempotent), evicting the least recently
+  // admitted path beyond the cap. The pool array keeps insertion order —
+  // reordering would churn the host registrations — so recency lives in a
+  // separate map; the version bump re-renders so the attach set below
+  // tracks recency even when pool membership is unchanged.
+  const poolStagePath = React.useCallback(
+    (path: string) => {
+      if (!index.files.has(path)) return
+      if (!stageContainers.has(path)) {
+        const container = document.createElement("div")
+
+        // Layout/paint containment keeps work inside one preview from
+        // invalidating the rest of the page (and vice versa).
+        container.className =
+          "flex size-full min-h-0 min-w-0 items-center justify-center contain-layout contain-paint"
+        stageContainers.set(path, container)
+      }
+
+      stageRecency.set(path, ++stageClockRef.current)
+      setStageVersion((version) => version + 1)
+      setStagePool((previous) => {
+        if (previous.includes(path)) return previous
+
+        const next = [...previous, path]
+
+        if (next.length <= GALLERY_STAGE_POOL_SIZE) return next
+
+        let evicted = next[0]
+
+        for (const candidate of next) {
+          if (candidate === path) continue
+          if (
+            (stageRecency.get(candidate) ?? 0) <
+            (stageRecency.get(evicted) ?? 0)
+          ) {
+            evicted = candidate
+          }
+        }
+        return next.filter((candidate) => candidate !== evicted)
+      })
+    },
+    [index, stageContainers, stageRecency]
+  )
+
+  const dialogStagePath =
+    openedFile !== null && openedFile.kind !== "image"
+      ? openedFile.file.path
+      : null
+  // Only the most recently shown stages stay attached to the DOM, so
+  // rotating among a few files stays instant while older pool members wait
+  // detached at zero rendering cost. Memoized so host ref callbacks
+  // downstream stay referentially stable — recomputing every render would
+  // re-register hosts in a loop.
+  const attachedStagePaths = React.useMemo(() => {
+    void stageVersion
+
+    const attached = [...stagePool]
+      .sort((a, b) => (stageRecency.get(b) ?? 0) - (stageRecency.get(a) ?? 0))
+      .slice(0, GALLERY_STAGE_ATTACHED_COUNT)
+
+    if (
+      dialogStagePath &&
+      stagePool.includes(dialogStagePath) &&
+      !attached.includes(dialogStagePath)
+    ) {
+      attached.push(dialogStagePath)
+    }
+    return attached
+  }, [dialogStagePath, stagePool, stageRecency, stageVersion])
+
+  // Reparent each pooled container to its current host. No dependency
+  // array: host registration mutates maps in place, so the cheap loop
+  // (pool ≤ GALLERY_STAGE_POOL_SIZE) runs every commit instead of chasing
+  // every mutation source.
+  React.useLayoutEffect(() => {
+    for (const [path, container] of stageContainers) {
+      if (!stagePool.includes(path)) {
+        // Evicted — React already unmounted the portal's children.
+        container.remove()
+        stageContainers.delete(path)
+        continue
+      }
+      if (dialogStagePath === path) {
+        // Leave the container in place until the dialog host mounts.
+        if (dialogStageHost && container.parentElement !== dialogStageHost) {
+          dialogStageHost.appendChild(container)
+        }
+        continue
+      }
+
+      const target = attachedStagePaths.includes(path)
+        ? (stageHosts.get(path) ?? null)
+        : null
+
+      if (!target) {
+        if (container.parentElement) container.remove()
+      } else if (container.parentElement !== target) {
+        target.appendChild(container)
+      }
+    }
+  })
+
   const openFile = React.useCallback(
     (file: FileEntry) => {
       void (async () => {
-        let url = file.url ?? null
+        let url = file.url ?? resolvedUrlCache.get(file.path) ?? null
 
         if (!url && getFileUrl) {
           try {
             url = await getFileUrl(file)
+            if (url) resolvedUrlCache.set(file.path, url)
           } catch {
             url = null
           }
@@ -1621,13 +1798,16 @@ export function FileSystem({
         const kind = viewerKindForFile(file)
 
         if (kind && url) {
+          // Pool the file so the dialog reuses an already-mounted preview
+          // (and the gallery inherits the live viewer after it closes).
+          poolStagePath(file.path)
           setOpenedFile({ file, kind, url })
         } else if (url && typeof window !== "undefined") {
           window.open(url, "_blank", "noopener,noreferrer")
         }
       })()
     },
-    [getFileUrl, onFileOpen]
+    [getFileUrl, onFileOpen, poolStagePath, resolvedUrlCache]
   )
 
   const openEntry = React.useCallback(
@@ -1679,6 +1859,7 @@ export function FileSystem({
   const treeExpansionRef = React.useRef(new Map<string, readonly string[]>())
 
   const viewProps: FileSystemViewProps = {
+    attachedStagePaths,
     currentPath,
     entries: currentEntries,
     fileFilter,
@@ -1689,6 +1870,9 @@ export function FileSystem({
     onOpen: openEntry,
     onSelect: selectAndPrefetchEntry,
     onSortColumnClick: toggleSortColumn,
+    pageUrlCache,
+    poolStagePath,
+    registerStageHost,
     renderFilePreview,
     searchQuery,
     selectedEntry,
@@ -1947,47 +2131,55 @@ export function FileSystem({
             showCloseButton={openedFile.kind === "image"}
           >
             <DialogTitle className="sr-only">{openedFileName}</DialogTitle>
-            {openedFile.kind === "pdf" ? (
-              <React.Suspense fallback={<FileSystemViewerLoading />}>
-                <LazyPDFViewer
-                  file={openedFile.url}
-                  className="h-full min-h-0 flex-1 overflow-hidden rounded-2xl"
-                  downloadFileName={openedFileName}
-                  showUpload={false}
-                  toolbarActions={viewerCloseToolbarAction}
-                />
-              </React.Suspense>
-            ) : openedFile.kind === "docx" ? (
-              <React.Suspense fallback={<FileSystemViewerLoading />}>
-                <LazyDocxViewerPreview
-                  src={openedFile.url}
-                  fileName={openedFileName}
-                  className="h-full min-h-0 flex-1"
-                  rounded
-                  showUpload={false}
-                  toolbarActions={viewerCloseToolbarAction}
-                />
-              </React.Suspense>
-            ) : openedFile.kind === "xlsx" ? (
-              <React.Suspense fallback={<FileSystemViewerLoading />}>
-                <LazyXlsxViewerPreview
-                  src={openedFile.url}
-                  fileName={openedFileName}
-                  className="h-full min-h-0 flex-1"
-                  rounded
-                  showUpload={false}
-                  toolbarActions={viewerCloseToolbarAction}
-                />
-              </React.Suspense>
-            ) : (
+            {openedFile.kind === "image" ? (
               <img
                 src={openedFile.url}
                 alt={openedFileName}
                 className="max-h-[88vh] w-auto max-w-full rounded-2xl object-contain"
               />
+            ) : (
+              // The pooled preview reparents into this host (see the layout
+              // effect above), so a viewer the gallery already loaded
+              // carries over live instead of remounting behind a loading
+              // state.
+              <div
+                ref={dialogStageHostRef}
+                className="flex h-full min-h-0 flex-1 flex-col"
+              />
             )}
           </DialogContent>
         ) : null}
+        {/* The pooled previews. Rendered inside <Dialog> so the dialog
+            variant's close toolbar button keeps its context; each portal's
+            container never changes, the container's parent does. */}
+        {stagePool.map((path) => {
+          const file = index.files.get(path)
+          const container = stageContainers.get(path)
+
+          if (!file || !container) return null
+
+          const isOpenedInDialog =
+            openedFile !== null &&
+            openedFile.kind !== "image" &&
+            openedFile.file.path === path
+
+          return createPortal(
+            <FileSystemGalleryStage
+              file={file}
+              getFileUrl={getFileUrl}
+              loadPreviewImageUrl={loadPreviewImageUrl}
+              pageUrlCache={pageUrlCache}
+              renderFilePreview={renderFilePreview}
+              toolbarActions={
+                isOpenedInDialog ? viewerCloseToolbarAction : undefined
+              }
+              urlCache={resolvedUrlCache}
+              variant={isOpenedInDialog ? "dialog" : "stage"}
+            />,
+            container,
+            path
+          )
+        })}
       </Dialog>
       {dateRangeDialog ? (
         <FileSystemDateRangeDialog
@@ -2819,6 +3011,14 @@ type FileSystemViewProps = {
   onOpen: (entry: FileSystemEntry) => void
   onSelect: (entry: FileSystemEntry | null) => void
   onSortColumnClick: (key: FileSystemSortKey) => void
+  /** Pooled paths currently attached to the DOM (reveal instantly). */
+  attachedStagePaths: string[]
+  /** `"path#pageIndex"` → thumbnail URL, shared by every pager. */
+  pageUrlCache: Map<string, string>
+  /** Admits a file into the root-owned keep-alive preview pool. */
+  poolStagePath: (path: string) => void
+  /** Mounts/unmounts the gallery host element for a pooled path. */
+  registerStageHost: (path: string, element: HTMLElement | null) => void
   renderFilePreview?: (file: FileSystemFileItem) => React.ReactNode
   searchQuery: string
   selectedEntry: FileSystemEntry | null
@@ -2830,15 +3030,22 @@ type FileSystemViewProps = {
 
 // Resolves a display URL for a file: its own `url`, else via `getFileUrl`.
 // Keyed by path/url (not object identity) so manifest churn — e.g. thumbnails
-// streaming in — doesn't re-trigger presign calls for the same file.
+// streaming in — doesn't re-trigger presign calls for the same file. An
+// optional `cache` shared across mounts serves revisited files synchronously:
+// no repeat presign round-trip (and no loading flash), and the stable URL
+// keeps the browser's HTTP cache valid for already-fetched content.
 function useResolvedFileUrl(
   file: FileEntry | null,
-  getFileUrl?: (file: FileSystemFileItem) => string | Promise<string>
+  getFileUrl?: (file: FileSystemFileItem) => string | Promise<string>,
+  cache?: Map<string, string>
 ) {
   const [state, setState] = React.useState<{
     isResolving: boolean
     url: string | null
-  }>({ isResolving: false, url: file?.url ?? null })
+  }>(() => ({
+    isResolving: false,
+    url: file ? (file.url ?? cache?.get(file.path) ?? null) : null,
+  }))
   const fileRef = React.useRef(file)
 
   React.useEffect(() => {
@@ -2850,9 +3057,11 @@ function useResolvedFileUrl(
 
   React.useEffect(() => {
     const currentFile = fileRef.current
+    const knownUrl =
+      fileUrl ?? (filePath ? (cache?.get(filePath) ?? null) : null)
 
-    if (!currentFile || fileUrl || !getFileUrl) {
-      setState({ isResolving: false, url: fileUrl })
+    if (!currentFile || knownUrl || !getFileUrl) {
+      setState({ isResolving: false, url: knownUrl })
       return
     }
 
@@ -2861,6 +3070,7 @@ function useResolvedFileUrl(
     setState({ isResolving: true, url: null })
     void Promise.resolve(getFileUrl(currentFile))
       .then((url) => {
+        if (url) cache?.set(currentFile.path, url)
         if (isCurrent) setState({ isResolving: false, url })
       })
       .catch(() => {
@@ -2870,7 +3080,7 @@ function useResolvedFileUrl(
     return () => {
       isCurrent = false
     }
-  }, [filePath, fileUrl, getFileUrl])
+  }, [cache, filePath, fileUrl, getFileUrl])
 
   return state
 }
@@ -3941,6 +4151,7 @@ function FileSystemColumnsView(props: FileSystemViewProps) {
     loadingFolders,
     onOpen,
     onSelect,
+    pageUrlCache,
     renderFilePreview,
     selectedEntry,
     selectedPath,
@@ -4143,6 +4354,7 @@ function FileSystemColumnsView(props: FileSystemViewProps) {
                   className="w-full"
                   loadPreviewImageUrl={loadPreviewImageUrl}
                   pageable
+                  pageUrlCache={pageUrlCache}
                   previewAspectRatio={0.78}
                   renderFilePreview={renderFilePreview}
                 />
@@ -4379,15 +4591,151 @@ const GALLERY_STRIP_PADDING = 8 // p-2
 const GALLERY_TILE_SIZE = 56 // size-14
 const GALLERY_TILE_GAP = 6 // gap-1.5
 const GALLERY_TILE_STRIDE = GALLERY_TILE_SIZE + GALLERY_TILE_GAP
+// How many visited stages stay mounted so stepping back to a recent file
+// restores its already-loaded preview without refetching or re-parsing;
+// also bounds the memory the keep-alive pool can hold onto.
+const GALLERY_STAGE_POOL_SIZE = 4
+// Of those, how many stay attached to the DOM (the active stage plus the
+// two before it, keeping the usual two-or-three-file rotation instant).
+// The rest wait detached, costing no layout or style-recalc work until
+// they return — their page canvases remount on the way back, so returning
+// to a detached stage briefly rebuilds the page content.
+const GALLERY_STAGE_ATTACHED_COUNT = 3
+
+// The preview for one pooled file. Each stage owns its URL resolution and
+// viewer state, so a mounted stage is self-contained: the root keeps
+// recently shown stages alive (reparented between hosts rather than
+// remounted, because the document viewers load in effects and would
+// refetch and re-parse on remount) and revisiting one — in the gallery or
+// the dialog — skips the presign, download, and parse work instead of
+// re-running it behind a spinner. The two variants share one element
+// structure, differing only in props and classes, so flipping a mounted
+// stage between them keeps the viewer instance.
+function FileSystemGalleryStage({
+  file,
+  getFileUrl,
+  loadPreviewImageUrl,
+  pageUrlCache,
+  renderFilePreview,
+  toolbarActions,
+  urlCache,
+  variant = "stage",
+}: {
+  file: FileEntry
+  getFileUrl?: (file: FileSystemFileItem) => string | Promise<string>
+  loadPreviewImageUrl?: (
+    file: FileSystemFileItem,
+    pageIndex: number
+  ) => Promise<string | null>
+  pageUrlCache?: Map<string, string>
+  renderFilePreview?: (file: FileSystemFileItem) => React.ReactNode
+  /** Rendered in the viewer toolbar in the `"dialog"` variant. */
+  toolbarActions?: React.ReactNode
+  urlCache: Map<string, string>
+  /** `"stage"` is toolbar-less in a bordered tile; `"dialog"` shows the full viewer chrome. */
+  variant?: "dialog" | "stage"
+}) {
+  const viewerKind = viewerKindForFile(file)
+  // Only viewer-backed stages need a URL; thumbnail stages render from the
+  // manifest's preview images, so selecting them never triggers a presign.
+  const { isResolving, url } = useResolvedFileUrl(
+    viewerKind ? file : null,
+    getFileUrl,
+    urlCache
+  )
+  const isDialog = variant === "dialog"
+  const viewerFrameClassName = cn(
+    "size-full",
+    !isDialog && "overflow-hidden rounded-lg border"
+  )
+
+  if (viewerKind && isResolving) {
+    return <Spinner className="size-6 text-muted-foreground" />
+  }
+  if (viewerKind === "image" && url) {
+    return (
+      <img
+        src={url}
+        alt={file.name}
+        className="max-h-full max-w-full rounded-lg object-contain"
+      />
+    )
+  }
+  if (viewerKind === "pdf" && url) {
+    return (
+      <div className={viewerFrameClassName}>
+        <React.Suspense fallback={<FileSystemViewerLoading />}>
+          <LazyPDFViewer
+            file={url}
+            className={cn(
+              "h-full",
+              isDialog && "min-h-0 overflow-hidden rounded-2xl"
+            )}
+            downloadFileName={file.name}
+            showToolbar={isDialog}
+            showUpload={false}
+            toolbarActions={toolbarActions}
+          />
+        </React.Suspense>
+      </div>
+    )
+  }
+  if (viewerKind === "docx" && url) {
+    return (
+      <div className={viewerFrameClassName}>
+        <React.Suspense fallback={<FileSystemViewerLoading />}>
+          <LazyDocxViewerPreview
+            src={url}
+            fileName={file.name}
+            className="h-full min-h-0"
+            rounded={isDialog}
+            showToolbar={isDialog}
+            showUpload={false}
+            toolbarActions={toolbarActions}
+          />
+        </React.Suspense>
+      </div>
+    )
+  }
+  if (viewerKind === "xlsx" && url) {
+    return (
+      <div className={viewerFrameClassName}>
+        <React.Suspense fallback={<FileSystemViewerLoading />}>
+          <LazyXlsxViewerPreview
+            src={url}
+            fileName={file.name}
+            className="h-full min-h-0"
+            rounded={isDialog}
+            showToolbar={isDialog}
+            showUpload={false}
+            toolbarActions={toolbarActions}
+          />
+        </React.Suspense>
+      </div>
+    )
+  }
+  return (
+    <FileVisual
+      file={file}
+      className="w-56 max-w-full"
+      loadPreviewImageUrl={loadPreviewImageUrl}
+      pageable
+      pageUrlCache={pageUrlCache}
+      previewAspectRatio={0.78}
+      renderFilePreview={renderFilePreview}
+    />
+  )
+}
 
 function FileSystemGalleryView(props: FileSystemViewProps) {
   const {
+    attachedStagePaths,
     entries,
-    getFileUrl,
     index,
-    loadPreviewImageUrl,
     onOpen,
     onSelect,
+    poolStagePath,
+    registerStageHost,
     renderFilePreview,
     selectedEntry,
     selectedPath,
@@ -4400,19 +4748,34 @@ function FileSystemGalleryView(props: FileSystemViewProps) {
       ? selectedEntry
       : (entries[0] ?? null)
   const activeFile = activeEntry?.kind === "file" ? activeEntry : null
-  const activeViewerKind = activeFile ? viewerKindForFile(activeFile) : null
   // While arrow keys are scrubbing the strip, the center pane shows a
-  // spinner; the full-size viewer (and its URL resolution) mounts once the
-  // selection settles so each keystroke stays cheap.
+  // spinner; a file is only admitted to the preview pool (mounting its
+  // viewer and resolving its URL) once the selection settles so each
+  // keystroke stays cheap.
   const settledPath = useSettledValue(activeEntry?.path ?? null, 200)
-  const isSettled = settledPath === (activeEntry?.path ?? null)
-  const { isResolving, url: activeFileUrl } = useResolvedFileUrl(
-    isSettled ? activeFile : null,
-    getFileUrl
+
+  React.useEffect(() => {
+    if (settledPath) poolStagePath(settledPath)
+  }, [poolStagePath, settledPath])
+
+  // Hosts for the root-owned preview pool: one positioned wrapper per
+  // pooled path; the root reparents each live preview into its wrapper.
+  // Stable callbacks per path keep React from re-running the host refs on
+  // unrelated renders.
+  const stageHostRefs = React.useMemo(
+    () =>
+      new Map(
+        attachedStagePaths.map(
+          (path) =>
+            [
+              path,
+              (element: HTMLElement | null) => registerStageHost(path, element),
+            ] as const
+        )
+      ),
+    [attachedStagePaths, registerStageHost]
   )
-  const isStageLoading =
-    activeFile !== null &&
-    (!isSettled || (activeViewerKind !== null && isResolving))
+
   const activeFileSize = activeFile ? formatByteSize(activeFile.size) : null
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -4545,64 +4908,38 @@ function FileSystemGalleryView(props: FileSystemViewProps) {
         </div>
       </ScrollArea>
       <div className="flex min-h-0 flex-1">
-        <div className="flex min-h-0 min-w-0 flex-1 items-center justify-center p-3">
-          {activeEntry ? (
-            activeEntry.kind === "folder" ? (
-              <FileSystemFolderGlyph className="h-40 max-h-full w-auto drop-shadow-md" />
-            ) : isStageLoading ? (
-              <Spinner className="size-6 text-muted-foreground" />
-            ) : activeViewerKind === "image" && activeFileUrl ? (
-              <img
-                src={activeFileUrl}
-                alt={activeEntry.name}
-                className="max-h-full max-w-full rounded-lg object-contain"
-              />
-            ) : activeViewerKind === "pdf" && activeFileUrl ? (
-              <div className="size-full overflow-hidden rounded-lg border">
-                <React.Suspense fallback={<FileSystemViewerLoading />}>
-                  <LazyPDFViewer
-                    key={activeEntry.path}
-                    file={activeFileUrl}
-                    className="h-full"
-                    showToolbar={false}
-                  />
-                </React.Suspense>
-              </div>
-            ) : activeViewerKind === "docx" && activeFileUrl ? (
-              <div className="size-full overflow-hidden rounded-lg border">
-                <React.Suspense fallback={<FileSystemViewerLoading />}>
-                  <LazyDocxViewerPreview
-                    key={activeEntry.path}
-                    src={activeFileUrl}
-                    fileName={activeEntry.name}
-                    className="h-full"
-                    showToolbar={false}
-                  />
-                </React.Suspense>
-              </div>
-            ) : activeViewerKind === "xlsx" && activeFileUrl ? (
-              <div className="size-full overflow-hidden rounded-lg border">
-                <React.Suspense fallback={<FileSystemViewerLoading />}>
-                  <LazyXlsxViewerPreview
-                    key={activeEntry.path}
-                    src={activeFileUrl}
-                    fileName={activeEntry.name}
-                    className="h-full"
-                    showToolbar={false}
-                  />
-                </React.Suspense>
-              </div>
-            ) : (
-              <FileVisual
-                file={activeEntry}
-                className="w-56 max-w-full"
-                loadPreviewImageUrl={loadPreviewImageUrl}
-                pageable
-                previewAspectRatio={0.78}
-                renderFilePreview={renderFilePreview}
+        <div className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center p-3">
+          {activeEntry?.kind === "folder" ? (
+            <FileSystemFolderGlyph className="h-40 max-h-full w-auto drop-shadow-md" />
+          ) : activeFile && !attachedStagePaths.includes(activeFile.path) ? (
+            <Spinner className="size-6 text-muted-foreground" />
+          ) : null}
+          {/* Inactive hosts hide via `visibility` + `opacity`, never
+              `display`: the document viewers size pages off ResizeObserver
+              measurements, and display:none would collapse them to zero
+              width — every reveal would re-lay-out and re-rasterize behind
+              a blank pane. Stacking absolutely keeps each hidden stage at
+              its real size so revealing one is pure paint. `opacity-0`
+              matters: descendants can override an inherited
+              visibility:hidden with their own visibility:visible (the
+              spreadsheet grid's cell-selection overlay does), but nothing
+              can opt out of an ancestor's zero opacity. `inert` keeps the
+              hidden viewer's focusables out of reach. */}
+          {attachedStagePaths.map((path) => {
+            const isActiveStage = path === activeFile?.path
+
+            return (
+              <div
+                key={path}
+                ref={stageHostRefs.get(path)}
+                inert={!isActiveStage || undefined}
+                className={cn(
+                  "absolute inset-0 flex items-center justify-center p-3",
+                  !isActiveStage && "invisible opacity-0"
+                )}
               />
             )
-          ) : null}
+          })}
         </div>
         {activeEntry ? (
           <ScrollArea

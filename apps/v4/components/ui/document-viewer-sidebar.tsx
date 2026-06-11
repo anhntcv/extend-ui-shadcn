@@ -15,7 +15,15 @@ export function useElementWidth<TElement extends HTMLElement>() {
     if (!element) return
 
     const updateWidth = () => {
-      setWidth(element.getBoundingClientRect().width)
+      const nextWidth = element.getBoundingClientRect().width
+
+      // Keep the last real measurement while the element is hidden or
+      // detached (keep-alive preview pools, display:none ancestors): a
+      // zero-width pass would re-lay-out the viewer for nothing, clearing
+      // its rendered canvases, and force a blank-then-repaint flash when
+      // the element comes back at its old size.
+      if (nextWidth === 0) return
+      setWidth(nextWidth)
     }
 
     updateWidth()

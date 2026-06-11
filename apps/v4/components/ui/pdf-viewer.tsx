@@ -365,6 +365,92 @@ function SearchInput({
   )
 }
 
+function PDFViewerPageNumberControl({
+  activePage,
+  controlsDisabled,
+  numPages,
+  onPageChange,
+}: {
+  activePage: number
+  controlsDisabled: boolean
+  numPages: number
+  onPageChange: (pageNumber: number) => void
+}) {
+  const inputRef = React.useRef<HTMLInputElement>(null)
+  const [isEditing, setIsEditing] = React.useState(false)
+  const [draftPage, setDraftPage] = React.useState(() => String(activePage))
+
+  React.useEffect(() => {
+    if (!isEditing) {
+      setDraftPage(String(activePage))
+    }
+  }, [activePage, isEditing])
+
+  React.useEffect(() => {
+    if (!isEditing) return
+
+    inputRef.current?.focus()
+    inputRef.current?.select()
+  }, [isEditing])
+
+  const applyPageDraft = React.useCallback(
+    (value: string) => {
+      const trimmedValue = value.trim()
+
+      if (!trimmedValue) return
+
+      const parsedPage = Number(trimmedValue)
+
+      if (!Number.isInteger(parsedPage)) return
+
+      onPageChange(parsedPage)
+    },
+    [onPageChange]
+  )
+
+  return (
+    <div className="flex items-center text-sm whitespace-nowrap text-primary">
+      <span>Page</span>
+      {isEditing ? (
+        <Input
+          ref={inputRef}
+          aria-label="Page number"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          size="sm"
+          value={draftPage}
+          className="mx-1 w-14 min-w-14 rounded-md [&_[data-slot=input]]:text-center"
+          onBlur={() => setIsEditing(false)}
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+            const nextValue = event.target.value
+
+            setDraftPage(nextValue)
+            applyPageDraft(nextValue)
+          }}
+          onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
+            if (event.key === "Enter" || event.key === "Escape") {
+              event.currentTarget.blur()
+            }
+          }}
+        />
+      ) : (
+        <Button
+          type="button"
+          variant="ghost"
+          size="xs"
+          className="relative top-px mx-0.5 h-auto min-w-7 rounded-sm px-1.5 py-0 text-sm leading-normal font-normal text-primary sm:text-sm"
+          aria-label={`Current page ${activePage}. Edit page number`}
+          disabled={controlsDisabled}
+          onClick={() => setIsEditing(true)}
+        >
+          {activePage}
+        </Button>
+      )}
+      <span>of {numPages || "-"}</span>
+    </div>
+  )
+}
+
 function PDFSidebarThumbnail({
   pageMetrics,
   pageNumber,
@@ -1366,6 +1452,15 @@ export const PDFViewer = React.forwardRef<PDFViewerHandle, PDFViewerProps>(
       ]
     )
 
+    const handlePageNumberChange = React.useCallback(
+      (pageNumber: number) => {
+        if (!renderedPageNumbers.includes(pageNumber)) return
+
+        scrollToPage(pageNumber)
+      },
+      [renderedPageNumbers, scrollToPage]
+    )
+
     const preserveThumbnailClickScroll = React.useCallback(
       (event: React.PointerEvent | React.MouseEvent) => {
         event.preventDefault()
@@ -1602,9 +1697,12 @@ export const PDFViewer = React.forwardRef<PDFViewerHandle, PDFViewerProps>(
                   </Button>
                 </ToolbarTooltip>
               </TooltipProvider>
-              <div className="text-sm whitespace-nowrap text-primary">
-                Page {activePage} of {numPages || "-"}
-              </div>
+              <PDFViewerPageNumberControl
+                activePage={activePage}
+                controlsDisabled={controlsDisabled}
+                numPages={numPages}
+                onPageChange={handlePageNumberChange}
+              />
             </div>
             <TooltipProvider>
               <div className="flex min-w-0 flex-wrap items-center justify-end gap-1">
