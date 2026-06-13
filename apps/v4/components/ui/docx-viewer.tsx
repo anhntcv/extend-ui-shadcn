@@ -930,7 +930,7 @@ function DocxViewerContent({
       // Detached thumbnail rendering handles offscreen pages; keep the raster
       // queue dormant while the sidebar is closed.
       disabled: !sidebarOpen,
-      pixelRatio: 1,
+      pixelRatio: 2,
       resolution: {
         maxHeight: DOCX_THUMBNAIL_WIDTH * 1.35,
         maxWidth: DOCX_THUMBNAIL_WIDTH,
