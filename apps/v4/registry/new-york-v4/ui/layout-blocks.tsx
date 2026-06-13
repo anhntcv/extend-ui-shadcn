@@ -79,7 +79,14 @@ export type OcrBlock = {
   boundingBox?: BoundingBox
 }
 
-export const PDF_URL = "/samples/attention-rotated.pdf"
+export type HighlightArea = {
+  left: number
+  top: number
+  width: number
+  height: number
+}
+
+export const PDF_URL = "/samples/attention.pdf"
 const OCR_BLOCK_ROW_MIN_ESTIMATE = 92
 const OCR_BLOCK_ROW_VERTICAL_CHROME = 62
 const OCR_BLOCK_LINE_HEIGHT = 20
@@ -8095,14 +8102,77 @@ function getBoundingBox(block: OcrBlock): BoundingBox {
   return { left, top, right, bottom }
 }
 
-export function blockToArea(block: OcrBlock): React.CSSProperties {
+function getBlockCoordinateRotation(
+  block: OcrBlock,
+  pageSize?: { width: number; height: number }
+) {
+  const blockIsLandscape = block.pageWidth > block.pageHeight
+
+  if (!pageSize) return blockIsLandscape ? 1 : 0
+
+  const pageIsLandscape = pageSize.width > pageSize.height
+
+  if (blockIsLandscape && !pageIsLandscape) return 1
+  if (!blockIsLandscape && pageIsLandscape) return 3
+
+  return 0
+}
+
+function normalizeHighlightAreaForRotation(
+  area: HighlightArea,
+  rotation: number
+): HighlightArea {
+  if (rotation === 1) {
+    return {
+      left: area.top,
+      top: 100 - area.left - area.width,
+      width: area.height,
+      height: area.width,
+    }
+  }
+
+  if (rotation === 3) {
+    return {
+      left: 100 - area.top - area.height,
+      top: area.left,
+      width: area.height,
+      height: area.width,
+    }
+  }
+
+  return area
+}
+
+export function blockToHighlightArea(
+  block: OcrBlock,
+  pageSize?: { width: number; height: number }
+): HighlightArea {
   const { left, top, right, bottom } = getBoundingBox(block)
 
+  const area = {
+    left: (left / block.pageWidth) * 100,
+    top: (top / block.pageHeight) * 100,
+    width: ((right - left) / block.pageWidth) * 100,
+    height: ((bottom - top) / block.pageHeight) * 100,
+  }
+
+  return normalizeHighlightAreaForRotation(
+    area,
+    getBlockCoordinateRotation(block, pageSize)
+  )
+}
+
+export function blockToArea(
+  block: OcrBlock,
+  pageSize?: { width: number; height: number }
+): React.CSSProperties {
+  const area = blockToHighlightArea(block, pageSize)
+
   return {
-    left: `${(left / block.pageWidth) * 100}%`,
-    top: `${(top / block.pageHeight) * 100}%`,
-    width: `${((right - left) / block.pageWidth) * 100}%`,
-    height: `${((bottom - top) / block.pageHeight) * 100}%`,
+    left: `${area.left}%`,
+    top: `${area.top}%`,
+    width: `${area.width}%`,
+    height: `${area.height}%`,
   }
 }
 
@@ -8222,9 +8292,13 @@ const OcrBlockButton = React.memo(function OcrBlockButton({
 export const OcrBlockOverlay = React.memo(function OcrBlockOverlay({
   block,
   isActive,
+  pageHeight,
+  pageWidth,
 }: {
   block: OcrBlock
   isActive?: boolean
+  pageHeight?: number
+  pageWidth?: number
 }) {
   const style = BLOCK_STYLES[block.type]
 
@@ -8234,7 +8308,12 @@ export const OcrBlockOverlay = React.memo(function OcrBlockOverlay({
         "pointer-events-none absolute z-10 border",
         isActive ? style.overlay : style.mutedOverlay
       )}
-      style={blockToArea(block)}
+      style={blockToArea(
+        block,
+        pageWidth && pageHeight
+          ? { width: pageWidth, height: pageHeight }
+          : undefined
+      )}
     />
   )
 })

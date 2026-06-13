@@ -4,7 +4,7 @@ import * as React from "react"
 
 import {
   ATTENTION_OCR_OUTPUT,
-  blockToArea,
+  blockToHighlightArea,
   getOcrBlocks,
   OcrBlockOverlay,
   OcrBlocksPanel,
@@ -43,7 +43,7 @@ export function OcrBlocksBlock({
   const focusBlock = React.useCallback((block: OcrBlock) => {
     if (block.id === activeBlockIdRef.current) return
 
-    const area = blockToArea(block)
+    const area = blockToHighlightArea(block)
 
     activeBlockIdRef.current = block.id
     setActiveBlockId(block.id)
@@ -61,7 +61,15 @@ export function OcrBlocksBlock({
 
   const activeOverlayBlockId = activeBlock?.id
   const renderPageOverlay = React.useCallback(
-    ({ pageNumber }: { pageNumber: number }) =>
+    ({
+      pageHeight,
+      pageNumber,
+      pageWidth,
+    }: {
+      pageHeight: number
+      pageNumber: number
+      pageWidth: number
+    }) =>
       blocks
         .filter((block) => block.page === pageNumber)
         .map((block) => (
@@ -69,6 +77,8 @@ export function OcrBlocksBlock({
             key={block.id}
             block={block}
             isActive={block.id === activeOverlayBlockId}
+            pageHeight={pageHeight}
+            pageWidth={pageWidth}
           />
         )),
     [activeOverlayBlockId, blocks]
