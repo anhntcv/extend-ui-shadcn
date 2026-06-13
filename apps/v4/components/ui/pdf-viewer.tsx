@@ -178,6 +178,8 @@ const PAGE_BASE_RENDER_MAX_SCALE = 1
 const PAGE_BASE_RENDER_DPR = 1
 const PDF_SEARCH_DEBOUNCE_MS = 300
 const TEXT_SELECTION_BACKGROUND = "rgba(59, 130, 246, 0.14)"
+const THUMBNAIL_FOCUS_RING_CLASS =
+  "group-focus-visible/pdf-thumbnail-sidebar:ring-2 group-focus-visible/pdf-thumbnail-sidebar:ring-ring group-focus-visible/pdf-thumbnail-sidebar:ring-offset-1 group-focus-visible/pdf-thumbnail-sidebar:ring-offset-background"
 
 type PageRotationDeltas = Map<number, Rotation>
 type ThumbnailSelectionMode = "replace" | "toggle" | "range"
@@ -1019,7 +1021,10 @@ function PDFViewerThumbnails({
           <div
             key={meta.pageIndex}
             data-pdf-viewer-thumbnail={pageNumber}
-            className="absolute right-0 left-0 flex justify-center"
+            className={cn(
+              "absolute right-0 left-0 flex justify-center",
+              isActive && "z-10"
+            )}
             style={{ top: meta.top, height: meta.wrapperHeight }}
           >
             <div
@@ -1033,10 +1038,11 @@ function PDFViewerThumbnails({
               aria-setsize={pageCount}
               data-selected={isSelected ? "" : undefined}
               className={cn(
-                "flex h-full w-full cursor-default flex-col items-center justify-between rounded-md px-2 py-0 text-xs transition-none select-none hover:bg-sidebar-accent",
+                "flex h-full w-full cursor-default flex-col items-center justify-between rounded-md px-2 py-0 text-xs transition-shadow outline-none select-none hover:bg-sidebar-accent",
                 isActive || isSelected
                   ? "bg-sidebar-accent text-foreground"
-                  : "text-muted-foreground"
+                  : "text-muted-foreground",
+                isActive && THUMBNAIL_FOCUS_RING_CLASS
               )}
               onClick={(event) => {
                 const mode = event.shiftKey
@@ -1232,7 +1238,7 @@ function PDFViewerThumbnailScrollArea({
       className="h-full w-full"
       orientation="vertical"
       scrollFade
-      viewportClassName="px-4"
+      viewportClassName="group/pdf-thumbnail-sidebar px-4 focus-visible:ring-0 focus-visible:ring-offset-0"
       viewportProps={{
         "aria-activedescendant": activeDescendantId,
         "aria-label": "PDF pages",

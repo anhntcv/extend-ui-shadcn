@@ -12,7 +12,6 @@ import {
   type DocxEditorController,
   type DocxPageThumbnailItem,
 } from "@extend-ai/react-docx"
-import { useVirtualizer } from "@tanstack/react-virtual"
 import {
   Comment01Icon,
   Download01Icon,
@@ -24,6 +23,7 @@ import {
   Upload01Icon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
+import { useVirtualizer } from "@tanstack/react-virtual"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -68,6 +68,8 @@ const DOCX_THUMBNAIL_ROW_ESTIMATE = 172
 const DEFAULT_ZOOM = 50
 const ZOOM_OPTIONS = [10, 25, 50, 75, 100, 125, 150, 175, 200, 400] as const
 const DOCX_PADDING_WARNING_TEXT = "a style property during rerender"
+const DOCX_THUMBNAIL_FOCUS_RING_CLASS =
+  "group-focus-visible/docx-thumbnail-sidebar:ring-2 group-focus-visible/docx-thumbnail-sidebar:ring-ring group-focus-visible/docx-thumbnail-sidebar:ring-offset-1 group-focus-visible/docx-thumbnail-sidebar:ring-offset-background"
 
 type UploadedDocxFile = {
   file: File
@@ -222,6 +224,17 @@ function useSuppressDocxPaddingWarning(enabled: boolean) {
       console.error = originalConsoleError
     }
   }, [enabled])
+}
+
+function isInteractiveViewerTarget(target: EventTarget | null) {
+  return (
+    target instanceof Element &&
+    Boolean(
+      target.closest(
+        'a[href], button, input, select, textarea, [contenteditable="true"], [role="button"], [role="link"]'
+      )
+    )
+  )
 }
 
 function ToolbarTooltip({
@@ -650,10 +663,15 @@ function DocxThumbnailSidebarList({
   thumbnails: DocxPageThumbnailItem[]
 }) {
   const viewportRef = React.useRef<HTMLDivElement | null>(null)
+  const thumbnailListboxId = React.useId()
   const visibleThumbnails = React.useMemo(
     () => thumbnails.slice(0, pageCount || 0),
     [pageCount, thumbnails]
   )
+  const activeDescendantId =
+    activePage > 0 && visibleThumbnails.length
+      ? `${thumbnailListboxId}-page-${activePage}`
+      : undefined
   const virtualizer = useVirtualizer({
     count: visibleThumbnails.length,
     estimateSize: () => DOCX_THUMBNAIL_ROW_ESTIMATE,
@@ -671,8 +689,49 @@ function DocxThumbnailSidebarList({
     )
   }, [activePage, sidebarOpen, virtualizer, visibleThumbnails.length])
 
+  const handleKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (pageCount < 1) return
+
+      const currentPage = activePage > 0 ? activePage : 1
+      let nextPage: number | null = null
+
+      if (event.key === "ArrowDown") {
+        nextPage = Math.min(pageCount, currentPage + 1)
+      } else if (event.key === "ArrowUp") {
+        nextPage = Math.max(1, currentPage - 1)
+      } else if (event.key === "Home") {
+        nextPage = 1
+      } else if (event.key === "End") {
+        nextPage = pageCount
+      }
+
+      if (nextPage === null) return
+
+      event.preventDefault()
+      onSelectPage(nextPage)
+    },
+    [activePage, onSelectPage, pageCount]
+  )
+
   return (
-    <ScrollArea className="h-full" scrollFade viewportRef={viewportRef}>
+    <ScrollArea
+      className="h-full"
+      scrollFade
+      viewportClassName="group/docx-thumbnail-sidebar focus-visible:ring-0 focus-visible:ring-offset-0"
+      viewportProps={{
+        "aria-activedescendant": activeDescendantId,
+        "aria-busy": isLoadingDocument || undefined,
+        "aria-label": "DOCX pages",
+        onKeyDown: handleKeyDown,
+        onMouseDown: (event) => {
+          event.currentTarget.focus({ preventScroll: true })
+        },
+        role: "listbox",
+        tabIndex: 0,
+      }}
+      viewportRef={viewportRef}
+    >
       {isLoadingDocument ? (
         <div className="p-4">
           <div className="mx-auto h-28 w-20 overflow-hidden rounded-md bg-background shadow-xs">
@@ -684,7 +743,8 @@ function DocxThumbnailSidebarList({
         <div
           className="relative"
           style={{
-            height: virtualizer.getTotalSize() + DOCX_THUMBNAIL_LIST_PADDING * 2,
+            height:
+              virtualizer.getTotalSize() + DOCX_THUMBNAIL_LIST_PADDING * 2,
           }}
         >
           {virtualizer.getVirtualItems().map((virtualRow) => {
@@ -696,25 +756,36 @@ function DocxThumbnailSidebarList({
                 key={virtualRow.key}
                 ref={virtualizer.measureElement}
                 data-index={virtualRow.index}
-                className="absolute top-0 right-3 left-3 pb-3 [contain:layout_paint]"
+                className={cn(
+                  "absolute top-0 right-3 left-3 pb-3 [contain:layout]",
+                  thumbnail.pageNumber === activePage && "z-10"
+                )}
                 style={{
                   transform: `translateY(${
                     virtualRow.start + DOCX_THUMBNAIL_LIST_PADDING
                   }px)`,
                 }}
               >
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
+                <div
+                  id={`${thumbnailListboxId}-page-${thumbnail.pageNumber}`}
+                  role="option"
+                  aria-current={
+                    thumbnail.pageNumber === activePage ? "page" : undefined
+                  }
+                  aria-label={`Page ${thumbnail.pageNumber}`}
+                  aria-posinset={thumbnail.pageNumber}
+                  aria-selected={thumbnail.pageNumber === activePage}
+                  aria-setsize={pageCount}
+                  data-docx-viewer-thumbnail-option={thumbnail.pageNumber}
                   className={cn(
-                    "!h-auto w-full flex-col items-center gap-2 p-2 text-xs shadow-none transition-none hover:bg-sidebar-accent",
+                    "flex h-auto w-full cursor-default flex-col items-center gap-2 rounded-md p-2 text-xs transition-shadow outline-none select-none hover:bg-sidebar-accent",
                     thumbnail.pageNumber === activePage &&
                       "bg-sidebar-accent text-foreground",
                     thumbnail.pageNumber !== activePage &&
-                      "text-muted-foreground"
+                      "text-muted-foreground",
+                    thumbnail.pageNumber === activePage &&
+                      DOCX_THUMBNAIL_FOCUS_RING_CLASS
                   )}
-                  onFocus={(event) => event.currentTarget.blur()}
                   onClick={() => onSelectPage(thumbnail.pageNumber)}
                 >
                   <DocxSidebarThumbnail
@@ -732,7 +803,7 @@ function DocxThumbnailSidebarList({
                     previewAspectRatio={thumbnail.aspectRatio}
                   />
                   {thumbnail.pageNumber}
-                </Button>
+                </div>
               </div>
             )
           })}
@@ -885,6 +956,9 @@ function DocxViewerContent({
     hasDocument && !isLoadingDocument && !loadError
       ? Math.max(1, reportedPageCount || editor.totalPages)
       : 0
+  const thumbnailSidebarVisible = Boolean(
+    sidebarOpen && (pageCount || isLoadingDocument)
+  )
   const controlsDisabled =
     !hasDocument || isLoadingDocument || Boolean(loadError)
   const showDocumentMarkup = showComments || showTrackedChanges
@@ -1153,22 +1227,32 @@ function DocxViewerContent({
       >
         <DocumentViewerThumbnailSidebar
           inline={sidebarInline}
-          open={Boolean(sidebarOpen && (pageCount || isLoadingDocument))}
+          open={thumbnailSidebarVisible}
         >
-          <DocxThumbnailSidebarList
-            activePage={activePage}
-            displayFileName={displayFileName}
-            isLoadingDocument={isLoadingDocument}
-            onSelectPage={scrollToPage}
-            pageCount={pageCount}
-            sidebarOpen={sidebarOpen}
-            thumbnails={thumbnails}
-          />
+          {thumbnailSidebarVisible ? (
+            <DocxThumbnailSidebarList
+              activePage={activePage}
+              displayFileName={displayFileName}
+              isLoadingDocument={isLoadingDocument}
+              onSelectPage={scrollToPage}
+              pageCount={pageCount}
+              sidebarOpen={thumbnailSidebarVisible}
+              thumbnails={thumbnails}
+            />
+          ) : null}
         </DocumentViewerThumbnailSidebar>
         <ScrollArea
           className="min-h-0 flex-1"
           style={{ backgroundColor: viewerBackgroundColor }}
           viewportClassName="px-4 py-6"
+          viewportProps={{
+            "aria-label": "DOCX document",
+            onMouseDown: (event) => {
+              if (isInteractiveViewerTarget(event.target)) return
+              event.currentTarget.focus({ preventScroll: true })
+            },
+            tabIndex: 0,
+          }}
           viewportRef={setViewportRef}
         >
           {!url && !uploadedDocxFile ? (
