@@ -91,7 +91,7 @@ A `ListObjectsV2` response maps directly onto the manifest:
 
 ## Thumbnails
 
-Like [File Thumbnail](/docs/components/file-thumbnail), the component never parses documents and has no renderer dependencies. Generate preview images with whichever stack you already use — `react-pdf`, `@extend-ai/react-docx`, `@extend-ai/react-xlsx`, or a server-side pipeline — then pass the result through `previewImageUrl`. Files without a preview fall back to a generic document tile, or to the node returned by `renderFilePreview`.
+Like [File Thumbnail](/docs/components/file-thumbnail), the component never parses documents and has no renderer dependencies. Generate preview images with whichever stack you already use — EmbedPDF, `@extend-ai/react-docx`, `@extend-ai/react-xlsx`, or a server-side pipeline — then pass the result through `previewImageUrl`. Files without a preview fall back to a generic document tile, or to the node returned by `renderFilePreview`.
 
 One caveat for DOCX: `@extend-ai/react-docx` versions before 0.7.0 rasterize pages in a way that taints the canvas, blocking `toDataURL` export in the browser. On 0.7.0+ the demo generates DOCX thumbnails client-side like the PDFs; on older versions, render DOCX previews live via `renderFilePreview` or generate thumbnail images server-side.
 
@@ -141,9 +141,9 @@ The gallery view embeds the full viewers — PDF, DOCX, and XLSX files render in
 
 ### Multi-Page Thumbnails
 
-Pass `previewImageUrls` (an array of page thumbnails — page counts come from whichever renderer generates them, e.g. `react-pdf`, `@extend-ai/react-docx`, or `@extend-ai/react-xlsx`). Large thumbnails in the column preview show hover pager buttons to step through pages. `previewAspectRatio` on a file controls its thumbnail shape — e.g. natural ratios for images, landscape for spreadsheets.
+Pass `previewImageUrls` (an array of page thumbnails — page counts come from whichever renderer generates them, e.g. EmbedPDF, `@extend-ai/react-docx`, or `@extend-ai/react-xlsx`). Large thumbnails in the column preview show hover pager buttons to step through pages. `previewAspectRatio` on a file controls its thumbnail shape — e.g. natural ratios for images, landscape for spreadsheets.
 
-For long documents, provide only the first page(s) eagerly plus `previewPageCount`, and implement `loadPreviewImageUrl(file, pageIndex)` — the pager renders the remaining pages on demand (the demo renders PDF pages lazily through a cached `pdfjs` document).
+For long documents, provide only the first page(s) eagerly plus `previewPageCount`, and implement `loadPreviewImageUrl(file, pageIndex)` — the pager renders the remaining pages on demand (the demo renders PDF pages lazily through the shared PDFium thumbnail utility).
 
 ## API Reference
 

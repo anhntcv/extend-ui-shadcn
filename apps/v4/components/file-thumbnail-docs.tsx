@@ -12,7 +12,6 @@ import {
   useXlsxViewerThumbnails,
   XlsxViewerProvider,
 } from "@extend-ai/react-xlsx"
-import type * as ReactPdf from "react-pdf"
 
 import { withUiBasePath } from "@/lib/zone-path"
 import { Button } from "@/components/ui/button"
@@ -24,15 +23,15 @@ import {
   DocsSourceCodeBlock,
   DocsViewCodeBlock,
 } from "@/components/docs-code-block"
+import { renderPdfThumbnailUrl } from "@/components/pdf-thumbnail-utils"
 
 const DOCX_MIME_TYPE =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 const XLSX_MIME_TYPE =
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+const PDF_THUMBNAIL_WIDTH = 240
 const DOCX_THUMBNAIL_WIDTH = 240
 const XLSX_THUMBNAIL_WIDTH = 520
-
-type ReactPdfModule = typeof ReactPdf
 
 type DemoFileKind = "image" | "pdf" | "docx" | "xlsx"
 
@@ -81,38 +80,6 @@ export const SAMPLE_FILES: DemoFile[] = [
   },
 ]
 
-function getPdfWorkerUrl(pdfjsVersion: string) {
-  return `//unpkg.com/pdfjs-dist@${pdfjsVersion}/legacy/build/pdf.worker.min.mjs`
-}
-
-function getPdfAssetBaseUrl(pdfjsVersion: string) {
-  return `//unpkg.com/pdfjs-dist@${pdfjsVersion}`
-}
-
-const defaultPdfDocumentOptionsByVersion = new Map<
-  string,
-  ReactPdf.DocumentProps["options"]
->()
-
-function getDefaultPdfDocumentOptions(pdfjsVersion: string) {
-  const cachedOptions = defaultPdfDocumentOptionsByVersion.get(pdfjsVersion)
-
-  if (cachedOptions) {
-    return cachedOptions
-  }
-
-  const assetBaseUrl = getPdfAssetBaseUrl(pdfjsVersion)
-  const options = {
-    cMapPacked: true,
-    cMapUrl: `${assetBaseUrl}/cmaps/`,
-    standardFontDataUrl: `${assetBaseUrl}/standard_fonts/`,
-  }
-
-  defaultPdfDocumentOptionsByVersion.set(pdfjsVersion, options)
-
-  return options
-}
-
 async function fetchFile(file: DemoFile) {
   const response = await fetch(file.url)
 
@@ -160,67 +127,44 @@ function PdfThumbnailPreview({
   file: DemoFile
   previewAspectRatio?: number
 }) {
-  const [reactPdf, setReactPdf] = React.useState<ReactPdfModule | null>(null)
-  const [isReady, setIsReady] = React.useState(false)
+  const [imageUrl, setImageUrl] = React.useState<string | null>(null)
   const [hasError, setHasError] = React.useState(false)
-  const pdfjsVersion = reactPdf?.pdfjs.version
-  const documentOptions = React.useMemo(
-    () =>
-      pdfjsVersion ? getDefaultPdfDocumentOptions(pdfjsVersion) : undefined,
-    [pdfjsVersion]
-  )
 
   React.useEffect(() => {
-    let isMounted = true
+    let isCurrent = true
 
-    void import("react-pdf")
-      .then((module) => {
-        module.pdfjs.GlobalWorkerOptions.workerSrc = getPdfWorkerUrl(
-          module.pdfjs.version
-        )
+    setImageUrl(null)
+    setHasError(false)
 
-        if (isMounted) {
-          setReactPdf(module)
+    void renderPdfThumbnailUrl({
+      pageIndex: 0,
+      url: file.url,
+      width: PDF_THUMBNAIL_WIDTH,
+    })
+      .then((nextImageUrl) => {
+        if (isCurrent) {
+          setImageUrl(nextImageUrl)
+          setHasError(!nextImageUrl)
         }
       })
       .catch(() => {
-        if (isMounted) {
+        if (isCurrent) {
           setHasError(true)
         }
       })
 
     return () => {
-      isMounted = false
+      isCurrent = false
     }
-  }, [])
+  }, [file.url])
 
   return (
     <FileThumbnail
       file={file}
       previewAspectRatio={previewAspectRatio ?? 0.77}
       previewClassName="bg-white"
-      previewContent={
-        reactPdf && !hasError ? (
-          <reactPdf.Document
-            file={file.url}
-            options={documentOptions}
-            loading={null}
-            error={null}
-            onLoadError={() => setHasError(true)}
-          >
-            <reactPdf.Thumbnail
-              pageNumber={1}
-              width={DOCX_THUMBNAIL_WIDTH}
-              loading={null}
-              error={null}
-              onRenderSuccess={() => setIsReady(true)}
-              onRenderError={() => setHasError(true)}
-              className="flex size-full items-center justify-center [&_.react-pdf__Thumbnail__page]:!m-0 [&_.react-pdf__Thumbnail__page]:!h-auto [&_.react-pdf__Thumbnail__page]:!w-full [&_.react-pdf__Thumbnail__page]:overflow-hidden [&_canvas]:!h-auto [&_canvas]:!w-full"
-            />
-          </reactPdf.Document>
-        ) : null
-      }
-      isLoading={!isReady && !hasError}
+      previewImageUrl={imageUrl}
+      isLoading={!imageUrl && !hasError}
       hasError={hasError}
     />
   )
@@ -592,18 +536,34 @@ import {
 } from "@extend-ai/react-xlsx"
 
 import { FileThumbnail } from "@/components/ui/file-thumbnail"
+import { renderPdfThumbnailUrl } from "@/components/pdf-thumbnail-utils"
 
-export function PdfAttachmentThumbnail({ reactPdf, fileUrl }) {
+export function PdfAttachmentThumbnail({ fileUrl }) {
+  const [imageUrl, setImageUrl] = React.useState(null)
+
+  React.useEffect(() => {
+    let isCurrent = true
+
+    renderPdfThumbnailUrl({
+      pageIndex: 0,
+      url: fileUrl,
+      width: 240,
+    }).then((nextImageUrl) => {
+      if (isCurrent) setImageUrl(nextImageUrl)
+    })
+
+    return () => {
+      isCurrent = false
+    }
+  }, [fileUrl])
+
   return (
     <FileThumbnail
       file={{ name: "contract.pdf", type: "application/pdf" }}
       previewAspectRatio={0.77}
       previewClassName="bg-white"
-      previewContent={
-        <reactPdf.Document file={fileUrl} loading={null} error={null}>
-          <reactPdf.Thumbnail pageNumber={1} width={240} />
-        </reactPdf.Document>
-      }
+      previewImageUrl={imageUrl}
+      isLoading={!imageUrl}
     />
   )
 }

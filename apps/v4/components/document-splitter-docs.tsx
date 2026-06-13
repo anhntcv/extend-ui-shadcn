@@ -34,7 +34,6 @@ import {
   DragDropVerticalIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
-import type * as ReactPdf from "react-pdf"
 
 import { cn } from "@/lib/utils"
 import { withUiBasePath } from "@/lib/zone-path"
@@ -58,8 +57,11 @@ import {
   DocsViewCodeBlock,
 } from "@/components/docs-code-block"
 import { PdfBlockResizableShell } from "@/components/pdf-block-resizable-shell"
+import {
+  getPdfPageCount,
+  renderPdfThumbnailUrl,
+} from "@/components/pdf-thumbnail-utils"
 
-type ReactPdfModule = typeof ReactPdf
 export type DocumentSplitPageId = `page-${number}`
 export type DocumentSplitItemId = string
 type PageId = DocumentSplitItemId
@@ -79,10 +81,6 @@ const XLSX_THUMBNAIL_FILE = {
   type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   url: XLSX_URL,
 }
-const PDF_WORKER_URL = new URL(
-  "pdfjs-dist/legacy/build/pdf.worker.min.mjs",
-  import.meta.url
-).toString()
 const THUMBNAIL_WIDTH = 72
 const THUMBNAIL_HEIGHT = 92
 const DEFAULT_THUMBNAIL_SIZE = {
@@ -1106,130 +1104,48 @@ export function DocumentSplits({
   )
 }
 
-function usePdfThumbnailImages(documentKey: string) {
+function usePdfThumbnailImages(documentKey: string, splits: SplitGroup[]) {
   const [thumbnailImages, setThumbnailImages] = React.useState<
     Record<PageId, string>
   >({})
-  const thumbnailObjectUrlsRef = React.useRef(new Set<string>())
 
-  const clearCachedThumbnails = React.useCallback(() => {
-    thumbnailObjectUrlsRef.current.forEach((imageUrl) => {
-      URL.revokeObjectURL(imageUrl)
-    })
-    thumbnailObjectUrlsRef.current.clear()
+  const pageIds = React.useMemo(
+    () => Array.from(new Set(splits.flatMap((split) => split.pages))),
+    [splits]
+  )
+
+  React.useEffect(() => {
     setThumbnailImages({})
-  }, [])
+  }, [documentKey])
 
   React.useEffect(() => {
-    clearCachedThumbnails()
-  }, [clearCachedThumbnails, documentKey])
+    let isCurrent = true
 
-  React.useEffect(() => {
-    const objectUrls = thumbnailObjectUrlsRef.current
+    void (async () => {
+      for (const pageId of pageIds) {
+        const imageUrl = await renderPdfThumbnailUrl({
+          pageIndex: getPageNumber(pageId) - 1,
+          url: documentKey,
+          width: THUMBNAIL_WIDTH,
+        })
+
+        if (!isCurrent) return
+        if (!imageUrl) continue
+
+        setThumbnailImages((currentImages) =>
+          currentImages[pageId]
+            ? currentImages
+            : { ...currentImages, [pageId]: imageUrl }
+        )
+      }
+    })().catch(() => undefined)
 
     return () => {
-      objectUrls.forEach((imageUrl) => {
-        URL.revokeObjectURL(imageUrl)
-      })
-      objectUrls.clear()
+      isCurrent = false
     }
-  }, [])
+  }, [documentKey, pageIds])
 
-  const handleThumbnailReady = React.useCallback(
-    (pageId: PageId, imageUrl: string) => {
-      setThumbnailImages((currentImages) => {
-        if (currentImages[pageId]) {
-          URL.revokeObjectURL(imageUrl)
-          return currentImages
-        }
-
-        thumbnailObjectUrlsRef.current.add(imageUrl)
-        return { ...currentImages, [pageId]: imageUrl }
-      })
-    },
-    []
-  )
-
-  return { thumbnailImages, onThumbnailReady: handleThumbnailReady }
-}
-
-function PdfThumbnailCacheItem({
-  pageId,
-  reactPdf,
-  onThumbnailReady,
-}: {
-  pageId: PageId
-  reactPdf: ReactPdfModule
-  onThumbnailReady: (pageId: PageId, imageUrl: string) => void
-}) {
-  const rootRef = React.useRef<HTMLDivElement>(null)
-  const pageNumber = getPageNumber(pageId)
-
-  return (
-    <div ref={rootRef} className="size-[1px] overflow-hidden">
-      <reactPdf.Thumbnail
-        pageNumber={pageNumber}
-        width={THUMBNAIL_WIDTH}
-        className="block [&_.react-pdf__Thumbnail__page]:!m-0"
-        onRenderSuccess={() => {
-          window.requestAnimationFrame(() => {
-            const canvas = rootRef.current?.querySelector("canvas")
-
-            if (!canvas) return
-
-            try {
-              canvas.toBlob((blob) => {
-                if (!blob) return
-
-                onThumbnailReady(pageId, URL.createObjectURL(blob))
-              }, "image/png")
-            } catch {
-              // Canvas export can fail if the browser marks it tainted.
-            }
-          })
-        }}
-        loading={null}
-      />
-    </div>
-  )
-}
-
-function PdfThumbnailCache({
-  splits,
-  thumbnailImages,
-  reactPdf,
-  onThumbnailReady,
-}: {
-  splits: SplitGroup[]
-  thumbnailImages: Record<PageId, string>
-  reactPdf: ReactPdfModule
-  onThumbnailReady: (pageId: PageId, imageUrl: string) => void
-}) {
-  const uncachedPageIds = React.useMemo(
-    () =>
-      Array.from(new Set(splits.flatMap((split) => split.pages))).filter(
-        (pageId) => !thumbnailImages[pageId]
-      ),
-    [splits, thumbnailImages]
-  )
-
-  if (uncachedPageIds.length === 0) return null
-
-  return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none fixed top-0 left-[-10000px] z-[-1] opacity-0"
-    >
-      {uncachedPageIds.map((pageId) => (
-        <PdfThumbnailCacheItem
-          key={pageId}
-          pageId={pageId}
-          reactPdf={reactPdf}
-          onThumbnailReady={onThumbnailReady}
-        />
-      ))}
-    </div>
-  )
+  return thumbnailImages
 }
 
 function WorkbookViewerPane({
@@ -1360,31 +1276,28 @@ export function DocumentSplitsBlock({
   defaultViewerZoom?: number
   heightClassName?: string
 } = {}) {
-  const [reactPdf, setReactPdf] = React.useState<ReactPdfModule | null>(null)
   const [pdfUrl, setPdfUrl] = React.useState(PDF_URL)
   const [numPages, setNumPages] = React.useState(0)
   const [splits, setSplits] = React.useState<SplitGroup[]>(() =>
     createInitialGroups(DEFAULT_PREVIEW_PAGE_COUNT)
   )
-  const { thumbnailImages, onThumbnailReady } = usePdfThumbnailImages(pdfUrl)
+  const thumbnailImages = usePdfThumbnailImages(pdfUrl, splits)
   const viewerRef = React.useRef<PDFViewerHandle>(null)
   const uploadedPdfUrlRef = React.useRef<string | null>(null)
 
   React.useEffect(() => {
-    let isMounted = true
+    let isCurrent = true
 
-    import("react-pdf").then((module) => {
-      module.pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL
-
-      if (isMounted) {
-        setReactPdf(module)
-      }
-    })
+    void getPdfPageCount(pdfUrl)
+      .then((pageCount) => {
+        if (isCurrent) setNumPages(pageCount)
+      })
+      .catch(() => undefined)
 
     return () => {
-      isMounted = false
+      isCurrent = false
     }
-  }, [])
+  }, [pdfUrl])
 
   React.useEffect(() => {
     return () => {
@@ -1397,13 +1310,6 @@ export function DocumentSplitsBlock({
   React.useEffect(() => {
     setSplits(createInitialGroups(numPages || DEFAULT_PREVIEW_PAGE_COUNT))
   }, [numPages, pdfUrl])
-
-  const handleLoadSuccess = React.useCallback(
-    ({ numPages: pageCount }: { numPages: number }) => {
-      setNumPages(pageCount)
-    },
-    []
-  )
 
   const handlePdfUpload = React.useCallback((file: File) => {
     const nextUrl = URL.createObjectURL(file)
@@ -1430,7 +1336,7 @@ export function DocumentSplitsBlock({
     })
   }, [])
 
-  const renderShell = () => (
+  return (
     <PdfBlockResizableShell
       autoSaveId="pdf-block-document-splits"
       heightClassName={heightClassName}
@@ -1456,28 +1362,6 @@ export function DocumentSplitsBlock({
         />
       }
     />
-  )
-
-  return (
-    <>
-      {renderShell()}
-      {reactPdf ? (
-        <reactPdf.Document
-          file={pdfUrl}
-          className="pointer-events-none fixed top-0 left-[-10000px] z-[-1] size-px overflow-hidden opacity-0"
-          onLoadSuccess={handleLoadSuccess}
-          loading={null}
-          error={null}
-        >
-          <PdfThumbnailCache
-            splits={splits}
-            thumbnailImages={thumbnailImages}
-            reactPdf={reactPdf}
-            onThumbnailReady={onThumbnailReady}
-          />
-        </reactPdf.Document>
-      ) : null}
-    </>
   )
 }
 
@@ -1552,34 +1436,31 @@ function DocumentSplitsExample() {
 }
 
 function DocumentSplitsPreview({ file }: { file: string }) {
-  const [reactPdf, setReactPdf] = React.useState<ReactPdfModule | null>(null)
   const [pageCount, setPageCount] = React.useState(0)
   const [splits, setSplits] = React.useState<SplitGroup[]>(() =>
     createInitialGroups(DEFAULT_PREVIEW_PAGE_COUNT)
   )
-  const { thumbnailImages, onThumbnailReady } = usePdfThumbnailImages(file)
+  const thumbnailImages = usePdfThumbnailImages(file, splits)
 
   React.useEffect(() => {
-    let isMounted = true
+    let isCurrent = true
 
-    import("react-pdf").then((module) => {
-      module.pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL
-
-      if (isMounted) {
-        setReactPdf(module)
-      }
-    })
+    void getPdfPageCount(file)
+      .then((nextPageCount) => {
+        if (isCurrent) setPageCount(nextPageCount)
+      })
+      .catch(() => undefined)
 
     return () => {
-      isMounted = false
+      isCurrent = false
     }
-  }, [])
+  }, [file])
 
   React.useEffect(() => {
     setSplits(createInitialGroups(pageCount || DEFAULT_PREVIEW_PAGE_COUNT))
   }, [file, pageCount])
 
-  const panel = (
+  return (
     <DocumentSplits
       className="h-[620px]"
       splits={splits}
@@ -1588,29 +1469,6 @@ function DocumentSplitsPreview({ file }: { file: string }) {
       onSplitsChange={setSplits}
       onSelectPage={() => {}}
     />
-  )
-
-  if (!reactPdf) return panel
-
-  return (
-    <reactPdf.Document
-      file={file}
-      onLoadSuccess={({ numPages }) => setPageCount(numPages)}
-      loading={panel}
-      error={
-        <div className="grid h-[620px] place-items-center bg-background text-sm text-muted-foreground">
-          Unable to load PDF.
-        </div>
-      }
-    >
-      <PdfThumbnailCache
-        splits={splits}
-        thumbnailImages={thumbnailImages}
-        reactPdf={reactPdf}
-        onThumbnailReady={onThumbnailReady}
-      />
-      {panel}
-    </reactPdf.Document>
   )
 }
 
@@ -1635,14 +1493,12 @@ import {
   type DocumentSplit,
   type DocumentSplitPageId,
 } from "@/components/ui/document-splits";
-
-type ReactPdfModule = typeof import("react-pdf");
+import {
+  getPdfPageCount,
+  renderPdfThumbnailUrl,
+} from "@/components/pdf-thumbnail-utils";
 
 const PDF_FILE = "/samples/attention.pdf";
-const PDF_WORKER_URL = new URL(
-  "pdfjs-dist/legacy/build/pdf.worker.min.mjs",
-  import.meta.url,
-).toString();
 const THUMBNAIL_WIDTH = 72;
 const DEFAULT_PAGE_COUNT = 15;
 
@@ -1664,126 +1520,61 @@ function createInitialSplits(pageCount: number): DocumentSplit[] {
   ].filter((split) => split.pages.length > 0);
 }
 
-function usePdfThumbnailImages(documentKey: string) {
+function usePdfThumbnailImages(documentKey: string, splits: DocumentSplit[]) {
   const [thumbnailImages, setThumbnailImages] = React.useState<Record<DocumentSplitPageId, string>>({});
-  const objectUrlsRef = React.useRef(new Set<string>());
+  const pageIds = React.useMemo(
+    () => Array.from(new Set(splits.flatMap((split) => split.pages))),
+    [splits],
+  );
 
   React.useEffect(() => {
-    objectUrlsRef.current.forEach((imageUrl) => URL.revokeObjectURL(imageUrl));
-    objectUrlsRef.current.clear();
     setThumbnailImages({});
   }, [documentKey]);
 
   React.useEffect(() => {
-    const objectUrls = objectUrlsRef.current;
+    let isCurrent = true;
+
+    void (async () => {
+      for (const pageId of pageIds) {
+        const imageUrl = await renderPdfThumbnailUrl({
+          pageIndex: getPageNumber(pageId) - 1,
+          url: documentKey,
+          width: THUMBNAIL_WIDTH,
+        });
+
+        if (!isCurrent) return;
+        if (!imageUrl) continue;
+
+        setThumbnailImages((currentImages) =>
+          currentImages[pageId]
+            ? currentImages
+            : { ...currentImages, [pageId]: imageUrl },
+        );
+      }
+    })().catch(() => undefined);
 
     return () => {
-      objectUrls.forEach((imageUrl) => URL.revokeObjectURL(imageUrl));
-      objectUrls.clear();
+      isCurrent = false;
     };
-  }, []);
+  }, [documentKey, pageIds]);
 
-  const onThumbnailReady = React.useCallback((pageId: DocumentSplitPageId, imageUrl: string) => {
-    setThumbnailImages((currentImages) => {
-      if (currentImages[pageId]) {
-        URL.revokeObjectURL(imageUrl);
-        return currentImages;
-      }
-
-      objectUrlsRef.current.add(imageUrl);
-      return { ...currentImages, [pageId]: imageUrl };
-    });
-  }, []);
-
-  return { thumbnailImages, onThumbnailReady };
-}
-
-function PdfThumbnailCacheItem({
-  pageId,
-  reactPdf,
-  onThumbnailReady,
-}: {
-  pageId: DocumentSplitPageId;
-  reactPdf: ReactPdfModule;
-  onThumbnailReady: (pageId: DocumentSplitPageId, imageUrl: string) => void;
-}) {
-  const rootRef = React.useRef<HTMLDivElement>(null);
-
-  return (
-    <div ref={rootRef} className="size-[1px] overflow-hidden">
-      <reactPdf.Thumbnail
-        pageNumber={getPageNumber(pageId)}
-        width={THUMBNAIL_WIDTH}
-        loading={null}
-        onRenderSuccess={() => {
-          window.requestAnimationFrame(() => {
-            const canvas = rootRef.current?.querySelector("canvas");
-
-            if (!canvas) return;
-
-            canvas.toBlob((blob) => {
-              if (!blob) return;
-              onThumbnailReady(pageId, URL.createObjectURL(blob));
-            }, "image/png");
-          });
-        }}
-      />
-    </div>
-  );
-}
-
-function PdfThumbnailCache({
-  splits,
-  thumbnailImages,
-  reactPdf,
-  onThumbnailReady,
-}: {
-  splits: DocumentSplit[];
-  thumbnailImages: Record<DocumentSplitPageId, string>;
-  reactPdf: ReactPdfModule;
-  onThumbnailReady: (pageId: DocumentSplitPageId, imageUrl: string) => void;
-}) {
-  const uncachedPageIds = React.useMemo(
-    () =>
-      Array.from(new Set(splits.flatMap((split) => split.pages))).filter(
-        (pageId) => !thumbnailImages[pageId],
-      ),
-    [splits, thumbnailImages],
-  );
-
-  if (uncachedPageIds.length === 0) return null;
-
-  return (
-    <div aria-hidden="true" className="pointer-events-none fixed top-0 left-[-10000px] z-[-1] opacity-0">
-      {uncachedPageIds.map((pageId) => (
-        <PdfThumbnailCacheItem
-          key={pageId}
-          pageId={pageId}
-          reactPdf={reactPdf}
-          onThumbnailReady={onThumbnailReady}
-        />
-      ))}
-    </div>
-  );
+  return thumbnailImages;
 }
 
 export function DocumentSplitsExample() {
-  const [reactPdf, setReactPdf] = React.useState<ReactPdfModule | null>(null);
   const [pageCount, setPageCount] = React.useState(0);
   const [splits, setSplits] = React.useState<DocumentSplit[]>(() => createInitialSplits(DEFAULT_PAGE_COUNT));
-  const { thumbnailImages, onThumbnailReady } = usePdfThumbnailImages(PDF_FILE);
+  const thumbnailImages = usePdfThumbnailImages(PDF_FILE, splits);
 
   React.useEffect(() => {
-    let isMounted = true;
+    let isCurrent = true;
 
-    import("react-pdf").then((module) => {
-      module.pdfjs.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL;
-
-      if (isMounted) setReactPdf(module);
+    getPdfPageCount(PDF_FILE).then((nextPageCount) => {
+      if (isCurrent) setPageCount(nextPageCount);
     });
 
     return () => {
-      isMounted = false;
+      isCurrent = false;
     };
   }, []);
 
@@ -1791,7 +1582,7 @@ export function DocumentSplitsExample() {
     setSplits(createInitialSplits(pageCount || DEFAULT_PAGE_COUNT));
   }, [pageCount]);
 
-  const panel = (
+  return (
     <DocumentSplits
       className="h-[620px]"
       splits={splits}
@@ -1800,20 +1591,6 @@ export function DocumentSplitsExample() {
       onSplitsChange={setSplits}
       onSelectPage={() => {}}
     />
-  );
-
-  if (!reactPdf) return panel;
-
-  return (
-    <reactPdf.Document file={PDF_FILE} onLoadSuccess={({ numPages }) => setPageCount(numPages)} loading={panel}>
-      <PdfThumbnailCache
-        splits={splits}
-        thumbnailImages={thumbnailImages}
-        reactPdf={reactPdf}
-        onThumbnailReady={onThumbnailReady}
-      />
-      {panel}
-    </reactPdf.Document>
   );
 }`
 

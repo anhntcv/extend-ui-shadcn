@@ -8187,7 +8187,7 @@ const OcrBlockButton = React.memo(function OcrBlockButton({
       onMouseEnter={() => onFocusBlock(block)}
       onFocus={() => onFocusBlock(block)}
       className={cn(
-        "w-full rounded-lg border bg-background p-3 text-left transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+        "w-full rounded-lg border bg-background p-3 text-left hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
         isActive && style.ring
       )}
     >

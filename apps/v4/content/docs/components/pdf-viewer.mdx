@@ -9,6 +9,10 @@ The React PDF Viewer is the core page-based document surface for document-heavy 
 
 <PdfViewerDemo />
 
+## About
+
+PDF rendering is powered by [EmbedPDF](https://www.embedpdf.com/).
+
 ## Installation
 
 <CodeTabs>
@@ -32,7 +36,7 @@ npx shadcn@latest add @extend/pdf-viewer
 <Step>Install the following dependencies:</Step>
 
 ```bash
-npm install @hugeicons/core-free-icons@^4.2.0 @hugeicons/react@^1.1.6 @tanstack/react-virtual@^3.13.26 pdf-lib@^1.17.1 pdfjs-dist@5.4.296 react-pdf@^10.4.1
+npm install @embedpdf/core@^2.14.4 @embedpdf/engines@^2.14.4 @embedpdf/models@^2.14.4 @embedpdf/plugin-document-manager@^2.14.4 @embedpdf/plugin-interaction-manager@^2.14.4 @embedpdf/plugin-render@^2.14.4 @embedpdf/plugin-rotate@^2.14.4 @embedpdf/plugin-scroll@^2.14.4 @embedpdf/plugin-search@^2.14.4 @embedpdf/plugin-selection@^2.14.4 @embedpdf/plugin-thumbnail@^2.14.4 @embedpdf/plugin-tiling@^2.14.4 @embedpdf/plugin-viewport@^2.14.4 @embedpdf/plugin-zoom@^2.14.4 @hugeicons/core-free-icons@^4.2.0 @hugeicons/react@^1.1.6 pdf-lib@^1.17.1
 ```
 
 <Step>Copy and paste the following code into your project.</Step>
@@ -47,33 +51,12 @@ npm install @hugeicons/core-free-icons@^4.2.0 @hugeicons/react@^1.1.6 @tanstack/
 
 </CodeTabs>
 
-<Callout variant="info" title="Self-host PDF.js assets">
-The viewer uses version-matched PDF.js CMaps and standard fonts from unpkg by
-default so PDFs with CID fonts can render without extra setup. To avoid external
-asset requests, copy `pdfjs-dist/cmaps` and `pdfjs-dist/standard_fonts` into
-your public assets and pass `documentOptions`.
-
-<DocsMdxCodeBlock
-  language="tsx"
-  copyButtonClassName="top-0.5"
-  code={`<PDFViewer
-  file="/path/to/document.pdf"
-  documentOptions={{
-    cMapPacked: true,
-    cMapUrl: "/pdfjs/cmaps/",
-    standardFontDataUrl: "/pdfjs/standard_fonts/",
-  }}
-/>`}
-/>
-
-</Callout>
-
 ## Useful behaviors
 
-- Zoom, fit width, fit page, rotate, and print/download actions.
-- Virtualized page rendering for long PDFs.
-- Optional OCR block overlays, e-signature fields, search highlights, and annotation layer.
-- Text layer support for selection, copy, search, and accessibility.
+- Zoom, rotate, and download actions.
+- PDFium-backed page rendering for long PDFs.
+- Optional OCR block overlays, e-signature fields, search highlights, and page overlays.
+- Text selection, copy, search, and thumbnail navigation.
 
 ## API Reference
 
@@ -85,14 +68,12 @@ The PDFViewer component renders a scrollable PDF surface with toolbar controls, 
 | ----------------------------- | ------------------------------------------------------------------------- | ------- | -------- |
 | `file`                        | `string`                                                                  | `-`     | No       |
 | `className`                   | `string`                                                                  | `-`     | No       |
-| `documentOptions`             | `ReactPdf.DocumentProps["options"]`                                       | CDN     | No       |
 | `defaultThumbnailSidebarOpen` | `boolean`                                                                 | `false` | No       |
-| `defaultZoom`                 | `number`                                                                  | `0.75`  | No       |
-| `pageWidth`                   | `number`                                                                  | `612`   | No       |
-| `pageHeight`                  | `number`                                                                  | `792`   | No       |
-| `pageNumbers`                 | `number[]`                                                                | `-`     | No       |
-| `pageRenderBuffer`            | `number`                                                                  | `4`     | No       |
-| `setRenderRange`              | `(visiblePagesRange: PDFViewerVisiblePagesRange) => PDFViewerRenderRange` | `-`     | No       |
+| `defaultZoom`                 | `number`                                                                  | `1`     | No       |
+| `pageWidth`                   | `number`                                                                  | `-`     | No       |
+| `pageHeight`                  | `number`                                                                  | `-`     | No       |
+| `showDownload`                | `boolean`                                                                 | `true`  | No       |
+| `showToolbar`                 | `boolean`                                                                 | `true`  | No       |
 | `showRotateControls`          | `boolean`                                                                 | `true`  | No       |
 | `showUpload`                  | `boolean`                                                                 | `true`  | No       |
 | `toolbarActions`              | `React.ReactNode`                                                         | `-`     | No       |

@@ -330,8 +330,8 @@ function DocxPageNumberControl({
         <Button
           type="button"
           variant="ghost"
-          size="xs"
-          className="mx-0.5 h-auto min-w-7 rounded-sm px-1.5 py-0 text-sm leading-normal font-normal text-primary sm:text-sm"
+          size="sm"
+          className="font-normal"
           aria-label={`Current page ${displayPage}. Edit page number`}
           disabled={controlsDisabled || !pageCount}
           onClick={() => setIsEditing(true)}
@@ -666,6 +666,8 @@ function DocxViewerContent({
 }) {
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const viewportRef = React.useRef<HTMLDivElement | null>(null)
+  const [viewportElement, setViewportElement] =
+    React.useState<HTMLDivElement | null>(null)
   const [viewerShellRef, viewerShellWidth] = useElementWidth<HTMLDivElement>()
   const [uploadedDocxFile, setUploadedDocxFile] =
     React.useState<UploadedDocxFile | null>(null)
@@ -740,6 +742,24 @@ function DocxViewerContent({
   const handlePageCountChange = React.useCallback((nextPageCount: number) => {
     setReportedPageCount(Math.max(1, Math.round(nextPageCount || 1)))
   }, [])
+  const setViewportRef = React.useCallback(
+    (element: HTMLDivElement | null) => {
+      viewportRef.current = element
+      setViewportElement(element)
+    },
+    []
+  )
+  const pageVirtualization = React.useMemo(
+    () => ({
+      // Sidebar thumbnails can only paint from mounted page DOM,
+      // so every page must mount while the sidebar is open;
+      // otherwise let the viewer virtualize off-screen pages.
+      enabled: !sidebarOpen,
+      scrollElement: viewportElement,
+      zoomScale: zoomScale / 100,
+    }),
+    [sidebarOpen, viewportElement, zoomScale]
+  )
   const handleDownload = React.useCallback(async () => {
     if (isPreparingDownload) return
     if (!uploadedDocxFile && !url) return
@@ -985,7 +1005,7 @@ function DocxViewerContent({
                       variant="ghost"
                       size="sm"
                       className={cn(
-                        "!h-auto w-full flex-col items-center gap-2 p-2 text-xs shadow-none hover:bg-sidebar-accent",
+                        "!h-auto w-full flex-col items-center gap-2 p-2 text-xs shadow-none transition-none hover:bg-sidebar-accent",
                         thumbnail.pageNumber === activePage &&
                           "bg-sidebar-accent text-foreground",
                         thumbnail.pageNumber !== activePage &&
@@ -1021,7 +1041,7 @@ function DocxViewerContent({
           className={cn("min-h-0 flex-1", rounded && "rounded-b-lg")}
           style={{ backgroundColor: viewerBackgroundColor }}
           viewportClassName="p-4"
-          viewportRef={viewportRef}
+          viewportRef={setViewportRef}
         >
           {!url && !uploadedDocxFile ? (
             <div className="grid h-full min-h-96 place-items-center p-6 text-center">
@@ -1067,10 +1087,7 @@ function DocxViewerContent({
                   loadingState={loadingState}
                   pageBackgroundColor={effectiveIsDark ? "#0a0a0a" : undefined}
                   pageGapBackgroundColor={viewerBackgroundColor}
-                  // Sidebar thumbnails can only paint from mounted page DOM,
-                  // so every page must mount while the sidebar is open;
-                  // otherwise let the viewer virtualize off-screen pages.
-                  pageVirtualization={{ enabled: !sidebarOpen }}
+                  pageVirtualization={pageVirtualization}
                   deferInitialPaginationPaint={false}
                   onPageCountChange={handlePageCountChange}
                 />

@@ -43,11 +43,6 @@ const nextConfig = {
     turbopackFileSystemCacheForDev: true,
   },
   webpack: (config) => {
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      "pdfjs-dist$": "pdfjs-dist/build/pdf.min.mjs",
-    }
-
     config.experiments = {
       ...config.experiments,
       asyncWebAssembly: true,

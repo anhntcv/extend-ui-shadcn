@@ -1917,7 +1917,7 @@ function HumanReviewFieldCardBase({
             </div>
             <span
               className={cn(
-                "size-2 shrink-0 rounded-full bg-amber-400 transition-opacity",
+                "size-2 shrink-0 rounded-full bg-amber-400",
                 !modified && "opacity-0"
               )}
             />

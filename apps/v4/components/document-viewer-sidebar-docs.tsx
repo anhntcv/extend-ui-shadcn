@@ -134,7 +134,7 @@ function DocumentViewerSidebarPreview() {
                     variant="ghost"
                     size="sm"
                     className={cn(
-                      "!h-auto w-full flex-col items-center gap-2 p-2 text-xs shadow-none hover:bg-sidebar-accent",
+                      "!h-auto w-full flex-col items-center gap-2 p-2 text-xs shadow-none transition-none hover:bg-sidebar-accent",
                       page.id === activePageId
                         ? "bg-sidebar-accent text-foreground"
                         : "text-muted-foreground"

@@ -2,8 +2,6 @@
 
 import * as React from "react"
 import dynamic from "next/dynamic"
-import type { PDFDocumentProxy } from "pdfjs-dist"
-import type * as ReactPdf from "react-pdf"
 
 import { cn } from "@/lib/utils"
 import { withUiBasePath } from "@/lib/zone-path"
@@ -14,6 +12,10 @@ import {
 } from "@/components/ui/file-system"
 import { DocsViewCodeBlock } from "@/components/docs-code-block"
 import { FileSystemSourceCode } from "@/components/file-system-source-code"
+import {
+  getPdfPageCount,
+  renderPdfThumbnailUrl,
+} from "@/components/pdf-thumbnail-utils"
 import { FileSystemBlock } from "@/registry/new-york-v4/blocks/file-system-block"
 
 const DOCX_MIME_TYPE =
@@ -206,10 +208,6 @@ function generateAuroraItems(): FileSystemItem[] {
 
 const AURORA_ITEMS = generateAuroraItems()
 
-function getPdfWorkerUrl(pdfjsVersion: string) {
-  return `//unpkg.com/pdfjs-dist@${pdfjsVersion}/legacy/build/pdf.worker.min.mjs`
-}
-
 // Pages rendered eagerly per PDF; the rest load on demand through the
 // component's `loadPreviewImageUrl` as the pager reaches them.
 const EAGER_PAGE_THUMBNAILS = 2
@@ -233,55 +231,12 @@ const XlsxThumbnailUrlGenerator = dynamic(
   { ssr: false }
 )
 
-type PdfjsModule = (typeof ReactPdf)["pdfjs"]
-
-let pdfjsModulePromise: Promise<PdfjsModule> | null = null
-
-function loadPdfjs() {
-  pdfjsModulePromise ??= import("react-pdf").then((reactPdf) => {
-    reactPdf.pdfjs.GlobalWorkerOptions.workerSrc = getPdfWorkerUrl(
-      reactPdf.pdfjs.version
-    )
-    return reactPdf.pdfjs
-  })
-  return pdfjsModulePromise
-}
-
-const pdfDocumentCache = new Map<string, Promise<PDFDocumentProxy>>()
-
-function loadPdfDocument(url: string) {
-  let documentPromise = pdfDocumentCache.get(url)
-
-  if (!documentPromise) {
-    documentPromise = loadPdfjs().then(
-      (pdfjs) => pdfjs.getDocument(url).promise
-    )
-    pdfDocumentCache.set(url, documentPromise)
-  }
-  return documentPromise
-}
-
 async function renderPdfPageThumbnail(url: string, pageIndex: number) {
-  const pdf = await loadPdfDocument(url)
-
-  if (pageIndex >= pdf.numPages) return null
-
-  const page = await pdf.getPage(pageIndex + 1)
-  const baseViewport = page.getViewport({ scale: 1 })
-  const viewport = page.getViewport({
-    scale: THUMBNAIL_WIDTH / baseViewport.width,
+  return renderPdfThumbnailUrl({
+    pageIndex,
+    url,
+    width: THUMBNAIL_WIDTH,
   })
-  const canvas = document.createElement("canvas")
-
-  canvas.width = Math.ceil(viewport.width)
-  canvas.height = Math.ceil(viewport.height)
-
-  const canvasContext = canvas.getContext("2d")
-
-  if (!canvasContext) return null
-
-  await page.render({ canvas, canvasContext, viewport }).promise
-  return canvas.toDataURL("image/png")
 }
 
 function PdfThumbnailUrlGenerator({
@@ -295,8 +250,8 @@ function PdfThumbnailUrlGenerator({
     let isCurrent = true
 
     void (async () => {
-      const pdf = await loadPdfDocument(url)
-      const eagerPageCount = Math.min(pdf.numPages, EAGER_PAGE_THUMBNAILS)
+      const pageCount = await getPdfPageCount(url)
+      const eagerPageCount = Math.min(pageCount, EAGER_PAGE_THUMBNAILS)
       const dataUrls: string[] = []
 
       for (let pageIndex = 0; pageIndex < eagerPageCount; pageIndex += 1) {
@@ -309,7 +264,7 @@ function PdfThumbnailUrlGenerator({
         dataUrls.push(dataUrl)
       }
       if (isCurrent && dataUrls.length) {
-        onUrls(dataUrls, pdf.numPages)
+        onUrls(dataUrls, pageCount)
       }
     })().catch(() => {})
 
