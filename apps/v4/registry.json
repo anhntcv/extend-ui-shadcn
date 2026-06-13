@@ -655,12 +655,17 @@
       "dependencies": [
         "@extend-ai/react-docx@^0.7.0-alpha.7",
         "@hugeicons/core-free-icons@^4.2.0",
-        "@hugeicons/react@^1.1.6"
+        "@hugeicons/react@^1.1.6",
+        "@tanstack/react-virtual@^3.13.12"
       ],
       "registryDependencies": [
+        "badge",
         "button",
+        "card",
         "@extend/document-viewer-sidebar",
+        "dropdown-menu",
         "@extend/file-thumbnail",
+        "input",
         "scroll-area",
         "select",
         "separator",
@@ -674,6 +679,11 @@
           "path": "components/ui/docx-viewer.tsx",
           "type": "registry:ui",
           "target": "@ui/docx-viewer.tsx"
+        },
+        {
+          "path": "components/ui/docx-annotation-card.tsx",
+          "type": "registry:ui",
+          "target": "@ui/docx-annotation-card.tsx"
         }
       ]
     },
@@ -709,6 +719,11 @@
           "path": "components/ui/docx-editor.tsx",
           "type": "registry:ui",
           "target": "@ui/docx-editor.tsx"
+        },
+        {
+          "path": "components/ui/docx-annotation-card.tsx",
+          "type": "registry:ui",
+          "target": "@ui/docx-annotation-card.tsx"
         }
       ]
     },

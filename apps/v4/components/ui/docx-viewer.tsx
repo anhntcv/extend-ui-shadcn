@@ -33,6 +33,10 @@ import {
   useInlineThumbnailSidebar,
 } from "@/components/ui/document-viewer-sidebar"
 import {
+  renderDocxCommentCard,
+  renderDocxTrackedChangeCard,
+} from "@/components/ui/docx-annotation-card"
+import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
@@ -1297,7 +1301,9 @@ function DocxViewerContent({
                   editor={editor}
                   mode="read-only"
                   showTrackedChanges={showTrackedChanges}
+                  renderTrackedChangeCard={renderDocxTrackedChangeCard}
                   showComments={showComments}
+                  renderCommentCard={renderDocxCommentCard}
                   loadingState={loadingState}
                   pageBackgroundColor={effectiveIsDark ? "#0a0a0a" : undefined}
                   pageGapBackgroundColor={viewerBackgroundColor}
