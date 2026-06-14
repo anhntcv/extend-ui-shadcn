@@ -81,6 +81,43 @@ type UploadedDocxFile = {
   sourceUrl: string | undefined
 }
 
+type DocxActivePageStore = {
+  getSnapshot: () => number
+  setActivePage: React.Dispatch<React.SetStateAction<number>>
+  subscribe: (listener: () => void) => () => void
+}
+
+function createDocxActivePageStore(): DocxActivePageStore {
+  let activePage = 1
+  const listeners = new Set<() => void>()
+
+  return {
+    getSnapshot: () => activePage,
+    setActivePage: (nextPage) => {
+      const value =
+        typeof nextPage === "function" ? nextPage(activePage) : nextPage
+      const normalizedValue = Math.max(1, Math.round(value || 1))
+
+      if (normalizedValue === activePage) return
+
+      activePage = normalizedValue
+      listeners.forEach((listener) => listener())
+    },
+    subscribe: (listener) => {
+      listeners.add(listener)
+      return () => listeners.delete(listener)
+    },
+  }
+}
+
+function useDocxActivePage(activePageStore: DocxActivePageStore) {
+  return React.useSyncExternalStore(
+    activePageStore.subscribe,
+    activePageStore.getSnapshot,
+    activePageStore.getSnapshot
+  )
+}
+
 async function loadDocxFile(
   url: string,
   displayFileName: string
@@ -365,16 +402,17 @@ function DocxFileActionsMenu({
 }
 
 function DocxPageNumberControl({
-  activePage,
+  activePageStore,
   controlsDisabled,
   onPageChange,
   pageCount,
 }: {
-  activePage: number
+  activePageStore: DocxActivePageStore
   controlsDisabled: boolean
   onPageChange: (pageNumber: number) => void
   pageCount: number
 }) {
+  const activePage = useDocxActivePage(activePageStore)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const displayPage = pageCount ? activePage : 1
   const [isEditing, setIsEditing] = React.useState(false)
@@ -455,7 +493,7 @@ function DocxPageNumberControl({
 }
 
 function DocxToolbar({
-  activePage,
+  activePageStore,
   controlsDisabled,
   isDark,
   isPreparingDownload,
@@ -474,7 +512,7 @@ function DocxToolbar({
   toolbarActions,
   zoomScale,
 }: {
-  activePage: number
+  activePageStore: DocxActivePageStore
   controlsDisabled: boolean
   isDark: boolean
   isPreparingDownload: boolean
@@ -513,7 +551,7 @@ function DocxToolbar({
             </Button>
           </ToolbarTooltip>
           <DocxPageNumberControl
-            activePage={activePage}
+            activePageStore={activePageStore}
             controlsDisabled={controlsDisabled}
             onPageChange={onPageChange}
             pageCount={pageCount}
@@ -679,7 +717,6 @@ function DocxThumbnailSidebarList({
     activePage > 0 && visibleThumbnails.length
       ? `${thumbnailListboxId}-page-${activePage}`
       : undefined
-  // eslint-disable-next-line react-hooks/incompatible-library -- TanStack Virtual returns imperative helpers used by the thumbnail rail.
   const virtualizer = useVirtualizer({
     count: visibleThumbnails.length,
     estimateSize: () => DOCX_THUMBNAIL_ROW_ESTIMATE,
@@ -821,6 +858,66 @@ function DocxThumbnailSidebarList({
   )
 }
 
+function DocxThumbnailSidebarContent({
+  activePageStore,
+  displayFileName,
+  editor,
+  isLoadingDocument,
+  onSelectPage,
+  pageCount,
+  reportedPageCount,
+  sidebarOpen,
+}: {
+  activePageStore: DocxActivePageStore
+  displayFileName: string
+  editor: DocxEditorController
+  isLoadingDocument: boolean
+  onSelectPage: (pageNumber: number) => void
+  pageCount: number
+  reportedPageCount: number
+  sidebarOpen: boolean
+}) {
+  const thumbnailEditor = React.useMemo<DocxEditorController>(
+    () => ({
+      ...editor,
+      totalPages: Math.max(editor.totalPages, reportedPageCount),
+    }),
+    [editor, reportedPageCount]
+  )
+  const thumbnailOptions = React.useMemo(
+    () => ({
+      // Detached thumbnail rendering handles offscreen pages; keep the raster
+      // queue dormant while the sidebar is closed.
+      disabled: !sidebarOpen,
+      pixelRatio: 2,
+      resolution: {
+        maxHeight: DOCX_THUMBNAIL_WIDTH * 1.35,
+        maxWidth: DOCX_THUMBNAIL_WIDTH,
+      },
+    }),
+    [sidebarOpen]
+  )
+  const { thumbnails } = useDocxViewerThumbnails(
+    thumbnailEditor,
+    thumbnailOptions
+  )
+  const activePage = useDocxActivePage(activePageStore)
+
+  if (!sidebarOpen) return null
+
+  return (
+    <DocxThumbnailSidebarList
+      activePage={activePage}
+      displayFileName={displayFileName}
+      isLoadingDocument={isLoadingDocument}
+      onSelectPage={onSelectPage}
+      pageCount={pageCount}
+      sidebarOpen={sidebarOpen}
+      thumbnails={thumbnails}
+    />
+  )
+}
+
 export function DocxViewerPreview({
   className,
   defaultZoom = DEFAULT_ZOOM,
@@ -894,31 +991,12 @@ function DocxViewerContent({
   const [uploadedDocxFile, setUploadedDocxFile] =
     React.useState<UploadedDocxFile | null>(null)
   const [sidebarOpen, setSidebarOpen] = React.useState(false)
+  const activePageStore = React.useMemo(createDocxActivePageStore, [])
   const resolvedDefaultZoomScale = normalizeDocxZoomScale(defaultZoom)
   const activeUploadedDocxFile =
     uploadedDocxFile?.sourceUrl === url ? uploadedDocxFile : null
   const documentKey = activeUploadedDocxFile?.identity ?? url ?? ""
-  const [activePageState, setActivePageState] = React.useState({
-    documentKey: "",
-    value: 1,
-  })
-  const activePage =
-    activePageState.documentKey === documentKey ? activePageState.value : 1
-  const setActivePage = React.useCallback<
-    React.Dispatch<React.SetStateAction<number>>
-  >(
-    (nextPage) => {
-      setActivePageState((currentState) => {
-        const currentPage =
-          currentState.documentKey === documentKey ? currentState.value : 1
-        const value =
-          typeof nextPage === "function" ? nextPage(currentPage) : nextPage
-
-        return { documentKey, value }
-      })
-    },
-    [documentKey]
-  )
+  const setActivePage = activePageStore.setActivePage
   const sidebarInline = useInlineThumbnailSidebar(viewerShellWidth)
   const viewerBackgroundColor =
     "color-mix(in oklab, var(--muted) 40%, transparent)"
@@ -945,30 +1023,6 @@ function DocxViewerContent({
   const { showTrackedChanges, setShowTrackedChanges } =
     useDocxTrackChanges(editor)
   const [reportedPageCount, setReportedPageCount] = React.useState(0)
-  const thumbnailEditor = React.useMemo<DocxEditorController>(
-    () => ({
-      ...editor,
-      totalPages: Math.max(editor.totalPages, reportedPageCount),
-    }),
-    [editor, reportedPageCount]
-  )
-  const thumbnailOptions = React.useMemo(
-    () => ({
-      // Detached thumbnail rendering handles offscreen pages; keep the raster
-      // queue dormant while the sidebar is closed.
-      disabled: !sidebarOpen,
-      pixelRatio: 2,
-      resolution: {
-        maxHeight: DOCX_THUMBNAIL_WIDTH * 1.35,
-        maxWidth: DOCX_THUMBNAIL_WIDTH,
-      },
-    }),
-    [sidebarOpen]
-  )
-  const { thumbnails } = useDocxViewerThumbnails(
-    thumbnailEditor,
-    thumbnailOptions
-  )
   const [zoomScaleState, setZoomScaleState] = React.useState({
     documentKey: "",
     value: resolvedDefaultZoomScale,
@@ -1062,8 +1116,9 @@ function DocxViewerContent({
   useSuppressDocxPaddingWarning(!isLoadingDocument && !loadError)
 
   React.useEffect(() => {
+    setActivePage(1)
     viewportRef.current?.scrollTo({ top: 0, left: 0 })
-  }, [documentKey])
+  }, [documentKey, setActivePage])
 
   React.useEffect(() => {
     setDocumentTheme(effectiveIsDark ? "dark" : "light")
@@ -1167,10 +1222,10 @@ function DocxViewerContent({
         }
       })
 
-    setActivePage((currentPage) =>
+    activePageStore.setActivePage((currentPage) =>
       currentPage === closestPage ? currentPage : closestPage
     )
-  }, [pageCount, setActivePage])
+  }, [activePageStore, pageCount])
 
   React.useEffect(() => {
     const viewport = viewportRef.current
@@ -1264,7 +1319,7 @@ function DocxViewerContent({
       />
       {showToolbar ? (
         <DocxToolbar
-          activePage={activePage}
+          activePageStore={activePageStore}
           controlsDisabled={controlsDisabled}
           isDark={effectiveIsDark}
           isPreparingDownload={isPreparingDownload}
@@ -1292,17 +1347,16 @@ function DocxViewerContent({
           inline={sidebarInline}
           open={thumbnailSidebarVisible}
         >
-          {thumbnailSidebarVisible ? (
-            <DocxThumbnailSidebarList
-              activePage={activePage}
-              displayFileName={displayFileName}
-              isLoadingDocument={isLoadingDocument}
-              onSelectPage={scrollToPage}
-              pageCount={pageCount}
-              sidebarOpen={thumbnailSidebarVisible}
-              thumbnails={thumbnails}
-            />
-          ) : null}
+          <DocxThumbnailSidebarContent
+            activePageStore={activePageStore}
+            displayFileName={displayFileName}
+            editor={editor}
+            isLoadingDocument={isLoadingDocument}
+            onSelectPage={scrollToPage}
+            pageCount={pageCount}
+            reportedPageCount={reportedPageCount}
+            sidebarOpen={thumbnailSidebarVisible}
+          />
         </DocumentViewerThumbnailSidebar>
         <ScrollArea
           className="min-h-0 flex-1"
