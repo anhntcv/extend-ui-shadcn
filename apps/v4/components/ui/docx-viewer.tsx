@@ -381,6 +381,12 @@ function DocxPageNumberControl({
   const [draftPage, setDraftPage] = React.useState(() => String(displayPage))
 
   React.useEffect(() => {
+    if (!isEditing) {
+      setDraftPage(String(displayPage))
+    }
+  }, [displayPage, isEditing])
+
+  React.useEffect(() => {
     if (!isEditing) return
 
     inputRef.current?.focus()
@@ -396,9 +402,8 @@ function DocxPageNumberControl({
       const parsedPage = Number(trimmedValue)
 
       if (!Number.isInteger(parsedPage)) return
-      if (parsedPage < 1 || parsedPage > pageCount) return
 
-      onPageChange(parsedPage)
+      onPageChange(Math.min(Math.max(parsedPage, 1), Math.max(pageCount, 1)))
     },
     [onPageChange, pageCount]
   )
@@ -436,7 +441,10 @@ function DocxPageNumberControl({
           className="font-normal"
           aria-label={`Current page ${displayPage}. Edit page number`}
           disabled={controlsDisabled || !pageCount}
-          onClick={() => setIsEditing(true)}
+          onClick={() => {
+            setDraftPage(String(displayPage))
+            setIsEditing(true)
+          }}
         >
           {displayPage}
         </Button>
