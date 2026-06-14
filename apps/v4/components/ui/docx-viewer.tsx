@@ -74,7 +74,7 @@ const ZOOM_OPTIONS = [10, 25, 50, 75, 100, 125, 150, 175, 200, 400] as const
 const DOCX_PADDING_WARNING_TEXT = "a style property during rerender"
 const DOCX_THUMBNAIL_FOCUS_RING_CLASS =
   "group-focus-visible/docx-thumbnail-sidebar:ring-2 group-focus-visible/docx-thumbnail-sidebar:ring-ring group-focus-visible/docx-thumbnail-sidebar:ring-offset-1 group-focus-visible/docx-thumbnail-sidebar:ring-offset-background"
-const DOCX_NOOP_THUMBNAIL_CANVAS_REF = () => {}
+const DOCX_THUMBNAIL_PREFETCH_ROWS = 4
 
 type UploadedDocxFile = {
   file: File
@@ -86,6 +86,11 @@ type DocxActivePageStore = {
   getSnapshot: () => number
   setActivePage: React.Dispatch<React.SetStateAction<number>>
   subscribe: (listener: () => void) => () => void
+}
+
+type DocxThumbnailRenderWindowState = {
+  visiblePageIndexes: number[]
+  prefetchPageIndexes: number[]
 }
 
 function createDocxActivePageStore(): DocxActivePageStore {
@@ -116,6 +121,13 @@ function useDocxActivePage(activePageStore: DocxActivePageStore) {
     activePageStore.subscribe,
     activePageStore.getSnapshot,
     activePageStore.getSnapshot
+  )
+}
+
+function areNumberArraysEqual(left: number[], right: number[]) {
+  return (
+    left.length === right.length &&
+    left.every((value, index) => value === right[index])
   )
 }
 
@@ -696,6 +708,7 @@ function DocxThumbnailSidebarList({
   displayFileName,
   isLoadingDocument,
   onSelectPage,
+  onThumbnailRenderWindowChange,
   pageCount,
   sidebarOpen,
   thumbnails,
@@ -704,6 +717,9 @@ function DocxThumbnailSidebarList({
   displayFileName: string
   isLoadingDocument: boolean
   onSelectPage: (pageNumber: number) => void
+  onThumbnailRenderWindowChange: (
+    renderWindow: DocxThumbnailRenderWindowState
+  ) => void
   pageCount: number
   sidebarOpen: boolean
   thumbnails: DocxPageThumbnailItem[]
@@ -725,6 +741,62 @@ function DocxThumbnailSidebarList({
     getScrollElement: () => viewportRef.current,
     overscan: 3,
   })
+  const virtualItems = virtualizer.getVirtualItems()
+  const renderWindowSignature = virtualItems
+    .map((virtualRow) => virtualRow.index)
+    .join(",")
+
+  React.useEffect(() => {
+    if (!sidebarOpen || isLoadingDocument || !visibleThumbnails.length) {
+      onThumbnailRenderWindowChange({
+        prefetchPageIndexes: [],
+        visiblePageIndexes: [],
+      })
+      return
+    }
+
+    const visiblePageIndexes = virtualItems
+      .map((virtualRow) => visibleThumbnails[virtualRow.index]?.pageIndex)
+      .filter((pageIndex): pageIndex is number => pageIndex !== undefined)
+
+    const firstVirtualIndex = virtualItems[0]?.index ?? 0
+    const lastVirtualIndex =
+      virtualItems[virtualItems.length - 1]?.index ?? firstVirtualIndex
+    const firstPrefetchIndex = Math.max(
+      0,
+      firstVirtualIndex - DOCX_THUMBNAIL_PREFETCH_ROWS
+    )
+    const lastPrefetchIndex = Math.min(
+      visibleThumbnails.length - 1,
+      lastVirtualIndex + DOCX_THUMBNAIL_PREFETCH_ROWS
+    )
+    const visiblePageIndexSet = new Set(visiblePageIndexes)
+    const prefetchPageIndexes: number[] = []
+
+    for (
+      let index = firstPrefetchIndex;
+      index <= lastPrefetchIndex;
+      index += 1
+    ) {
+      const pageIndex = visibleThumbnails[index]?.pageIndex
+
+      if (pageIndex !== undefined && !visiblePageIndexSet.has(pageIndex)) {
+        prefetchPageIndexes.push(pageIndex)
+      }
+    }
+
+    onThumbnailRenderWindowChange({
+      prefetchPageIndexes,
+      visiblePageIndexes,
+    })
+  }, [
+    isLoadingDocument,
+    onThumbnailRenderWindowChange,
+    renderWindowSignature,
+    sidebarOpen,
+    visibleThumbnails,
+    virtualItems,
+  ])
 
   React.useEffect(() => {
     if (!sidebarOpen || activePage < 1 || !visibleThumbnails.length) return
@@ -793,11 +865,9 @@ function DocxThumbnailSidebarList({
               virtualizer.getTotalSize() + DOCX_THUMBNAIL_LIST_PADDING * 2,
           }}
         >
-          {virtualizer.getVirtualItems().map((virtualRow) => {
+          {virtualItems.map((virtualRow) => {
             const thumbnail = visibleThumbnails[virtualRow.index]
             if (!thumbnail) return null
-            const canRenderThumbnailCanvas =
-              thumbnail.isMounted || thumbnail.status === "ready"
 
             return (
               <div
@@ -837,18 +907,13 @@ function DocxThumbnailSidebarList({
                   onClick={() => onSelectPage(thumbnail.pageNumber)}
                 >
                   <DocxSidebarThumbnail
-                    canvasRef={
-                      canRenderThumbnailCanvas
-                        ? thumbnail.canvasRef
-                        : DOCX_NOOP_THUMBNAIL_CANVAS_REF
-                    }
+                    canvasRef={thumbnail.canvasRef}
                     displayFileName={displayFileName}
                     hasError={thumbnail.status === "error"}
                     isActive={thumbnail.pageNumber === activePage}
                     isLoading={
-                      !canRenderThumbnailCanvas ||
-                      (thumbnail.status !== "ready" &&
-                        thumbnail.status !== "error")
+                      thumbnail.status !== "ready" &&
+                      thumbnail.status !== "error"
                     }
                     pageNumber={thumbnail.pageNumber}
                     pixelHeightPx={thumbnail.pixelHeightPx}
@@ -885,6 +950,11 @@ function DocxThumbnailSidebarContent({
   reportedPageCount: number
   sidebarOpen: boolean
 }) {
+  const [thumbnailRenderWindow, setThumbnailRenderWindow] =
+    React.useState<DocxThumbnailRenderWindowState>({
+      prefetchPageIndexes: [],
+      visiblePageIndexes: [],
+    })
   const thumbnailEditor = React.useMemo<DocxEditorController>(
     () => ({
       ...editor,
@@ -898,18 +968,40 @@ function DocxThumbnailSidebarContent({
       // queue dormant while the sidebar is closed.
       disabled: !sidebarOpen,
       pixelRatio: 2,
+      renderWindow: thumbnailRenderWindow,
       resolution: {
         maxHeight: DOCX_THUMBNAIL_WIDTH * 1.35,
         maxWidth: DOCX_THUMBNAIL_WIDTH,
       },
     }),
-    [sidebarOpen]
+    [sidebarOpen, thumbnailRenderWindow]
   )
   const { thumbnails } = useDocxViewerThumbnails(
     thumbnailEditor,
     thumbnailOptions
   )
   const activePage = useDocxActivePage(activePageStore)
+  const handleThumbnailRenderWindowChange = React.useCallback(
+    (nextRenderWindow: DocxThumbnailRenderWindowState) => {
+      setThumbnailRenderWindow((currentRenderWindow) => {
+        if (
+          areNumberArraysEqual(
+            currentRenderWindow.visiblePageIndexes,
+            nextRenderWindow.visiblePageIndexes
+          ) &&
+          areNumberArraysEqual(
+            currentRenderWindow.prefetchPageIndexes,
+            nextRenderWindow.prefetchPageIndexes
+          )
+        ) {
+          return currentRenderWindow
+        }
+
+        return nextRenderWindow
+      })
+    },
+    []
+  )
 
   if (!sidebarOpen) return null
 
@@ -919,6 +1011,7 @@ function DocxThumbnailSidebarContent({
       displayFileName={displayFileName}
       isLoadingDocument={isLoadingDocument}
       onSelectPage={onSelectPage}
+      onThumbnailRenderWindowChange={handleThumbnailRenderWindowChange}
       pageCount={pageCount}
       sidebarOpen={sidebarOpen}
       thumbnails={thumbnails}
