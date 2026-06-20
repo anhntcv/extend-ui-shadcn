@@ -68,6 +68,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { ColorPicker } from "@/components/ui/color-picker"
 import {
   DocumentViewerThumbnailSidebar,
   useElementWidth,
@@ -565,46 +566,6 @@ function ToolbarIconButton({
       >
         {children}
       </Button>
-    </ToolbarTooltip>
-  )
-}
-
-function ToolbarColorInput({
-  color,
-  disabled,
-  icon,
-  label,
-  onChange,
-}: {
-  color: string
-  disabled?: boolean
-  icon: typeof TextColorIcon
-  label: string
-  onChange: (color: string) => void
-}) {
-  return (
-    <ToolbarTooltip label={label}>
-      <label
-        className={cn(
-          "relative inline-flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-transparent text-foreground transition-colors hover:bg-accent",
-          disabled && "pointer-events-none opacity-64"
-        )}
-        aria-label={label}
-      >
-        <HugeiconsIcon icon={icon} className="size-4" />
-        <span
-          className="absolute right-1 bottom-1 h-1 w-4 rounded-full border border-background"
-          style={{ backgroundColor: color }}
-        />
-        <input
-          type="color"
-          aria-label={label}
-          disabled={disabled}
-          value={color}
-          className="sr-only"
-          onChange={(event) => onChange(event.target.value)}
-        />
-      </label>
     </ToolbarTooltip>
   )
 }
@@ -1196,11 +1157,13 @@ function DocxEditorToolbar({
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
-            <ToolbarColorInput
+            <ColorPicker
               label="Text color"
               icon={TextColorIcon}
               color={textColorValue}
               disabled={!canEdit}
+              onTriggerMouseDown={preserveTextSelection}
+              onTriggerPointerDown={preserveTextSelection}
               onChange={(color) =>
                 editor.setTextColor(normalizeHexColor(color))
               }
