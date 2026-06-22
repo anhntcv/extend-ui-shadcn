@@ -29,7 +29,7 @@ export const blockIds = [
   "pdf-dropzone",
   "e-signature",
   "document-splits",
-  "excel-document-splits",
+  "excel-editor",
   "docx-editor-block",
   "file-system",
 ]
@@ -52,11 +52,7 @@ const blockCodeDependencies: Record<string, string[]> = {
     "pdf-block-resizable-shell",
     "pdf-viewer",
   ],
-  "excel-document-splits": [
-    "file-thumbnail",
-    "pdf-block-resizable-shell",
-    "xlsx-viewer",
-  ],
+  "excel-editor": ["xlsx-editor"],
   "docx-editor-block": ["docx-editor", "file-thumbnail"],
   "file-system": [
     "file-system",

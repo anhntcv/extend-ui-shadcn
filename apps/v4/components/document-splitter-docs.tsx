@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/file-thumbnail"
 import { PDFViewer, type PDFViewerHandle } from "@/components/ui/pdf-viewer"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { XlsxEditorPreview } from "@/components/ui/xlsx-editor"
 import {
   WorkbookSheetTabs,
   WorkbookTableHeaderMenu,
@@ -1233,37 +1234,23 @@ function WorkbookSplitsPane({
   )
 }
 
-export function XlsxDocumentSplitsBlock({
+export function XlsxEditorBlock({
   heightClassName = "h-[680px]",
 }: {
   defaultViewerZoom?: number
   heightClassName?: string
 } = {}) {
-  const controller = useXlsxViewerController(
-    React.useMemo(
-      () => ({
-        allowResizeInReadOnly: true,
-        fileName: "crazy-chart-zoo.xlsx",
-        readOnly: true,
-        src: XLSX_URL,
-        useWorker: true,
-      }),
-      []
-    )
-  )
+  const [isDark, setIsDark] = React.useState(false)
 
   return (
-    <XlsxViewerProvider controller={controller}>
-      <PdfBlockResizableShell
-        autoSaveId="xlsx-block-document-splits"
-        heightClassName={heightClassName}
-        rightDefaultSize={48}
-        rightMaxSize={64}
-        rightMinSize={30}
-        left={<WorkbookViewerPane workbookIdentity={XLSX_URL} />}
-        right={<WorkbookSplitsPane workbookIdentity={XLSX_URL} />}
+    <div className={`${heightClassName} min-h-0 overflow-hidden bg-background`}>
+      <XlsxEditorPreview
+        className="h-full min-h-0 [&>div]:!h-full"
+        src={XLSX_URL}
+        isDark={isDark}
+        onIsDarkChange={setIsDark}
       />
-    </XlsxViewerProvider>
+    </div>
   )
 }
 

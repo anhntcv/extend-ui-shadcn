@@ -504,6 +504,21 @@
       ]
     },
     {
+      "name": "toggle",
+      "type": "registry:ui",
+      "title": "Toggle",
+      "description": "A two-state command button and grouped toggle controls.",
+      "dependencies": ["@base-ui/react@^1.4.1"],
+      "registryDependencies": ["utils"],
+      "files": [
+        {
+          "path": "components/ui/toggle.tsx",
+          "type": "registry:ui",
+          "target": "@ui/toggle.tsx"
+        }
+      ]
+    },
+    {
       "name": "resizable",
       "type": "registry:ui",
       "title": "Resizable",
@@ -655,6 +670,7 @@
         "select",
         "separator",
         "spinner",
+        "toggle",
         "tooltip",
         "utils"
       ],
@@ -759,7 +775,7 @@
       "title": "Excel Viewer",
       "description": "An XLSX viewer with workbook loading, thumbnails, sheet tabs, upload, zoom, and theme controls.",
       "dependencies": [
-        "@extend-ai/react-xlsx@0.10.4",
+        "@extend-ai/react-xlsx@0.12.1",
         "@hugeicons/core-free-icons@^4.2.0",
         "@hugeicons/react@^1.1.6"
       ],
@@ -789,18 +805,20 @@
       "title": "Excel Editor",
       "description": "An experimental XLSX editor with formula input, undo and redo, sheet controls, export, and live workbook mutation.",
       "dependencies": [
-        "@extend-ai/react-xlsx@0.10.4",
+        "@extend-ai/react-xlsx@0.12.1",
         "@hugeicons/core-free-icons@^4.2.0",
         "@hugeicons/react@^1.1.6"
       ],
       "registryDependencies": [
         "button",
+        "color-picker",
         "@extend/group",
         "input",
         "scroll-area",
         "select",
         "separator",
         "spinner",
+        "toggle",
         "tooltip",
         "utils",
         "@extend/xlsx-viewer"
@@ -1056,23 +1074,17 @@
       ]
     },
     {
-      "name": "excel-document-splits",
+      "name": "excel-editor",
       "type": "registry:block",
-      "title": "Excel Document Splits",
-      "description": "A workbook review block with sheet groups and the shared XLSX viewer.",
-      "registryDependencies": [
-        "@extend/file-thumbnail",
-        "@extend/pdf-block-resizable-shell",
-        "scroll-area",
-        "utils",
-        "@extend/xlsx-viewer"
-      ],
+      "title": "Excel Editor",
+      "description": "A full Excel editor block with workbook upload, cell formatting, merge tools, sheets, zoom, and export controls.",
+      "registryDependencies": ["@extend/xlsx-editor"],
       "categories": ["documents", "blocks"],
       "files": [
         {
-          "path": "registry/new-york-v4/blocks/excel-document-splits.tsx",
+          "path": "registry/new-york-v4/blocks/excel-editor.tsx",
           "type": "registry:component",
-          "target": "@components/blocks/excel-document-splits.tsx"
+          "target": "@components/blocks/excel-editor.tsx"
         }
       ]
     },

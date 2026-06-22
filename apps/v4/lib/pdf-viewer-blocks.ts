@@ -72,13 +72,13 @@ export const PDF_VIEWER_BLOCKS = [
     viewHref: "/view/blocks/document-splits",
   },
   {
-    id: "excel-document-splits",
-    title: "Excel Document Splits",
+    id: "excel-editor",
+    title: "Excel Editor",
     description:
-      "Workbook sheets split into draggable groups with thumbnails from the XLSX viewer.",
-    command: getRegistryAddCommand("excel-document-splits"),
-    docsHref: "/docs/components/xlsx-viewer",
-    viewHref: "/view/blocks/excel-document-splits",
+      "A full workbook editor with cell formatting, merge tools, sheets, zoom, and export controls.",
+    command: getRegistryAddCommand("excel-editor"),
+    docsHref: "/docs/components/xlsx-editor",
+    viewHref: "/view/blocks/excel-editor",
   },
   {
     id: "docx-editor-block",

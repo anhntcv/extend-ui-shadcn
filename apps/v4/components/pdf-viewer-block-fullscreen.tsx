@@ -53,10 +53,10 @@ const DocumentSplitsBlock = dynamic<PdfViewerBlockFullscreenPreviewProps>(
   { loading: () => <BlockViewPlaceholder /> }
 )
 
-const XlsxDocumentSplitsBlock = dynamic<PdfViewerBlockFullscreenPreviewProps>(
+const XlsxEditorBlock = dynamic<PdfViewerBlockFullscreenPreviewProps>(
   () =>
     import("@/components/document-splitter-docs").then(
-      (mod) => mod.XlsxDocumentSplitsBlock
+      (mod) => mod.XlsxEditorBlock
     ),
   { loading: () => <BlockViewPlaceholder /> }
 )
@@ -83,7 +83,7 @@ const blockComponents = {
   "layout-blocks": OcrBlocksBlock,
   "e-signature": ESignatureBlock,
   "document-splits": DocumentSplitsBlock,
-  "excel-document-splits": XlsxDocumentSplitsBlock,
+  "excel-editor": XlsxEditorBlock,
   "docx-editor-block": DocxEditorBlock,
   "file-system": FileSystemFinderBlock,
 } satisfies Record<

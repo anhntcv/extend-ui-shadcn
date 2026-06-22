@@ -1,6 +1,6 @@
 ---
 title: React Excel Editor
-description: A React Excel editor component for editing XLSX workbooks with formula input, undo and redo, sheet controls, merge tools, export, and live grid updates.
+description: A React Excel editor component for editing XLSX workbooks with formula input, cell styles, undo and redo, sheet controls, merge tools, export, and live grid updates.
 component: true
 featured: true
 ---
@@ -32,16 +32,17 @@ npx shadcn@latest add @extend/xlsx-editor
 <Step>Install the following dependencies:</Step>
 
 ```bash
-npm install @base-ui/react@^1.4.1 @extend-ai/react-xlsx@0.10.4 @hugeicons/core-free-icons@^4.2.0 @hugeicons/react@^1.1.6 class-variance-authority@^0.7.1
+npm install @base-ui/react@^1.4.1 @extend-ai/react-xlsx@0.12.1 @hugeicons/core-free-icons@^4.2.0 @hugeicons/react@^1.1.6 class-variance-authority@^0.7.1
 ```
 
 <Step>
   Install the Excel Viewer component because the editor reuses its sheet tabs
-  and table header menu, plus the Group primitive used by the formula bar.
+  and table header menu, plus the Group primitive used by the formula bar and
+  the Color Picker and Toggle components used by the cell style controls.
 </Step>
 
 ```bash
-npx shadcn@latest add @extend/xlsx-viewer @extend/group
+npx shadcn@latest add @extend/xlsx-viewer @extend/group @extend/color-picker @extend/toggle
 ```
 
 <Step>Copy and paste the following code into your project.</Step>
@@ -59,6 +60,7 @@ npx shadcn@latest add @extend/xlsx-viewer @extend/group
 ## Useful behaviors
 
 - Formula bar shows the selected cell's formula, or its display value when no formula is present.
+- Font family, font size, font effects, text color, fill color, borders, alignment, wrapping, shrink-to-fit, and number formats use persisted `react-xlsx` cell style APIs.
 - Undo, redo, merge, unmerge, sheet add/remove, and export are wired through `react-xlsx` editing APIs.
 - Sheet tabs, workbook loading, upload, zoom, table sorting, and dark workbook rendering match the Excel Viewer.
 - Large workbooks automatically fall back to read-only behavior above the editor threshold.
@@ -67,7 +69,7 @@ npx shadcn@latest add @extend/xlsx-viewer @extend/group
 
 ### XlsxEditorPreview
 
-The XlsxEditorPreview component renders an editable Excel workbook with upload, theme, zoom, formula editing, sheet controls, and export.
+The XlsxEditorPreview component renders an editable Excel workbook with upload, theme, zoom, formula editing, cell styling, sheet controls, and export.
 
 | Prop             | Type                        | Default | Required |
 | ---------------- | --------------------------- | ------- | -------- |

@@ -97,6 +97,7 @@ import {
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle"
 import {
   Tooltip,
   TooltipContent,
@@ -197,6 +198,14 @@ type BorderControlOption = {
   contexts?: DocxBorderContext[]
   separatorBefore?: boolean
 }
+
+type DocxFontToggleValue =
+  | "bold"
+  | "italic"
+  | "underline"
+  | "strike"
+  | "superscript"
+  | "subscript"
 
 const BORDER_CONTROL_OPTIONS: BorderControlOption[] = [
   { id: "bottom", label: "Bottom Border" },
@@ -570,6 +579,10 @@ function ToolbarIconButton({
   )
 }
 
+function ToolbarSeparator() {
+  return <Separator orientation="vertical" className="mx-1 h-4 self-center" />
+}
+
 function DocxSidebarThumbnail({
   canvasRef,
   displayFileName,
@@ -786,11 +799,49 @@ function DocxEditorToolbar({
   const canEdit = !controlsDisabled && !isReadOnly
   const canZoomIn = zoomScale < ZOOM_OPTIONS[ZOOM_OPTIONS.length - 1]
   const canZoomOut = zoomScale > ZOOM_OPTIONS[0]
+  const fontToggleValues = React.useMemo<DocxFontToggleValue[]>(() => {
+    const values: DocxFontToggleValue[] = []
+
+    if (selectedRunStyle?.bold) values.push("bold")
+    if (selectedRunStyle?.italic) values.push("italic")
+    if (selectedRunStyle?.underline) values.push("underline")
+    if (selectedRunStyle?.strike) values.push("strike")
+    if (selectedRunStyle?.verticalAlign === "superscript") {
+      values.push("superscript")
+    }
+    if (selectedRunStyle?.verticalAlign === "subscript") {
+      values.push("subscript")
+    }
+
+    return values
+  }, [selectedRunStyle])
 
   const preserveTextSelection = React.useCallback(
     (event: React.MouseEvent<HTMLElement> | React.PointerEvent<HTMLElement>) =>
       event.preventDefault(),
     []
+  )
+  const applyFontToggleValues = React.useCallback(
+    (nextValues: DocxFontToggleValue[]) => {
+      const changedValue =
+        nextValues.find((value) => !fontToggleValues.includes(value)) ??
+        fontToggleValues.find((value) => !nextValues.includes(value))
+
+      if (changedValue === "bold") {
+        editor.toggleBold()
+      } else if (changedValue === "italic") {
+        editor.toggleItalic()
+      } else if (changedValue === "underline") {
+        editor.toggleUnderline()
+      } else if (changedValue === "strike") {
+        editor.toggleStrike()
+      } else if (changedValue === "superscript") {
+        editor.toggleSuperscript()
+      } else if (changedValue === "subscript") {
+        editor.toggleSubscript()
+      }
+    },
+    [editor, fontToggleValues]
   )
 
   return (
@@ -896,6 +947,8 @@ function DocxEditorToolbar({
               <HugeiconsIcon icon={Redo02Icon} className="size-4" />
             </ToolbarIconButton>
           </div>
+
+          <ToolbarSeparator />
 
           <PreviewCardPrimitive.Root handle={paragraphStylePreviewHandle}>
             {({ payload }) => {
@@ -1093,68 +1146,72 @@ function DocxEditorToolbar({
             </SelectContent>
           </Select>
 
-          <div className="flex shrink-0 items-center gap-1">
-            <ToolbarIconButton
-              label="Bold"
-              active={Boolean(selectedRunStyle?.bold)}
-              disabled={!canEdit}
-              onMouseDown={preserveTextSelection}
-              onPointerDown={preserveTextSelection}
-              onClick={editor.toggleBold}
-            >
-              <HugeiconsIcon icon={TextBoldIcon} className="size-4" />
-            </ToolbarIconButton>
-            <ToolbarIconButton
-              label="Italic"
-              active={Boolean(selectedRunStyle?.italic)}
-              disabled={!canEdit}
-              onMouseDown={preserveTextSelection}
-              onPointerDown={preserveTextSelection}
-              onClick={editor.toggleItalic}
-            >
-              <HugeiconsIcon icon={TextItalicIcon} className="size-4" />
-            </ToolbarIconButton>
-            <ToolbarIconButton
-              label="Underline"
-              active={Boolean(selectedRunStyle?.underline)}
-              disabled={!canEdit}
-              onMouseDown={preserveTextSelection}
-              onPointerDown={preserveTextSelection}
-              onClick={editor.toggleUnderline}
-            >
-              <HugeiconsIcon icon={TextUnderlineIcon} className="size-4" />
-            </ToolbarIconButton>
-            <ToolbarIconButton
-              label="Strikethrough"
-              active={Boolean(selectedRunStyle?.strike)}
-              disabled={!canEdit}
-              onMouseDown={preserveTextSelection}
-              onPointerDown={preserveTextSelection}
-              onClick={editor.toggleStrike}
-            >
-              <HugeiconsIcon icon={TextStrikethroughIcon} className="size-4" />
-            </ToolbarIconButton>
-            <ToolbarIconButton
-              label="Superscript"
-              active={selectedRunStyle?.verticalAlign === "superscript"}
-              disabled={!canEdit}
-              onMouseDown={preserveTextSelection}
-              onPointerDown={preserveTextSelection}
-              onClick={editor.toggleSuperscript}
-            >
-              <HugeiconsIcon icon={TextSuperscriptIcon} className="size-4" />
-            </ToolbarIconButton>
-            <ToolbarIconButton
-              label="Subscript"
-              active={selectedRunStyle?.verticalAlign === "subscript"}
-              disabled={!canEdit}
-              onMouseDown={preserveTextSelection}
-              onPointerDown={preserveTextSelection}
-              onClick={editor.toggleSubscript}
-            >
-              <HugeiconsIcon icon={TextSubscriptIcon} className="size-4" />
-            </ToolbarIconButton>
-          </div>
+          <ToolbarSeparator />
+
+          <ToggleGroup
+            className="shrink-0"
+            disabled={!canEdit}
+            multiple
+            spacing="default"
+            value={fontToggleValues}
+            onMouseDown={preserveTextSelection}
+            onPointerDown={preserveTextSelection}
+            onValueChange={(value) =>
+              applyFontToggleValues(value as DocxFontToggleValue[])
+            }
+          >
+            <ToolbarTooltip label="Bold">
+              <ToggleGroupItem aria-label="Bold" size="sm" value="bold">
+                <HugeiconsIcon icon={TextBoldIcon} className="size-4" />
+              </ToggleGroupItem>
+            </ToolbarTooltip>
+            <ToolbarTooltip label="Italic">
+              <ToggleGroupItem aria-label="Italic" size="sm" value="italic">
+                <HugeiconsIcon icon={TextItalicIcon} className="size-4" />
+              </ToggleGroupItem>
+            </ToolbarTooltip>
+            <ToolbarTooltip label="Underline">
+              <ToggleGroupItem
+                aria-label="Underline"
+                size="sm"
+                value="underline"
+              >
+                <HugeiconsIcon icon={TextUnderlineIcon} className="size-4" />
+              </ToggleGroupItem>
+            </ToolbarTooltip>
+            <ToolbarTooltip label="Strikethrough">
+              <ToggleGroupItem
+                aria-label="Strikethrough"
+                size="sm"
+                value="strike"
+              >
+                <HugeiconsIcon
+                  icon={TextStrikethroughIcon}
+                  className="size-4"
+                />
+              </ToggleGroupItem>
+            </ToolbarTooltip>
+            <ToolbarTooltip label="Superscript">
+              <ToggleGroupItem
+                aria-label="Superscript"
+                size="sm"
+                value="superscript"
+              >
+                <HugeiconsIcon icon={TextSuperscriptIcon} className="size-4" />
+              </ToggleGroupItem>
+            </ToolbarTooltip>
+            <ToolbarTooltip label="Subscript">
+              <ToggleGroupItem
+                aria-label="Subscript"
+                size="sm"
+                value="subscript"
+              >
+                <HugeiconsIcon icon={TextSubscriptIcon} className="size-4" />
+              </ToggleGroupItem>
+            </ToolbarTooltip>
+          </ToggleGroup>
+
+          <ToolbarSeparator />
 
           <div className="flex shrink-0 items-center gap-1">
             <ColorPicker
@@ -1219,6 +1276,8 @@ function DocxEditorToolbar({
             </ToolbarIconButton>
           </div>
 
+          <ToolbarSeparator />
+
           <div className="flex shrink-0 items-center gap-1">
             <ToolbarIconButton
               label="Align left"
@@ -1268,6 +1327,8 @@ function DocxEditorToolbar({
             </ToolbarIconButton>
           </div>
 
+          <ToolbarSeparator />
+
           <div className="flex shrink-0 items-center gap-1">
             <ToolbarIconButton
               label="Bulleted list"
@@ -1296,6 +1357,8 @@ function DocxEditorToolbar({
               />
             </ToolbarIconButton>
           </div>
+
+          <ToolbarSeparator />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -1340,6 +1403,8 @@ function DocxEditorToolbar({
             </DropdownMenuContent>
           </DropdownMenu>
 
+          <ToolbarSeparator />
+
           <div className="flex shrink-0 items-center gap-1">
             <ToolbarIconButton
               label="Insert image"
@@ -1362,6 +1427,8 @@ function DocxEditorToolbar({
               </div>
             </ToolbarTooltip>
           </div>
+
+          <ToolbarSeparator />
 
           <div className="ml-auto flex flex-none items-center gap-1">
             <ToolbarIconButton
