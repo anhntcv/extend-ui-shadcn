@@ -1072,11 +1072,13 @@ function EditorToolbar({
   onIsDarkChange,
   onUploadClick,
   showNightRenderToggle,
+  workbookIdentity,
 }: {
   isDark: boolean
   onIsDarkChange: (checked: boolean) => void
   onUploadClick: () => void
   showNightRenderToggle: boolean
+  workbookIdentity: string
 }) {
   const {
     activeSheet,
@@ -1105,6 +1107,7 @@ function EditorToolbar({
     setCellFormula,
     setCellValue,
     setRangeStyle,
+    setSelectedCellStyle,
     undo,
     unmergeSelection,
   } = useXlsxViewerEditing()
@@ -1120,6 +1123,11 @@ function EditorToolbar({
   const [appliedMergeRegions, setAppliedMergeRegions] = React.useState<
     XlsxMergeRegion[]
   >([])
+  const lastStyleTargetRef = React.useRef<{
+    range: XlsxCellRange
+    sheetIndex: number
+    workbookIdentity: string
+  } | null>(null)
   const formulaEditCellRef = React.useRef<typeof activeCell>(null)
   const formulaInitialValueRef = React.useRef("")
   const hasWorkbook = sheets.length > 0
@@ -1135,6 +1143,16 @@ function EditorToolbar({
       end: activeCell,
     }
   }, [activeCell, selection])
+
+  React.useEffect(() => {
+    if (!activeRange) return
+
+    lastStyleTargetRef.current = {
+      range: activeRange,
+      sheetIndex: activeSheetIndex,
+      workbookIdentity,
+    }
+  }, [activeRange, activeSheetIndex, workbookIdentity])
   const worksheetMergeRegions = React.useMemo(() => {
     void revision
 
@@ -1255,30 +1273,78 @@ function EditorToolbar({
 
   const applyStyle = React.useCallback(
     (style: XlsxCellStyleInput) => {
-      if (!activeRange) return
+      const applyRangeStyle = (range: XlsxCellRange) => {
+        const normalizedRange = normalizeCellRange(range)
+        const targetRanges = [
+          normalizedRange,
+          ...mergeRegions.filter((mergeRegion) =>
+            rangesIntersect(normalizedRange, mergeRegion)
+          ),
+        ]
+        const uniqueTargetRanges = new Map<string, XlsxCellRange>()
 
-      const normalizedRange = normalizeCellRange(activeRange)
-      const targetRanges = [
-        normalizedRange,
-        ...mergeRegions.filter((mergeRegion) =>
-          rangesIntersect(normalizedRange, mergeRegion)
-        ),
-      ]
-      const uniqueTargetRanges = new Map<string, XlsxCellRange>()
+        targetRanges.forEach((targetRange) => {
+          const normalizedTargetRange = normalizeCellRange(targetRange)
+          uniqueTargetRanges.set(
+            getRangeKey(normalizedTargetRange),
+            normalizedTargetRange
+          )
+        })
 
-      targetRanges.forEach((targetRange) => {
-        const normalizedTargetRange = normalizeCellRange(targetRange)
-        uniqueTargetRanges.set(
-          getRangeKey(normalizedTargetRange),
-          normalizedTargetRange
-        )
-      })
+        uniqueTargetRanges.forEach((targetRange) => {
+          setRangeStyle(targetRange, style)
+        })
+      }
 
-      uniqueTargetRanges.forEach((targetRange) => {
-        setRangeStyle(targetRange, style)
-      })
+      if (selection) {
+        const normalizedSelection = normalizeCellRange(selection)
+
+        if (!isSingleCellRange(normalizedSelection)) {
+          applyRangeStyle(normalizedSelection)
+          return true
+        }
+
+        if (activeCell) {
+          setSelectedCellStyle(style)
+          return true
+        }
+
+        setCellStyle(normalizedSelection.start, style)
+        return true
+      }
+
+      if (activeCell) {
+        setSelectedCellStyle(style)
+        return true
+      }
+
+      const fallbackTarget = lastStyleTargetRef.current
+      const targetRange =
+        fallbackTarget?.sheetIndex === activeSheetIndex &&
+        fallbackTarget.workbookIdentity === workbookIdentity
+          ? fallbackTarget.range
+          : null
+
+      if (!targetRange) return false
+
+      if (isSingleCellRange(targetRange)) {
+        setCellStyle(normalizeCellRange(targetRange).start, style)
+        return true
+      }
+
+      applyRangeStyle(targetRange)
+      return true
     },
-    [activeRange, mergeRegions, setRangeStyle]
+    [
+      activeCell,
+      activeSheetIndex,
+      mergeRegions,
+      selection,
+      setCellStyle,
+      setRangeStyle,
+      setSelectedCellStyle,
+      workbookIdentity,
+    ]
   )
 
   const applyBorderAction = React.useCallback(
@@ -1564,8 +1630,11 @@ function EditorToolbar({
             <Select
               value={fontFamilyValue}
               onValueChange={(value) => {
-                setFontFamily(value)
-                applyStyle({ font: { name: value } })
+                if (!value) return
+
+                if (applyStyle({ font: { name: value } })) {
+                  setFontFamily(value)
+                }
               }}
               disabled={!canStyleSelection}
               modal={false}
@@ -2034,6 +2103,7 @@ export function XlsxEditorSurface({
         onIsDarkChange={onIsDarkChange}
         onUploadClick={onUploadClick}
         showNightRenderToggle={showNightRenderToggle}
+        workbookIdentity={workbookIdentity}
       />
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1 bg-muted/20">
