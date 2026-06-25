@@ -5,6 +5,7 @@ import Link from "next/link"
 import { type PageTreeFolder } from "@/lib/page-tree"
 import { source } from "@/lib/source"
 import { cn } from "@/lib/utils"
+import { withUiBasePath } from "@/lib/zone-path"
 import {
   Accordion,
   AccordionContent,
@@ -74,6 +75,10 @@ function ComponentsListWrapper() {
   )
 }
 
+function withMdxHrefBasePath(href: string | undefined) {
+  return href ? withUiBasePath(href) : href
+}
+
 export const mdxComponents = {
   h1: ({ className, ...props }: React.ComponentProps<"h1">) => (
     <h1
@@ -137,9 +142,10 @@ export const mdxComponents = {
       {...props}
     />
   ),
-  a: ({ className, ...props }: React.ComponentProps<"a">) => (
+  a: ({ className, href, ...props }: React.ComponentProps<"a">) => (
     <a
       className={cn("font-medium underline underline-offset-4", className)}
+      href={withMdxHrefBasePath(href)}
       {...props}
     />
   ),
