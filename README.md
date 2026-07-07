@@ -48,6 +48,9 @@ export default function Page() {
 }
 ```
 
+The `react-pdf` version of the PDF viewer is available at
+[pdf-viewer.tsx](https://github.com/extend-hq/ui/blob/2dd84954269e817a2c17a44c672ae801df1bfc3d/apps/v4/components/ui/pdf-viewer.tsx).
+
 Extend UI components are copied into your project as source, so you can adapt
 them to your app. Shared primitives such as `Button`, `Select`, `Dialog`,
 `ScrollArea`, and `Tooltip` are expected to use the primitives your app already
