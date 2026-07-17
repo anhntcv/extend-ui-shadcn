@@ -69,6 +69,7 @@ const PPTX_THUMBNAIL_LIST_PADDING = 12
 const PPTX_THUMBNAIL_ROW_ESTIMATE = 112
 const PPTX_THUMBNAIL_PREFETCH_ROWS = 0
 const PPTX_THUMBNAIL_FOLLOW_DELAY_MS = 250
+const PPTX_SCROLL_TOP_EPSILON_PX = 24
 const PPTX_INSTANT_NAVIGATION_TIMEOUT_MS = 250
 const PPTX_SMOOTH_NAVIGATION_TIMEOUT_MS = 1_000
 const ZOOM_OPTIONS = [25, 50, 75, 100, 125, 150, 175, 200, 300, 400] as const
@@ -1056,6 +1057,64 @@ export function PptxViewerPreview({
     },
     []
   )
+  const syncFirstSlideAtViewportTop = React.useCallback(
+    (viewport: HTMLDivElement) => {
+      if (viewport.scrollTop > PPTX_SCROLL_TOP_EPSILON_PX) return
+
+      setActiveSlideIndex((currentSlideIndex) =>
+        currentSlideIndex === 0 ? currentSlideIndex : 0
+      )
+
+      const controller = viewer.controller
+      if (!isLoading && controller && controller.getSlideIndex() !== 0) {
+        void controller.goToSlide(0, {
+          behavior: "instant",
+          block: "start",
+        })
+      }
+    },
+    [isLoading, viewer.controller]
+  )
+  const handleViewerUserScrollIntent = React.useCallback(
+    (event: React.SyntheticEvent<HTMLDivElement>) => {
+      const viewport = event.currentTarget
+
+      // Stop an in-flight native smooth scroll before manual wheel, touch,
+      // pointer, or keyboard input takes ownership of the viewport.
+      viewport.scrollTo({
+        behavior: "instant",
+        left: viewport.scrollLeft,
+        top: viewport.scrollTop,
+      })
+      cancelPendingSlideNavigation()
+      syncFirstSlideAtViewportTop(viewport)
+    },
+    [cancelPendingSlideNavigation, syncFirstSlideAtViewportTop]
+  )
+  const handleViewerScroll = React.useCallback(
+    (event: React.UIEvent<HTMLDivElement>) => {
+      if (pendingSlideNavigationRef.current) return
+      syncFirstSlideAtViewportTop(event.currentTarget)
+    },
+    [syncFirstSlideAtViewportTop]
+  )
+  const handleViewerKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (
+        event.key === "ArrowDown" ||
+        event.key === "ArrowUp" ||
+        event.key === "End" ||
+        event.key === "Home" ||
+        event.key === "PageDown" ||
+        event.key === "PageUp" ||
+        event.key === " " ||
+        event.key === "Spacebar"
+      ) {
+        handleViewerUserScrollIntent(event)
+      }
+    },
+    [handleViewerUserScrollIntent]
+  )
 
   const handleLoad = React.useCallback((presentation: ParsedPresentation) => {
     const nextSlideCount = presentation.document.slides.length
@@ -1169,6 +1228,11 @@ export function PptxViewerPreview({
           viewportClassName="p-0"
           viewportProps={{
             "aria-label": "PowerPoint presentation",
+            onKeyDown: handleViewerKeyDown,
+            onPointerDown: handleViewerUserScrollIntent,
+            onScroll: handleViewerScroll,
+            onTouchStart: handleViewerUserScrollIntent,
+            onWheel: handleViewerUserScrollIntent,
             tabIndex: 0,
           }}
           viewportRef={setViewportElement}
