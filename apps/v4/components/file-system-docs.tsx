@@ -11,7 +11,6 @@ import {
   type FileSystemProps,
 } from "@/components/ui/file-system"
 import { DocsViewCodeBlock } from "@/components/docs-code-block"
-import { FileSystemSourceCode } from "@/components/file-system-source-code"
 import {
   getPdfPageCount,
   renderPdfThumbnailUrl,
@@ -22,9 +21,11 @@ const DOCX_MIME_TYPE =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 const XLSX_MIME_TYPE =
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+const PPTX_MIME_TYPE =
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation"
 const THUMBNAIL_WIDTH = 360
 
-type DemoThumbnailKind = "docx" | "pdf" | "url" | "xlsx"
+type DemoThumbnailKind = "docx" | "none" | "pdf" | "url" | "xlsx"
 
 type DemoSource = {
   contentType: string
@@ -86,6 +87,16 @@ const DEMO_SOURCES: DemoSource[] = [
     thumbnail: "xlsx",
     updatedAt: "2026-02-24T08:52:48Z",
     url: withUiBasePath("/samples/crazy-chart-zoo.xlsx"),
+  },
+  {
+    contentType: PPTX_MIME_TYPE,
+    createdAt: "2026-07-16T17:31:45Z",
+    path: "Consulting proposal.pptx",
+    previewAspectRatio: 16 / 9,
+    size: 8840652,
+    thumbnail: "none",
+    updatedAt: "2026-07-16T17:31:45Z",
+    url: withUiBasePath("/samples/demo.pptx"),
   },
   {
     contentType: "image/png",
@@ -528,7 +539,3 @@ export function DocumentsBrowser() {
     />
   )
 }`
-
-export function FileSystemSource() {
-  return <FileSystemSourceCode />
-}

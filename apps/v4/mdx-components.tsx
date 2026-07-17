@@ -40,7 +40,8 @@ import {
 import { DocxEditorDemo, DocxEditorSource } from "@/components/docx-editor-docs"
 import { DocxViewerDemo, DocxViewerSource } from "@/components/docx-viewer-docs"
 import { ESignatureDemo, ESignatureSource } from "@/components/e-signature-docs"
-import { FileSystemDemo, FileSystemSource } from "@/components/file-system-docs"
+import { FileSystemDemo } from "@/components/file-system-docs"
+import { FileSystemSource } from "@/components/file-system-source-code"
 import {
   FileThumbnailDemo,
   FileThumbnailSource,
@@ -49,6 +50,7 @@ import { FileUploadDemo, FileUploadSource } from "@/components/file-upload-docs"
 import { getIconForLanguageExtension } from "@/components/icons"
 import { OcrBlocksDemo, OcrBlocksSource } from "@/components/layout-blocks-docs"
 import { PdfViewerDemo, PdfViewerSource } from "@/components/pdf-viewer-docs"
+import { PptxViewerDemo, PptxViewerSource } from "@/components/pptx-viewer-docs"
 import {
   SchemaBuilderDemo,
   SchemaBuilderSource,
@@ -406,6 +408,8 @@ export const mdxComponents = {
   OcrBlocksSource,
   PdfViewerDemo,
   PdfViewerSource,
+  PptxViewerDemo,
+  PptxViewerSource,
   XlsxEditorDemo,
   XlsxEditorSource,
   XlsxViewerDemo,

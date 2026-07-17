@@ -85,6 +85,11 @@ const LazyDocxViewerPreview = React.lazy(() =>
     default: mod.DocxViewerPreview,
   }))
 )
+const LazyPptxViewerPreview = React.lazy(() =>
+  import("@/components/ui/pptx-viewer").then((mod) => ({
+    default: mod.PptxViewerPreview,
+  }))
+)
 const LazyXlsxViewerPreview = React.lazy(() =>
   import("@/components/ui/xlsx-viewer").then((mod) => ({
     default: mod.XlsxViewerPreview,
@@ -163,7 +168,7 @@ export type FileSystemProps = {
   onSelectionChange?: (item: FileSystemItem | null) => void
   /**
    * Called on file open (double-click), replacing the built-in behavior. By
-   * default PDF, DOCX, XLSX, and image files open in a viewer dialog and
+   * default PDF, DOCX, PPTX, XLSX, and image files open in a viewer dialog and
    * other files open their resolved URL in a new tab.
    */
   onFileOpen?: (file: FileSystemFileItem, url: string | null) => void
@@ -412,30 +417,38 @@ function fileTypeFilterGroup(mime: string): FileTypeFilterGroup {
   return "Archives & binary"
 }
 
-export type FileSystemViewerKind = "docx" | "image" | "pdf" | "xlsx"
+export type FileSystemViewerKind = "docx" | "image" | "pdf" | "pptx" | "xlsx"
 
 function viewerKindForFile(
   file: FileSystemFileItem
 ): FileSystemViewerKind | null {
   if (file.contentType?.startsWith("image/")) return "image"
   if (file.contentType === "application/pdf") return "pdf"
+  if (
+    file.contentType ===
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+  ) {
+    return "pptx"
+  }
 
   const name = (file.name ?? file.path).toLowerCase()
 
   if (name.endsWith(".pdf")) return "pdf"
   if (name.endsWith(".docx")) return "docx"
+  if (name.endsWith(".pptx")) return "pptx"
   if (name.endsWith(".xlsx")) return "xlsx"
   if (/\.(avif|gif|jpe?g|png|svg|webp)$/.test(name)) return "image"
 
   return null
 }
 
-// PDF and DOCX pages want height; spreadsheets want width; images get a
-// roomy but contained frame.
+// PDF and Word pages want height; presentations and spreadsheets want width;
+// images get a roomy but contained frame.
 const VIEWER_DIALOG_CLASSNAMES: Record<FileSystemViewerKind, string> = {
   docx: "h-[88vh] w-[min(96vw,68rem)] max-w-none",
   image: "max-h-[88vh] w-fit max-w-[min(96vw,64rem)]",
   pdf: "h-[88vh] w-[min(96vw,68rem)] max-w-none",
+  pptx: "h-[88vh] w-[min(96vw,84rem)] max-w-none",
   xlsx: "h-[85vh] w-[min(96vw,100rem)] max-w-none",
 }
 
@@ -4857,6 +4870,26 @@ function FileSystemGalleryStage({
               isDialog && "overflow-hidden rounded-2xl"
             )}
             onIsDarkChange={setIsDark}
+            showToolbar={isDialog}
+            showUpload={false}
+            toolbarActions={toolbarActions}
+          />
+        </React.Suspense>
+      </div>
+    )
+  }
+  if (viewerKind === "pptx" && url) {
+    return (
+      <div className={viewerFrameClassName}>
+        <React.Suspense fallback={<FileSystemViewerLoading />}>
+          <LazyPptxViewerPreview
+            src={url}
+            fileName={file.name}
+            defaultThumbnailSidebarOpen={false}
+            className={cn(
+              "h-full min-h-0",
+              isDialog && "overflow-hidden rounded-2xl"
+            )}
             showToolbar={isDialog}
             showUpload={false}
             toolbarActions={toolbarActions}

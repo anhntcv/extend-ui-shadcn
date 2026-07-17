@@ -1,6 +1,6 @@
 "use client"
 
-import type React from "react"
+import * as React from "react"
 import { ScrollArea as ScrollAreaPrimitive } from "@base-ui/react/scroll-area"
 
 import { cn } from "@/lib/utils"
@@ -31,6 +31,10 @@ export function ScrollArea({
     ref: viewportPropsRef,
     ...resolvedViewportProps
   } = viewportProps ?? {}
+  const composedViewportRef = React.useMemo(
+    () => composeRefs(viewportPropsRef, viewportRef),
+    [viewportPropsRef, viewportRef]
+  )
 
   return (
     <ScrollAreaPrimitive.Root
@@ -44,7 +48,7 @@ export function ScrollArea({
       <ScrollAreaPrimitive.Viewport
         key={viewportKey}
         {...resolvedViewportProps}
-        ref={composeRefs(viewportPropsRef, viewportRef)}
+        ref={composedViewportRef}
         className={cn(
           "transition-shadows h-full rounded-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background data-has-overflow-x:overscroll-x-contain data-has-overflow-y:overscroll-y-contain",
           scrollFade &&
